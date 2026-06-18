@@ -1,0 +1,10 @@
+{
+  "admin_title": "ADMIN",
+  "tab_efir": "🎙 Broadcast",
+  "tab_anons": "📢 Announcements",
+  "drafts_title": "AI Drafts (for approval)",
+  "drafts_sub": "AI collected chat and proposed a broadcast. Edit and approve — text will go on air.",
+  "drafts_empty": "No drafts. AI is still collecting studio requests…",
+  "anons_editor_title": "Announcement windows (start screen)",
+  "anons_editor_placeholder": "Announcement editor (coming soon)"
+}

@@ -1,0 +1,23 @@
+{
+  "stream_realtime": "SRAUTAS REAL TIME",
+  "stream_active": "SRAUTAS AKTYVUS",
+  "activation": "SRAUTO AKTYVAVIMAS",
+  "ai_host": "🤖 DI VEDĖJAS",
+  "chat_title": "💬 GYVAS POKALBIS",
+  "chat_placeholder": "Žinutė...",
+  "send_to_chat": "Siųsti į pokalbį",
+  "send_to_studio": "Siųsti į studiją",
+  "voice_message": "Balso žinutė",
+  "go_live": "🔴 PRADĖTI TIESIOGINĘ",
+  "end_live": "⏹ BAIGTI ETERĮ",
+  "toast_sent_chat": "✅ Išsiųsta į pokalbį!",
+  "toast_sent_studio": "🎙 Paraiška išsiųsta į studiją!",
+  "toast_mic_denied": "Nėra prieigos prie mikrofono",
+  "toast_recording": "🎤 Įrašoma... paspauskite dar kartą",
+  "toast_processing": "⏳ Siunčiama...",
+  "toast_accepted": "✅ Priimta!",
+  "toast_short": "⚠️ Per trumpa, bandykite dar kartą",
+  "toast_limit": "⚠️ Nepakanka taškų balanse",
+  "studio_denied_role": "🔒 Studija prieinama nuo \"Aktyvaus\" vaidmens",
+  "voice_ready": "🎤 Balsas įrašytas - pasirinkite, kur siųsti:"
+}

@@ -1,0 +1,23 @@
+{
+  "stream_realtime": "REAL TIME STREAM",
+  "stream_active": "STREAM ACTIVE",
+  "activation": "STREAM ACTIVATION",
+  "ai_host": "🤖 AI HOST",
+  "chat_title": "💬 LIVE CHAT",
+  "chat_placeholder": "Message...",
+  "send_to_chat": "Send to chat",
+  "send_to_studio": "Send to studio",
+  "voice_message": "Voice message",
+  "go_live": "🔴 GO LIVE",
+  "end_live": "⏹ END BROADCAST",
+  "toast_sent_chat": "✅ Sent to chat!",
+  "toast_sent_studio": "🎙 Request sent to studio!",
+  "toast_mic_denied": "No microphone access",
+  "toast_recording": "🎤 Recording... tap again to stop",
+  "toast_processing": "⏳ Sending...",
+  "toast_accepted": "✅ Accepted!",
+  "toast_short": "⚠️ Too short, please try again",
+  "toast_limit": "⚠️ Not enough points on balance",
+  "studio_denied_role": "🔒 Studio available from the \"Active\" role",
+  "voice_ready": "🎤 Voice recorded - choose where to send:"
+}

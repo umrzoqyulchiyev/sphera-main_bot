@@ -1,0 +1,67 @@
+<icecast>
+    <location>Earth</location>
+    <admin>admin@radio.local</admin>
+
+    <limits>
+        <clients>1000</clients>
+        <sources>10</sources>
+        <queue-size>524288</queue-size>
+        <client-timeout>30</client-timeout>
+        <header-timeout>15</header-timeout>
+        <source-timeout>10</source-timeout>
+        <burst-on-connect>1</burst-on-connect>
+        <burst-size>65535</burst-size>
+    </limits>
+
+    <authentication>
+        <!-- Источник (FFmpeg) пушит сюда. Пароль из .env ICECAST_PASS -->
+        <source-password>IcecastPass2025!</source-password>
+        <relay-password>IcecastPass2025!</relay-password>
+        <admin-user>admin</admin-user>
+        <admin-password>IcecastAdmin2025!</admin-password>
+    </authentication>
+
+    <hostname>localhost</hostname>
+
+    <listen-socket>
+        <port>8000</port>
+    </listen-socket>
+
+    <!-- ============ Мультипоток: 3 параллельных потока ============ -->
+    <!-- Русский эфир -->
+    <mount type="normal">
+        <mount-name>/live_ru</mount-name>
+        <public>1</public>
+        <stream-name>Radio AI — Русский</stream-name>
+    </mount>
+
+    <!-- Литовский эфир -->
+    <mount type="normal">
+        <mount-name>/live_lt</mount-name>
+        <public>1</public>
+        <stream-name>Radio AI — Lietuvių</stream-name>
+    </mount>
+
+    <!-- Английский эфир -->
+    <mount type="normal">
+        <mount-name>/live_en</mount-name>
+        <public>1</public>
+        <stream-name>Radio AI — English</stream-name>
+    </mount>
+
+    <fileserve>1</fileserve>
+
+    <paths>
+        <logdir>/var/log/icecast2</logdir>
+        <webroot>/usr/share/icecast2/web</webroot>
+        <adminroot>/usr/share/icecast2/admin</adminroot>
+        <alias source="/" destination="/status.xsl"/>
+    </paths>
+
+    <logging>
+        <accesslog>access.log</accesslog>
+        <errorlog>error.log</errorlog>
+        <loglevel>3</loglevel>
+        <logsize>10000</logsize>
+    </logging>
+</icecast>

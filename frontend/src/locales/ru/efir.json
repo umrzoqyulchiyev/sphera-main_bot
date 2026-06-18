@@ -1,0 +1,23 @@
+{
+  "stream_realtime": "ПОТОК REAL TIME",
+  "stream_active": "ПОТОК АКТИВЕН",
+  "activation": "АКТИВАЦИЯ ПОТОКА",
+  "ai_host": "🤖 ИИ ВЕДУЩИЙ",
+  "chat_title": "💬 ЖИВОЙ ЧАТ",
+  "chat_placeholder": "Сообщение...",
+  "send_to_chat": "Отправить в чат",
+  "send_to_studio": "Отправить в студию",
+  "voice_message": "Голосовое сообщение",
+  "go_live": "🔴 ВЫЙТИ В ПРЯМОЙ ЭФИР",
+  "end_live": "⏹ ЗАВЕРШИТЬ ЭФИР",
+  "toast_sent_chat": "✅ Отправлено в чат!",
+  "toast_sent_studio": "🎙 Заявка отправлена в студию!",
+  "toast_mic_denied": "Нет доступа к микрофону",
+  "toast_recording": "🎤 Запись... нажмите снова чтобы остановить",
+  "toast_processing": "⏳ Отправка...",
+  "toast_accepted": "✅ Принято!",
+  "toast_short": "⚠️ Слишком коротко, попробуйте ещё раз",
+  "toast_limit": "⚠️ Недостаточно поинтов на балансе",
+  "studio_denied_role": "🔒 Студия доступна с роли \"Активный\"",
+  "voice_ready": "🎤 Голос записан - выберите, куда отправить:"
+}

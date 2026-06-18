@@ -1,0 +1,10 @@
+{
+  "admin_title": "ADMIN",
+  "tab_efir": "🎙 Eteris",
+  "tab_anons": "📢 Anonsai",
+  "drafts_title": "DI juodraščiai (tvirtinimui)",
+  "drafts_sub": "DI surinko pokalbį ir pasiūlė laidą. Redaguokite ir patvirtinkite — tekstas bus transliuojamas.",
+  "drafts_empty": "Nėra juodraščių. DI dar renka studijos paraiškas…",
+  "anons_editor_title": "Skelbimų langai (pradinis ekranas)",
+  "anons_editor_placeholder": "Skelbimų redaktorius (netrukus)"
+}

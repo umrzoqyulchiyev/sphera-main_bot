@@ -1,0 +1,95 @@
+name: CI — Lint, Test, Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  SECRET_KEY: ci_test_secret_key_32chars_long_enough
+  DISABLE_GROUP_CHECK: "true"
+  ADMIN_IDS: "123456"
+  DEBUG: "true"
+  REDIS_URL: redis://localhost:6379/0
+  DB_HOST: localhost
+  DB_PORT: "5432"
+  DB_USER: postgres
+  DB_PASS: postgres
+  DB_NAME: radio_db_test
+
+jobs:
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff check
+        run: cd backend && ruff check app/ tests/
+      - name: Run ruff format check
+        run: cd backend && ruff format --check app/ tests/
+
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: radio_db_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install poetry
+          poetry config virtualenvs.create false
+          poetry install --without dev
+          pip install pytest pytest-asyncio httpx ruff
+
+      - name: Apply schema
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d radio_db_test \
+            -f backend/app/db/schema.sql
+
+      - name: Run tests
+        run: cd backend && python -m pytest tests/ -v --tb=short
+
+  build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t intra-group-backend:ci ./backend
+      - name: Verify image
+        run: docker run --rm intra-group-backend:ci python -c "from app.core.config import Settings; print('OK')"

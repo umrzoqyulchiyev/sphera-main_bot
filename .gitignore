@@ -1,0 +1,41 @@
+# ── Secrets ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+frontend/.env
+*.key
+*.pem
+secrets/
+*.secret
+
+# ── Python ───────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+.pytest_cache/
+
+# ── Dev runtime ──────────────────────────────────────────
+.logs/
+.pgdata/
+bin/cloudflared
+/tmp/sphera_*
+
+# ── Media (yuklangan ovoz/audio) ─────────────────────────
+*.mp3
+*.wav
+*.webm
+
+# ── Frontend ─────────────────────────────────────────────
+frontend/dist/
+frontend/node_modules/
+
+# ── IDE ──────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Test artefaktlari ────────────────────────────────────
+.test*.txt
+.final_test.txt

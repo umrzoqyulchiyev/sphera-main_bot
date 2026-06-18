@@ -1,0 +1,300 @@
+"""Chat router — INTRA GROUP v3.0.
+
+- Matn xabar: -0.001 point
+- Ovozli xabar: -0.005 point
+- WebSocket real-time
+- Point yetmasa — xabar yuborilmaydi
+"""
+
+import asyncio
+import logging
+import os
+import uuid
+from datetime import datetime
+
+from fastapi import (
+    APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query,
+    UploadFile, File,
+)
+from fastapi.responses import FileResponse
+
+from app.core.database import db
+from app.core.config import settings
+from app.core.models import ChatMessageRequest, ChatMessageOut, OkResponse
+from app.core.dependencies import get_current_user, decode_token
+from app.core.ws_manager import manager
+from app.services import points as points_service
+
+log = logging.getLogger("chat")
+
+router = APIRouter(prefix="/chat", tags=["chat"])
+
+# Ovozli xabar uchun ruxsat etilgan formatlar
+_ALLOWED_AUDIO = {".webm", ".ogg", ".mp3", ".m4a", ".wav", ".oga"}
+
+
+def _display_name(user: dict) -> str:
+    return user.get("display_name") or user.get("username") or user.get("full_name") or f"id{user['telegram_id']}"
+
+
+async def _convert_to_mp3(src_path: str, uid: str) -> str:
+    """Audio faylni MP3 ga konvert qiladi (ffmpeg).
+
+    Muvaffaqiyatli bo'lsa MP3 fayl nomini qaytaradi va asl faylni o'chiradi.
+    Xato bo'lsa — asl fayl nomi qaytariladi (fallback).
+    """
+    mp3_fname = f"voice_{uid}.mp3"
+    mp3_fpath = os.path.join(settings.upload_dir, mp3_fname)
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-y", "-i", src_path,
+            "-vn", "-acodec", "libmp3lame", "-b:a", "64k",
+            mp3_fpath,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await proc.wait()
+        if proc.returncode == 0 and os.path.isfile(mp3_fpath) and os.path.getsize(mp3_fpath) > 0:
+            # Asl faylni tozalaymiz
+            try:
+                os.remove(src_path)
+            except OSError:
+                pass
+            return mp3_fname
+        log.warning("ffmpeg conversion failed (rc=%s), keeping original", proc.returncode)
+    except FileNotFoundError:
+        log.warning("ffmpeg not found, keeping original audio format")
+    except Exception as exc:
+        log.warning("ffmpeg conversion error: %s, keeping original", exc)
+    return os.path.basename(src_path)
+
+
+@router.get("/history", response_model=list[ChatMessageOut])
+async def get_chat_history(limit: int = 50):
+    """Oxirgi chat xabarlari."""
+    rows = await db.fetch(
+        """
+        SELECT c.id, u.username, u.display_name, c.message, c.message_type,
+               c.audio_file_path, c.created_at
+        FROM chat_messages c
+        LEFT JOIN users u ON u.id = c.user_id
+        ORDER BY c.created_at DESC
+        LIMIT $1
+        """,
+        limit,
+    )
+    rows = list(reversed(rows))
+    out = []
+    for r in rows:
+        voice_url = None
+        if r["message_type"] == "voice" and r["audio_file_path"]:
+            # Relative (same-origin) URL — Telegram WebApp tunnel orqali ishlaydi
+            voice_url = f"/chat/voice/{r['audio_file_path']}"
+        out.append(ChatMessageOut(
+            id=r["id"],
+            username=r["username"],
+            display_name=r["display_name"],
+            message=r["message"],
+            message_type=r["message_type"] or "text",
+            voice_url=voice_url,
+            created_at=r["created_at"],
+        ))
+    return out
+
+
+@router.post("/send", response_model=OkResponse)
+async def send_message(
+    payload: ChatMessageRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Matn xabar yuborish — 0.001 point sarflanadi."""
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="Empty message")
+
+    # Point sarflash
+    spent = await points_service.spend_text(user["id"])
+    if not spent["ok"]:
+        raise HTTPException(
+            status_code=402,
+            detail={"error": "insufficient_points", "points": str(spent["points"])},
+        )
+
+    row = await db.fetchrow(
+        """
+        INSERT INTO chat_messages (user_id, message, message_type)
+        VALUES ($1, $2, 'text')
+        RETURNING id, created_at
+        """,
+        user["id"], payload.message.strip(),
+    )
+
+    # Broadcast
+    await manager.broadcast("global", {
+        "type": "chat",
+        "data": {
+            "id": row["id"],
+            "username": user["username"],
+            "display_name": _display_name(user),
+            "message": payload.message.strip(),
+            "message_type": "text",
+            "created_at": row["created_at"].isoformat(),
+        },
+    })
+
+    return OkResponse(detail={"points": str(spent["points"])})
+
+
+# ============ Ovozli xabar (chatga) — 0.005 point ============
+@router.post("/voice", response_model=OkResponse)
+async def send_voice(
+    audio_file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
+):
+    """Chatga ovozli xabar yuborish — 0.005 point sarflanadi."""
+    # Format tekshiruvi
+    ext = os.path.splitext(audio_file.filename or "")[1].lower() or ".webm"
+    if ext not in _ALLOWED_AUDIO:
+        raise HTTPException(status_code=400, detail="Unsupported audio format")
+
+    # Point sarflash (0.005)
+    spent = await points_service.spend_voice(user["id"])
+    if not spent["ok"]:
+        raise HTTPException(
+            status_code=402,
+            detail={"error": "insufficient_points", "points": str(spent["points"])},
+        )
+
+    # Faylni saqlash
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    content = await audio_file.read()
+    if len(content) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large")
+
+    uid = uuid.uuid4().hex
+    raw_fname = f"voice_{uid}{ext}"
+    raw_fpath = os.path.join(settings.upload_dir, raw_fname)
+    with open(raw_fpath, "wb") as f:
+        f.write(content)
+
+    # Universal MP3 ga konvertatsiya — barcha brauzer/Telegram WebView ijro etadi.
+    # (webm/ogg ba'zi platformalarda, ayniqsa iOS, ishlamaydi)
+    fname = await _convert_to_mp3(raw_fpath, uid)
+
+    row = await db.fetchrow(
+        """
+        INSERT INTO chat_messages (user_id, message, message_type, audio_file_path)
+        VALUES ($1, '', 'voice', $2)
+        RETURNING id, created_at
+        """,
+        user["id"], fname,
+    )
+
+    voice_url = f"/chat/voice/{fname}"
+    # Relative (same-origin) URL — Telegram WebApp tunnel orqali ishlaydi
+    full_voice_url = voice_url
+
+    await manager.broadcast("global", {
+        "type": "chat",
+        "data": {
+            "id": row["id"],
+            "username": user["username"],
+            "display_name": _display_name(user),
+            "message": "",
+            "message_type": "voice",
+            "voice_url": full_voice_url,
+            "created_at": row["created_at"].isoformat(),
+        },
+    })
+
+    return OkResponse(detail={"points": str(spent["points"]), "voice_url": full_voice_url})
+
+
+@router.get("/voice/{filename}")
+async def get_voice(filename: str):
+    """Ovozli xabar faylini qaytaradi."""
+    safe = os.path.basename(filename)
+    fpath = os.path.join(settings.upload_dir, safe)
+    if not os.path.isfile(fpath):
+        raise HTTPException(status_code=404, detail="Voice not found")
+    ext = os.path.splitext(safe)[1].lower()
+    media_types = {
+        ".webm": "audio/webm",
+        ".ogg": "audio/ogg",
+        ".oga": "audio/ogg",
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".wav": "audio/wav",
+    }
+    media_type = media_types.get(ext, "audio/webm")
+    return FileResponse(fpath, media_type=media_type)
+
+
+@router.websocket("/ws")
+async def chat_ws(websocket: WebSocket, token: str = Query(...)):
+    """Real-time chat WebSocket."""
+    try:
+        telegram_id = decode_token(token)
+    except HTTPException:
+        await websocket.close(code=4401)
+        return
+
+    user = await db.fetchrow(
+        "SELECT * FROM users WHERE telegram_id = $1", telegram_id
+    )
+    if user is None:
+        await websocket.close(code=4401)
+        return
+
+    await manager.connect("global", websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+
+            if msg_type == "chat":
+                message = (data.get("message") or "").strip()
+                if not message:
+                    continue
+
+                spent = await points_service.spend_text(user["id"])
+                if not spent["ok"]:
+                    await websocket.send_json({
+                        "type": "error",
+                        "data": {"error": "insufficient_points", "points": str(spent["points"])},
+                    })
+                    continue
+
+                row = await db.fetchrow(
+                    """
+                    INSERT INTO chat_messages (user_id, message, message_type)
+                    VALUES ($1, $2, 'text')
+                    RETURNING id, created_at
+                    """,
+                    user["id"], message,
+                )
+
+                await manager.broadcast("global", {
+                    "type": "chat",
+                    "data": {
+                        "id": row["id"],
+                        "username": user["username"],
+                        "display_name": user["display_name"] or user["full_name"],
+                        "message": message,
+                        "message_type": "text",
+                        "created_at": row["created_at"].isoformat(),
+                    },
+                })
+
+                await websocket.send_json({
+                    "type": "balance",
+                    "data": {"points": str(spent["points"])},
+                })
+
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        manager.disconnect("global", websocket)
+    except Exception:
+        manager.disconnect("global", websocket)

@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #060a14;
+    --bg2: #0a1020;
+    --card: rgba(18, 28, 48, 0.55);
+    --card-solid: #0e1729;
+    --glass-border: rgba(80, 160, 255, 0.18);
+    --accent: #2ea8ff;
+    --accent2: #38e1ff;
+    --glow: rgba(46, 168, 255, 0.55);
+    --text: #dbe9ff;
+    --muted: #6b7c9e;
+    --green: #22e3a5;
+    --red: #ff4d6d;
+    --app-vh: 100vh;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(46, 168, 255, 0.12), transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, rgba(46, 168, 255, 0.08), transparent 60%), var(--bg);
+    color: var(--text);
+    letter-spacing: 0.3px;
+    overscroll-behavior: none;
+    overflow: hidden;          /* body scroll qilmaydi — ichki div qiladi */
+    -webkit-text-size-adjust: 100%;
+    height: 100%;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Range slider styling */
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 10px var(--glow);
+    cursor: pointer;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 10px var(--glow);
+    cursor: pointer;
+    border: none;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--card);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 28px rgba(0, 0, 0, 0.45);
+  }
+  
+  /* Liquid Glass - enhanced version */
+  .liquid-glass {
+    background: linear-gradient(135deg, 
+      rgba(15, 30, 60, 0.7) 0%, 
+      rgba(10, 20, 40, 0.85) 50%, 
+      rgba(15, 30, 60, 0.7) 100%
+    );
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 217, 255, 0.1),
+      0 0 0 1px rgba(0, 217, 255, 0.05);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 16px var(--glow);
+  }
+  
+  .text-glow-strong {
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.8), 0 0 40px rgba(0, 217, 255, 0.4);
+  }
+  
+  /* Glassmorphism navbar (legacy) */
+  .glass-nav {
+    background: rgba(10, 20, 40, 0.8);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Scrollbar yashirin — lekin scroll ISHLAYDI (mouse wheel + touch) */
+  *::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+}
+
+/* Animations for Splash page */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.05;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.animate-pulse {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
