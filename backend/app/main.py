@@ -22,7 +22,7 @@ from app.core.logging_config import setup_logging
 from app.core.database import db
 from app.core import redis as redis_client
 from app.core.middleware import RequestLoggingMiddleware
-from app.api.routers import auth, users, chat, admin, news, messages, radio
+from app.api.routers import auth, users, chat, admin, news, messages, radio, voicechat, opinions, stats, favorites
 
 setup_logging(debug=settings.debug)
 log = logging.getLogger("app")
@@ -46,11 +46,21 @@ async def lifespan(app: FastAPI):
     from app.services import continuous
     await continuous.start()
 
+    # 5. AI radio host — efirni uzluksiz kontent bilan to'ldiradi (USE_ICECAST=true)
+    from app.services import ai_host
+    await ai_host.start()
+
+    # 6. Voice Chat userbot (Telegram guruh ovozli chati — Boss talabi)
+    from app.services import voicechat
+    await voicechat.start()
+
     log.info("Application started successfully")
     yield
 
     # Shutdown
     log.info("Shutting down...")
+    await voicechat.stop()
+    await ai_host.stop()
     await continuous.stop()
     await redis_client.disconnect()
     await db.disconnect()
@@ -104,6 +114,10 @@ app.include_router(news.router)
 app.include_router(admin.router)
 app.include_router(messages.router)
 app.include_router(radio.router)
+app.include_router(voicechat.router)
+app.include_router(opinions.router)
+app.include_router(stats.router)
+app.include_router(favorites.router)
 
 
 # Global exception handler

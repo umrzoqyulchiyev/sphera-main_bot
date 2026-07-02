@@ -24,6 +24,8 @@ bin/cloudflared
 /tmp/sphera_*
 
 # ── Media (yuklangan ovoz/audio) ─────────────────────────
+/.uploads/
+/.audio/
 *.mp3
 *.wav
 *.webm

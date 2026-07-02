@@ -23,6 +23,7 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     KeyboardButton,
+    LabeledPrice,
 )
 from telegram.ext import (
     Application,
@@ -30,6 +31,7 @@ from telegram.ext import (
     MessageHandler,
     ConversationHandler,
     CallbackQueryHandler,
+    PreCheckoutQueryHandler,
     ContextTypes,
     filters,
 )
@@ -43,6 +45,8 @@ log = logging.getLogger("telegram-bot")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://app.sfera5.world")
 INTERNAL_API_URL = os.getenv("INTERNAL_API_URL", "http://radio-api:8001")
+PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN", "")
+PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "XTR")  # XTR = Telegram Stars
 ADMIN_IDS = {
     int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()
 }
@@ -54,10 +58,10 @@ TOPIC, DESCRIPTION, EXTRA = range(3)
 TEXTS = {
     "ru": {
         "welcome": (
-            "🎙 *INTRA GROUP — Интерактивное радио*\n\n"
-            "Слушайте прямой эфир на своём языке и общайтесь в живом чате.\n"
-            "ИИ собирает заявки в студию и формирует мультиязычный эфир!\n\n"
-            "Нажмите кнопку ниже, чтобы открыть приложение 👇"
+            "🎙 *INTRA GROUP — Интерактивная платформа*\n\n"
+            "Отправляйте своё мнение по теме эфира — текстом или голосом.\n"
+            "ИИ соберёт все мнения и создаст живой эфир!\n\n"
+            "💎 Поинты, профиль и текущая тема — в приложении 👇"
         ),
         "studio_start":   "🎤 Отправить обращение в студию",
         "ask_topic":      "📌 Шаг 1/3 — Выберите тему обращения:",
@@ -85,6 +89,8 @@ TEXTS = {
             "/radio — Текущий статус эфира\n"
             "/profile — Ваш профиль и баллы\n"
             "/admin — Админ-панель\n"
+            "/efir — Управление Voice Chat (админ)\n"
+            "/mic <id> — Дать микрофон · /mute <id> — Забрать\n"
             "/help — Список команд"
         ),
     },
@@ -121,6 +127,8 @@ TEXTS = {
             "/radio — Current broadcast status\n"
             "/profile — Your profile & points\n"
             "/admin — Admin panel\n"
+            "/efir — Voice Chat control (admin)\n"
+            "/mic <id> — Grant mic · /mute <id> — Revoke\n"
             "/help — Commands list"
         ),
     },
@@ -157,6 +165,8 @@ TEXTS = {
             "/radio — Eterio statusas\n"
             "/profile — Profilis ir taškai\n"
             "/admin — Administravimas\n"
+            "/efir — Voice Chat valdymas (admin)\n"
+            "/mic <id> — Duoti mikrofoną · /mute <id> — Atimti\n"
             "/help — Komandų sąrašas"
         ),
     },
@@ -214,14 +224,122 @@ async def _get_user_token(telegram_id: int, username: str | None, full_name: str
     return None
 
 
+async def _auth_full(telegram_id: int, username: str | None, full_name: str | None) -> dict:
+    """Bitta so'rovда til + token + balans + level qaytaradi (start uchun)."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{INTERNAL_API_URL}/auth/telegram",
+                json={
+                    "telegram_id": telegram_id,
+                    "username": username,
+                    "full_name": full_name,
+                },
+                timeout=8,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return {}
+
+
 def tx(lang: str, key: str) -> str:
     return TEXTS.get(lang, TEXTS["ru"]).get(key, TEXTS["ru"].get(key, key))
+
+
+# ============================================================
+# POINT SOTIB OLISH — Telegram Payments (haqiqiy pul)
+# ============================================================
+POINT_PACKAGES = [
+    {"id": 1, "points": 100,  "price": 100,  "label": "100 поинтов"},
+    {"id": 2, "points": 500,  "price": 400,  "label": "500 поинтов"},
+    {"id": 3, "points": 1500, "price": 1000, "label": "1500 поинтов"},
+    {"id": 4, "points": 5000, "price": 2500, "label": "5000 поинтов"},
+]
+# price — Telegram Stars (XTR) miqdori (XTR uchun provider token kerak emas).
+
+
+async def buy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/buy — point paketlarini ko'rsatadi."""
+    lang = await _get_user_lang(update.effective_user.id)
+    title = {"ru": "💎 Купить поинты:", "en": "💎 Buy points:", "lt": "💎 Pirkti taškus:"}
+    rows = [[InlineKeyboardButton(f"{p['label']} — ⭐{p['price']}", callback_data=f"buy_{p['id']}")]
+            for p in POINT_PACKAGES]
+    await update.message.reply_text(title.get(lang, title["ru"]), reply_markup=InlineKeyboardMarkup(rows))
+
+
+async def buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Paket tanlandi — invoice yuboradi."""
+    query = update.callback_query
+    await query.answer()
+    pkg_id = int(query.data.split("_")[1])
+    pkg = next((p for p in POINT_PACKAGES if p["id"] == pkg_id), None)
+    if not pkg:
+        return
+    prices = [LabeledPrice(label=pkg["label"], amount=pkg["price"])]
+    try:
+        await context.bot.send_invoice(
+            chat_id=query.message.chat_id,
+            title=f"Radio AI — {pkg['label']}",
+            description=f"Пополнение баланса на {pkg['points']} поинтов",
+            payload=f"pkg_{pkg['id']}",
+            provider_token=PAYMENT_PROVIDER_TOKEN,
+            currency=PAYMENT_CURRENCY,
+            prices=prices,
+        )
+    except Exception as exc:
+        log.error("send_invoice failed: %s", exc)
+        await query.message.reply_text("⚠️ To'lov tizimi hozircha sozlanmagan.")
+
+
+async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """To'lovdan oldin tasdiqlash."""
+    query = update.pre_checkout_query
+    if query.invoice_payload.startswith("pkg_"):
+        await query.answer(ok=True)
+    else:
+        await query.answer(ok=False, error_message="Invalid payment")
+
+
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """To'lov muvaffaqiyatli — backend point qo'shadi (idempotent)."""
+    payment = update.message.successful_payment
+    user = update.effective_user
+    pkg_id = int(payment.invoice_payload.split("_")[1])
+    charge_id = payment.telegram_payment_charge_id
+
+    credited = False
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{INTERNAL_API_URL}/users/credit-purchase",
+                json={"telegram_id": user.id, "package_id": pkg_id, "charge_id": charge_id},
+                timeout=10,
+            )
+            credited = resp.status_code == 200
+    except Exception as exc:
+        log.error("credit-purchase failed: %s", exc)
+
+    lang = await _get_user_lang(user.id)
+    ok_msg = {"ru": "🎉 Оплата прошла! Поинты зачислены.",
+              "en": "🎉 Payment successful! Points added.",
+              "lt": "🎉 Apmokėta! Taškai pridėti."}
+    fail_msg = {"ru": "⚠️ Оплата прошла, зачисление задерживается.",
+                "en": "⚠️ Paid, crediting delayed.",
+                "lt": "⚠️ Apmokėta, įskaitymas vėluoja."}
+    msg = ok_msg.get(lang, ok_msg["ru"]) if credited else fail_msg.get(lang, fail_msg["ru"])
+    await update.message.reply_text(msg, reply_markup=webapp_keyboard())
 
 
 # ============================================================
 # /start
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Deep-link: /start buy → to'lov paketlarini ko'rsatamiz
+    if context.args and context.args[0] == "buy":
+        await buy_cmd(update, context)
+        return
     lang = await _get_user_lang(update.effective_user.id)
     await update.message.reply_text(
         tx(lang, "welcome"),
@@ -498,6 +616,268 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 # ============================================================
+# MNENIYA (fikr) qabul qilish — guruhda matn/ovoz (Boss talabi)
+# Bot guruhda kelgan xabarlarni ushlab, point yechib, saqlaydi.
+# Telegram resursi ishlatiladi (fayl serverga yuklanmaydi).
+# ============================================================
+
+# Narxlar (point)
+OPINION_COST_TEXT = 0.001
+OPINION_COST_VOICE = 0.005
+
+
+async def topic_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/topic — joriy efir mavzusini ko'rsatadi."""
+    user = update.effective_user
+    lang = await _get_user_lang(user.id)
+    token = await _get_user_token(user.id, user.username, user.full_name)
+    if not token:
+        await update.message.reply_text("⚠️ Xatolik. /start bosing.")
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{INTERNAL_API_URL}/opinions/current-topic",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=8,
+            )
+            data = resp.json() if resp.status_code == 200 else {}
+    except Exception:
+        data = {}
+
+    topic = (data or {}).get("topic")
+    no_topic = {
+        "ru": "📭 Сейчас нет активной темы. Скоро откроется новая!",
+        "en": "📭 No active topic now. A new one is coming soon!",
+        "lt": "📭 Šiuo metu nėra aktyvios temos.",
+    }
+    head = {"ru": "🎙 Тема эфира", "en": "🎙 Broadcast topic", "lt": "🎙 Eterio tema"}
+    cnt = {"ru": "мнений собрано", "en": "opinions", "lt": "nuomonių"}
+    hint = {
+        "ru": "Отправьте своё мнение в группу — текстом или голосом.",
+        "en": "Send your opinion to the group — text or voice.",
+        "lt": "Siųskite nuomonę į grupę — tekstu ar balsu.",
+    }
+    if not topic:
+        await update.message.reply_text(no_topic.get(lang, no_topic["ru"]))
+        return
+    text = (
+        f"*{head.get(lang, head['ru'])}*\n\n"
+        f"📌 *{topic['title']}*\n"
+        f"{topic.get('description', '')}\n\n"
+        f"👥 {topic.get('opinion_count', 0)} {cnt.get(lang, cnt['ru'])}\n\n"
+        f"_{hint.get(lang, hint['ru'])}_"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=webapp_keyboard())
+
+
+async def _save_opinion(user_id: int, telegram_id: int, kind: str,
+                        text: str | None, tg_file_id: str | None,
+                        tg_message_id: int, cost: float) -> dict | None:
+    """Backend API orqali opinion saqlaydi va point yechadi."""
+    token = await _get_user_token(telegram_id, None, None)
+    if not token:
+        return None
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{INTERNAL_API_URL}/opinions/save",
+                json={
+                    "kind": kind,
+                    "text": text,
+                    "tg_file_id": tg_file_id,
+                    "tg_message_id": tg_message_id,
+                    "cost": cost,
+                },
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            elif resp.status_code == 402:
+                return {"error": "insufficient_points"}
+    except Exception as exc:
+        log.warning("opinion save failed: %s", exc)
+    return None
+
+
+async def opinion_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Guruhda kelgan MATN xabarni 'mneniya' sifatida saqlaydi."""
+    msg = update.message
+    if not msg or not msg.text:
+        return
+    user = update.effective_user
+    result = await _save_opinion(
+        user_id=0,  # backend o'zi aniqlaydi (token orqali)
+        telegram_id=user.id,
+        kind="text",
+        text=msg.text,
+        tg_file_id=None,
+        tg_message_id=msg.message_id,
+        cost=OPINION_COST_TEXT,
+    )
+    if result and result.get("error") == "insufficient_points":
+        # Point yetmasa — jim qolasiz (guruhda spam bo'lmasin)
+        pass
+
+
+async def opinion_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Guruhda kelgan OVOZLI xabarni 'mneniya' sifatida saqlaydi."""
+    msg = update.message
+    if not msg:
+        return
+    voice = msg.voice or msg.audio
+    if not voice:
+        return
+    user = update.effective_user
+    result = await _save_opinion(
+        user_id=0,
+        telegram_id=user.id,
+        kind="voice",
+        text=None,
+        tg_file_id=voice.file_id,
+        tg_message_id=msg.message_id,
+        cost=OPINION_COST_VOICE,
+    )
+    if result and result.get("error") == "insufficient_points":
+        pass
+
+
+# ============================================================
+# VOICE CHAT boshqaruvi (modarator) — Boss talabi
+# Telegram guruh Voice Chat: efirni boshlash, mikrofon berish/olish.
+# Faqat adminlar uchun. Backend /voice/* endpointlariga ulanadi.
+# ============================================================
+
+async def _voice_api(method: str, path: str, telegram_id: int,
+                     username: str | None, full_name: str | None,
+                     json_body: dict | None = None) -> tuple[int, dict]:
+    """Admin JWT bilan /voice/* endpointiga so'rov yuboradi."""
+    token = await _get_user_token(telegram_id, username, full_name)
+    if not token:
+        return 0, {"detail": "auth failed"}
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.request(
+                method,
+                f"{INTERNAL_API_URL}{path}",
+                json=json_body,
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=15,
+            )
+            try:
+                data = resp.json()
+            except Exception:
+                data = {}
+            return resp.status_code, data
+    except Exception as exc:
+        log.warning("voice_api %s %s failed: %s", method, path, exc)
+        return 0, {"detail": str(exc)}
+
+
+async def efir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/efir — Voice Chat efir holatini ko'rsatadi (admin uchun boshqaruv)."""
+    user = update.effective_user
+    if user.id not in ADMIN_IDS:
+        await update.message.reply_text("🔒 Faqat adminlar uchun.")
+        return
+
+    code, data = await _voice_api("GET", "/voice/status", user.id, user.username, user.full_name)
+    if code != 200:
+        await update.message.reply_text("⚠️ Voice Chat holati aniqlanmadi.")
+        return
+
+    configured = data.get("configured")
+    in_call = data.get("in_call")
+
+    if not configured:
+        await update.message.reply_text(
+            "🎙 *Voice Chat — Sozlanmagan*\n\n"
+            "Userbot session yo'q (`TG_SESSION_STRING`).\n"
+            "Efir uchun avval session yaratish kerak:\n"
+            "`python backend/scripts/gen_session.py`\n\n"
+            "Session olingach `.env` ga qo'shing va backendni qayta ishga tushiring.",
+            parse_mode="Markdown",
+        )
+        return
+
+    status_txt = "🔴 EFIRDA" if in_call else "⚪️ To'xtagan"
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("▶️ Efirni boshlash", callback_data="efir_join"),
+         InlineKeyboardButton("⏹ To'xtatish", callback_data="efir_leave")],
+    ])
+    await update.message.reply_text(
+        f"🎙 *Voice Chat boshqaruvi*\n\nHolat: {status_txt}\n\n"
+        "Mikrofon berish: `/mic <user_id>`\n"
+        "Mikrofon olish: `/mute <user_id>`",
+        reply_markup=kb,
+        parse_mode="Markdown",
+    )
+
+
+async def efir_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Efir boshlash/to'xtatish tugmalari."""
+    query = update.callback_query
+    await query.answer()
+    user = update.effective_user
+    if user.id not in ADMIN_IDS:
+        return
+
+    if query.data == "efir_join":
+        code, data = await _voice_api("POST", "/voice/join", user.id, user.username, user.full_name, {"audio_url": None})
+        if code == 200:
+            await query.edit_message_text("🔴 Efir boshlandi! Voice Chat'ga ulandi.")
+        elif code == 503:
+            await query.edit_message_text("⚠️ Voice Chat sozlanmagan (session yo'q).")
+        else:
+            await query.edit_message_text(f"⚠️ Ulanib bo'lmadi: {data.get('detail', 'xato')}")
+    elif query.data == "efir_leave":
+        code, data = await _voice_api("POST", "/voice/leave", user.id, user.username, user.full_name)
+        if code == 200:
+            await query.edit_message_text("⏹ Efir to'xtatildi.")
+        else:
+            await query.edit_message_text(f"⚠️ Xato: {data.get('detail', 'xato')}")
+
+
+async def mic_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/mic <user_id> — ishtirokchiga mikrofon beradi (faqat level 2+)."""
+    user = update.effective_user
+    if user.id not in ADMIN_IDS:
+        await update.message.reply_text("🔒 Faqat adminlar uchun.")
+        return
+    if not context.args or not context.args[0].lstrip("-").isdigit():
+        await update.message.reply_text("Foydalanish: `/mic <user_id>`", parse_mode="Markdown")
+        return
+    target_id = int(context.args[0])
+    code, data = await _voice_api("POST", "/voice/grant-mic", user.id, user.username, user.full_name,
+                                  {"user_telegram_id": target_id})
+    if code == 200:
+        await update.message.reply_text(f"🎤 Mikrofon berildi: `{target_id}`", parse_mode="Markdown")
+    elif code == 403:
+        await update.message.reply_text("❌ Bu foydalanuvchi level 2+ emas (efir huquqi yo'q).")
+    else:
+        await update.message.reply_text(f"⚠️ Xato: {data.get('detail', 'xato')}")
+
+
+async def mute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/mute <user_id> — ishtirokchidan mikrofonni oladi."""
+    user = update.effective_user
+    if user.id not in ADMIN_IDS:
+        await update.message.reply_text("🔒 Faqat adminlar uchun.")
+        return
+    if not context.args or not context.args[0].lstrip("-").isdigit():
+        await update.message.reply_text("Foydalanish: `/mute <user_id>`", parse_mode="Markdown")
+        return
+    target_id = int(context.args[0])
+    code, data = await _voice_api("POST", "/voice/revoke-mic", user.id, user.username, user.full_name,
+                                  {"user_telegram_id": target_id})
+    if code == 200:
+        await update.message.reply_text(f"🔇 Mikrofon olindi: `{target_id}`", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"⚠️ Xato: {data.get('detail', 'xato')}")
+
+
+# ============================================================
 # Bot ishga tushirish
 # ============================================================
 async def _post_init(application: Application) -> None:
@@ -553,9 +933,32 @@ def main() -> None:
     app.add_handler(studio_conv)
     app.add_handler(CallbackQueryHandler(studio_callback, pattern="^studio_"))
     app.add_handler(CommandHandler("radio", radio))
+    app.add_handler(CommandHandler("topic", topic_cmd))
+    app.add_handler(CommandHandler("buy", buy_cmd))
     app.add_handler(CommandHandler("profile", profile))
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
+
+    # ── Voice Chat boshqaruvi (modarator/admin) — Boss talabi ──
+    app.add_handler(CommandHandler("efir", efir_cmd))
+    app.add_handler(CommandHandler("mic", mic_cmd))
+    app.add_handler(CommandHandler("mute", mute_cmd))
+    app.add_handler(CallbackQueryHandler(efir_callback, pattern="^efir_"))
+
+    # ── Telegram Payments (point sotib olish) ──
+    app.add_handler(CallbackQueryHandler(buy_callback, pattern="^buy_"))
+    app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
+
+    # ── Guruhda mneniya (fikr) qabul qilish — matn va ovoz ──
+    app.add_handler(MessageHandler(
+        filters.ChatType.SUPERGROUP & filters.TEXT & ~filters.COMMAND,
+        opinion_text,
+    ))
+    app.add_handler(MessageHandler(
+        filters.ChatType.SUPERGROUP & (filters.VOICE | filters.AUDIO),
+        opinion_voice,
+    ))
 
     log.info("INTRA GROUP bot ishga tushdi. URL=%s", MINI_APP_URL)
     app.run_polling(allowed_updates=Update.ALL_TYPES)

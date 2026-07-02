@@ -8,9 +8,9 @@ interface LanguageSelectorProps {
 }
 
 const languages: { code: Language; label: string }[] = [
-  { code: 'ru', label: 'RU' },
-  { code: 'lt', label: 'LT' },
   { code: 'en', label: 'EN' },
+  { code: 'lt', label: 'LT' },
+  { code: 'ru', label: 'RU' },
 ];
 
 export function LanguageSelector({ selectedLang, onLangChange }: LanguageSelectorProps) {

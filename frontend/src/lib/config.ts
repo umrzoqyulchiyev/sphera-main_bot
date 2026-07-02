@@ -1,16 +1,21 @@
 // API konfiguratsiyasi
 const getApiUrl = () => {
-  // 1. Env dan olish (production build uchun)
+  // 1. Env dan olish (faqat agar aniq berilgan bo'lsa)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
 
-  // 2. Dev rejimda Vite proxy ishlaydi — same origin
+  // 2. Same-origin — backend frontend'ni o'zi serve qiladi (tunnel domeni avtomatik to'g'ri)
   return '';
 };
 
 export const API_URL = getApiUrl();
-export const WS_URL = import.meta.env.VITE_WS_URL || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.hostname}:8001`;
+
+// WebSocket: VITE_WS_URL bo'lsa o'sha, aks holda SAME-ORIGIN (tunnel domeni bilan bir xil)
+export const WS_URL =
+  import.meta.env.VITE_WS_URL ||
+  `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`;
+
 export const RADIO_URL = import.meta.env.VITE_RADIO_URL || API_URL;
 
 // LocalStorage keys

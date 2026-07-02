@@ -1,0 +1,12 @@
+[Unit]
+Description=Sphera Cloudflare Tunnel
+After=network.target sphera-backend.service
+
+[Service]
+Type=simple
+ExecStart=/mnt/d/KIro_projectsbot/sphera-main/infra/systemd/sphera-tunnel.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -107,8 +107,9 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
   // Audio elementini bir marta yaratish
   const getAudio = useCallback(() => {
     if (!audioRef.current && fullUrl) {
-      const a = new Audio(fullUrl);
+      const a = new Audio();
       a.preload = 'metadata';
+      a.src = fullUrl;
 
       a.addEventListener('loadedmetadata', () => {
         if (a.duration && isFinite(a.duration)) {
@@ -122,8 +123,14 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
         cancelAnimationFrame(rafRef.current);
       });
       a.addEventListener('error', () => {
-        setError(true);
-        setIsPlaying(false);
+        // Qayta urinish (1 marta) — URL xato yoki tarmoq muammo bo'lsa
+        if (!a.dataset.retried) {
+          a.dataset.retried = '1';
+          setTimeout(() => { a.src = fullUrl; a.load(); }, 500);
+        } else {
+          setError(true);
+          setIsPlaying(false);
+        }
       });
       audioRef.current = a;
     }
@@ -145,7 +152,17 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
   }, []);
 
   const togglePlay = useCallback(() => {
-    if (!fullUrl || error) return;
+    if (!fullUrl) return;
+    // Error bo'lgan bo'lsa — qayta urinish (reset)
+    if (error) {
+      setError(false);
+      if (audioRef.current) {
+        audioRef.current.src = fullUrl;
+        audioRef.current.load();
+      } else {
+        audioRef.current = null; // getAudio qaytadan yaratadi
+      }
+    }
     const audio = getAudio();
     if (!audio) return;
 
@@ -157,7 +174,15 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
         })
         .catch((e) => {
           console.error('Audio play error:', e);
-          setError(true);
+          // Qayta urinish
+          setTimeout(() => {
+            audio.src = fullUrl;
+            audio.load();
+            audio.play().then(() => {
+              setIsPlaying(true);
+              startRaf();
+            }).catch(() => setError(true));
+          }, 500);
         });
     } else {
       audio.pause();

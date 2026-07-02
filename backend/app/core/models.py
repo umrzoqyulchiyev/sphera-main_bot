@@ -189,6 +189,45 @@ class OkResponse(BaseModel):
     detail: Optional[Any] = None
 
 
+# ============ Stats ============
+class UserStatsOut(BaseModel):
+    total_messages: int = 0
+    chat_messages: int = 0
+    voice_messages: int = 0
+    studio_messages: int = 0
+    file_uploads: int = 0
+    points_earned: int = 0
+    points_spent: int = 0
+    current_points: Any = 0
+    days_active: int = 0
+    broadcasts_count: int = 0
+    favorite_count: int = 0
+    level: int = 1
+
+
+# ============ Favorites ============
+class FavoriteOut(BaseModel):
+    id: int
+    item_type: str
+    item_id: int
+    title: str
+    content: Optional[str] = None
+    broadcaster: Optional[str] = None
+    duration: Optional[int] = None
+    audio_url: Optional[str] = None
+    created_at: datetime
+
+
+class FavoriteAddRequest(BaseModel):
+    item_type: str  # broadcast | message | segment
+    item_id: int
+    title: str
+    content: Optional[str] = None
+    broadcaster: Optional[str] = None
+    duration: Optional[int] = None
+    audio_url: Optional[str] = None
+
+
 # ============ Messages (studio + voice — TZ §3) ============
 class TextMessageRequest(BaseModel):
     city: str

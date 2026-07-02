@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Headphones, MessageSquare, Mic } from 'lucide-react';
+import { Headphones, MessageSquare, Mic, Radio } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 import { AnnouncementBanner } from './AnnouncementBanner';
-import { getAnnouncements, updateLanguage, updateBroadcastLang } from '../../lib/api';
+import { getAnnouncements, updateLanguage, updateBroadcastLang, getVoiceChatStatus, type VoiceChatStatus } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User, Announcements, Language } from '../../types';
 
@@ -17,6 +17,7 @@ export function AnonsScreen({ user, onUserUpdate }: AnonsScreenProps) {
     banner1: null,
     banner2: null,
   });
+  const [vcStatus, setVcStatus] = useState<VoiceChatStatus | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const loadAnnouncements = useCallback(async () => {
@@ -28,12 +29,20 @@ export function AnonsScreen({ user, onUserUpdate }: AnonsScreenProps) {
     }
   }, []);
 
+  const loadVcStatus = useCallback(async () => {
+    try {
+      const status = await getVoiceChatStatus();
+      setVcStatus(status);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     loadAnnouncements();
-    // Trigger mount animation
+    loadVcStatus();
     const timer = setTimeout(() => setIsLoaded(true), 50);
-    return () => clearTimeout(timer);
-  }, [loadAnnouncements]);
+    const vcInterval = setInterval(loadVcStatus, 30000); // har 30s
+    return () => { clearTimeout(timer); clearInterval(vcInterval); };
+  }, [loadAnnouncements, loadVcStatus]);
 
   const handleLangChange = useCallback(
     async (newLang: Language) => {
@@ -71,8 +80,8 @@ export function AnonsScreen({ user, onUserUpdate }: AnonsScreenProps) {
         ]}
       />
 
-      {/* Live Status Indicator */}
-      <LiveStatusCard />
+      {/* Voice Chat Status */}
+      <VoiceChatStatusCard status={vcStatus} lang={lang} />
 
       {/* Announcement Banners */}
       {hasAnnouncements && (
@@ -123,15 +132,43 @@ function FeaturesCard({ features }: { features: FeatureItem[] }) {
   );
 }
 
-function LiveStatusCard() {
+const vcLabels: Record<string, Record<string, string>> = {
+  ru: { active: 'Voice Chat — В Эфире', waiting: 'Voice Chat — Ожидание', setup: 'Voice Chat — Настройка' },
+  en: { active: 'Voice Chat — On Air', waiting: 'Voice Chat — Waiting', setup: 'Voice Chat — Setup' },
+  lt: { active: 'Voice Chat — Eteryje', waiting: 'Voice Chat — Laukiama', setup: 'Voice Chat — Nustatymas' },
+};
+
+function VoiceChatStatusCard({ status, lang }: { status: VoiceChatStatus | null; lang: string }) {
+  const labels = vcLabels[lang] || vcLabels.ru;
+
+  // Determine actual state
+  let label: string;
+  let isLive = false;
+
+  if (!status || !status.configured) {
+    label = labels.setup;
+  } else if (status.in_call) {
+    label = labels.active;
+    isLive = true;
+  } else {
+    label = labels.waiting;
+  }
+
   return (
     <div className="glass px-4 py-3 rounded-2xl flex items-center gap-3">
       <span className="relative flex h-2.5 w-2.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#38e1ff] opacity-60" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#38e1ff]" />
+        {isLive ? (
+          <>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-60" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22c55e]" />
+          </>
+        ) : (
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#6b7c9e]" />
+        )}
       </span>
+      <Radio className="w-3.5 h-3.5 text-[#6b7c9e]" />
       <span className="text-[10px] font-bold tracking-[2px] text-[#6b7c9e] uppercase">
-        Stream Active
+        {label}
       </span>
     </div>
   );

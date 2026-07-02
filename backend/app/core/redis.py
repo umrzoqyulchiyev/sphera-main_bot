@@ -35,7 +35,14 @@ async def connect() -> None:
 async def disconnect() -> None:
     global _redis, _available
     if _redis:
-        await _redis.aclose()
+        try:
+            # Yangi redis (≥5.0) — aclose, eski — close
+            if hasattr(_redis, "aclose"):
+                await _redis.aclose()
+            else:
+                await _redis.close()
+        except Exception as exc:
+            log.warning("Redis disconnect error (ignored): %s", exc)
     _redis = None
     _available = False
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Sphera Icecast Cloudflare Tunnel (port 8000)
+After=network.target sphera-icecast.service
+
+[Service]
+Type=simple
+ExecStart=/mnt/d/KIro_projectsbot/sphera-main/infra/systemd/sphera-icecast-tunnel.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

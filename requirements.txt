@@ -16,7 +16,7 @@ websockets==16.0
 
 # --- AI / TTS ---
 google-generativeai==0.7.0
-edge-tts==6.1.10
+edge-tts>=7.2.0
 gTTS>=2.5.0
 
 # --- Telegram Bot ---

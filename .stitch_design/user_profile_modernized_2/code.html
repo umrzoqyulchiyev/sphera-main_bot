@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Profile - INTRA GROUP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#001d33",
+                    "surface-bright": "#353945",
+                    "secondary-fixed-dim": "#98cbff",
+                    "on-primary": "#00363f",
+                    "inverse-surface": "#dfe2f1",
+                    "secondary-container": "#059af0",
+                    "primary-fixed": "#a6eeff",
+                    "on-tertiary-container": "#5933db",
+                    "surface-container-low": "#171b26",
+                    "on-error": "#690005",
+                    "surface-container": "#1b1f2a",
+                    "primary": "#c2f3ff",
+                    "outline-variant": "#3c494c",
+                    "outline": "#859397",
+                    "on-tertiary-fixed-variant": "#4816cb",
+                    "tertiary-fixed-dim": "#cabeff",
+                    "surface-container-high": "#252a35",
+                    "secondary-fixed": "#cfe5ff",
+                    "tertiary-fixed": "#e6deff",
+                    "surface": "#0f131e",
+                    "on-background": "#dfe2f1",
+                    "surface-container-lowest": "#0a0e18",
+                    "on-surface-variant": "#bbc9cd",
+                    "on-tertiary": "#31009a",
+                    "on-secondary-fixed-variant": "#004a77",
+                    "error-container": "#93000a",
+                    "surface-container-highest": "#303540",
+                    "on-primary-fixed-variant": "#004e5b",
+                    "on-secondary": "#003354",
+                    "tertiary": "#eee7ff",
+                    "surface-dim": "#0f131e",
+                    "tertiary-container": "#d2c7ff",
+                    "inverse-primary": "#006878",
+                    "on-surface": "#dfe2f1",
+                    "primary-fixed-dim": "#27d9f7",
+                    "on-tertiary-fixed": "#1c0062",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-container": "#002e4d",
+                    "secondary": "#98cbff",
+                    "on-primary-fixed": "#001f25",
+                    "surface-variant": "#303540",
+                    "surface-tint": "#27d9f7",
+                    "primary-container": "#38e1ff",
+                    "inverse-on-surface": "#2c303c",
+                    "error": "#ffb4ab",
+                    "on-primary-container": "#00616f",
+                    "background": "#0f131e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-gap-lg": "24px",
+                    "grid-margin": "16px",
+                    "stack-gap-md": "16px",
+                    "safe-area-bottom": "34px",
+                    "stack-gap-sm": "8px",
+                    "container-padding": "20px"
+            },
+            "fontFamily": {
+                    "body-md": ["Sora"],
+                    "headline-md": ["Sora"],
+                    "display-lg": ["Sora"],
+                    "title-sm": ["Sora"],
+                    "body-sm": ["Sora"],
+                    "label-caps": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "title-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #060a14;
+            background-image: radial-gradient(circle at 50% -20%, rgba(39, 217, 247, 0.15) 0%, transparent 60%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+        }
+        .glass-card:active {
+            border-color: rgba(39, 217, 247, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .neon-glow-text {
+            text-shadow: 0 0 20px rgba(39, 217, 247, 0.6);
+        }
+        .btn-glow {
+            box-shadow: 0 0 25px rgba(39, 217, 247, 0.4);
+        }
+        .btn-glow:active {
+            box-shadow: 0 0 35px rgba(39, 217, 247, 0.7);
+        }
+        .avatar-glow {
+            box-shadow: 0 0 40px rgba(39, 217, 247, 0.5), inset 0 0 20px rgba(39, 217, 247, 0.2);
+            border: 2px solid rgba(39, 217, 247, 0.8);
+        }
+        .list-divider {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-background font-body-md min-h-screen flex flex-col items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#060a14]/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-grid-margin py-4 max-w-[390px]">
+<div class="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">radio</span>
+<span class="font-title-sm text-title-sm tracking-wider bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent uppercase font-bold">INTRA GROUP</span>
+</div>
+<div class="flex items-center gap-1 text-primary font-title-sm text-title-sm hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+            199.994
+        </div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-[390px] pt-[88px] pb-[120px] px-grid-margin flex flex-col gap-6">
+<!-- Profile Header / Points Balance -->
+<section class="glass-card p-8 flex flex-col items-center justify-center relative overflow-hidden mt-2">
+<!-- Subtle background accent -->
+<div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
+<div class="relative z-10 w-full flex flex-col items-center justify-center mb-6">
+<!-- Avatar with Neon Glow -->
+<div class="w-32 h-32 rounded-full overflow-hidden avatar-glow flex-shrink-0 bg-surface-container-high/50 flex items-center justify-center mb-4">
+<!-- Placeholder for user image or icon -->
+<span class="material-symbols-outlined text-[48px] text-primary/50">person</span>
+</div>
+<h2 class="font-label-caps text-label-caps text-on-surface-variant tracking-[0.2em] uppercase opacity-80 mb-2">Current Balance</h2>
+<div class="flex items-baseline gap-2 relative z-10">
+<span class="font-display-lg text-[40px] leading-[48px] font-bold text-primary-fixed-dim neon-glow-text">5699.900</span>
+<span class="font-title-sm text-title-sm text-primary">PTS</span>
+</div>
+</div>
+</section>
+<!-- User Info Rows -->
+<section class="glass-card p-6 flex flex-col gap-1">
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">military_tech</span>
+                    Level
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface">Listener</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">language</span>
+                    Language
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface">English</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">badge</span>
+                    ID
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface">7993413019</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">person</span>
+                    Name
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface">Operative 799</span>
+</div>
+<div class="flex justify-between items-center py-4 border-none">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">alternate_email</span>
+                    Username
+                </span>
+<span class="font-title-sm text-title-sm text-secondary">@intrasound</span>
+</div>
+</section>
+<!-- Action Buttons -->
+<section class="grid grid-cols-3 gap-4">
+<button class="glass-btn p-4 flex flex-col items-center justify-center gap-3 hover:bg-white/10 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary text-[28px]">arrow_downward</span>
+<span class="font-label-caps text-label-caps text-on-surface tracking-wider">Request</span>
+</button>
+<button class="glass-btn p-4 flex flex-col items-center justify-center gap-3 hover:bg-white/10 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary text-[28px]">arrow_upward</span>
+<span class="font-label-caps text-label-caps text-on-surface tracking-wider">Send</span>
+</button>
+<button class="bg-gradient-to-br from-primary-fixed-dim to-secondary-container rounded-[20px] p-4 flex flex-col items-center justify-center gap-3 text-[#060a14] btn-glow active:scale-95 duration-200 transition-transform">
+<span class="material-symbols-outlined text-[#060a14] text-[28px]">shopping_cart</span>
+<span class="font-label-caps text-label-caps font-bold tracking-wider">Buy points</span>
+</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full pb-safe-area-bottom rounded-t-[32px] bg-[#060a14]/90 backdrop-blur-2xl border-t border-white/5 flex justify-around items-center h-[88px] px-6 max-w-[390px] z-50 md:hidden">
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">podcasts</span>
+</a>
+<a class="flex flex-col items-center justify-center hover:text-secondary-fixed transition-colors scale-[1.3] bg-gradient-to-tr from-primary-fixed-dim to-secondary rounded-full p-4 -translate-y-6 shadow-[0_0_30px_rgba(39,217,247,0.5)]" href="#">
+<span class="material-symbols-outlined text-[#060a14] text-[32px]">radio</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">spatial_audio_off</span>
+</a>
+<!-- Active State for Profile -->
+<a class="flex flex-col items-center justify-center text-primary filter drop-shadow-[0_0_10px_rgba(39,217,247,0.8)] scale-110 transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">person</span>
+</a>
+</nav>
+</body></html>

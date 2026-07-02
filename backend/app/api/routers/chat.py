@@ -24,6 +24,7 @@ from app.core.models import ChatMessageRequest, ChatMessageOut, OkResponse
 from app.core.dependencies import get_current_user, decode_token
 from app.core.ws_manager import manager
 from app.services import points as points_service
+from app.services import membership
 
 log = logging.getLogger("chat")
 
@@ -288,6 +289,66 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
 
                 await websocket.send_json({
                     "type": "balance",
+                    "data": {"points": str(spent["points"])},
+                })
+
+            elif msg_type in ("studio", "server_message"):
+                # Studiyaga (efirga) matnli zayavka — points sarflanadi,
+                # umumiy chatga dublikat + messages(is_for_studio=true) ga yoziladi.
+                message = (data.get("message") or "").strip()
+                if not message:
+                    continue
+
+                spent = await points_service.spend(
+                    user["id"], "studio", points_service.COST["studio"]
+                )
+                if not spent["ok"]:
+                    await websocket.send_json({
+                        "type": "limit_exceeded",
+                        "data": {"event": "studio", "points": str(spent["points"])},
+                    })
+                    continue
+
+                _lang = data.get("lang") if data.get("lang") in ("ru", "lt", "en") else None
+
+                # (a) umumiy chatga dublikat — hammага ko'rinadi
+                row = await db.fetchrow(
+                    """
+                    INSERT INTO chat_messages (user_id, message, message_type)
+                    VALUES ($1, $2, 'studio')
+                    RETURNING id, created_at
+                    """,
+                    user["id"], message,
+                )
+                await manager.broadcast("global", {
+                    "type": "chat",
+                    "data": {
+                        "id": row["id"],
+                        "username": user["username"],
+                        "display_name": user["display_name"] or user["full_name"],
+                        "message": message,
+                        "message_type": "studio",
+                        "created_at": row["created_at"].isoformat(),
+                    },
+                })
+
+                # (b) ИИ/moderator uchun belgi
+                await db.execute(
+                    """
+                    INSERT INTO messages (user_id, city, text, status, is_for_studio, lang)
+                    VALUES ($1, $2, $3, 'pending', true, $4)
+                    """,
+                    user["id"], "global", message, _lang,
+                )
+
+                # (c) Telegram Community guruhiga bot orqali yuborish
+                author = user["display_name"] or user["full_name"] or user["username"] or f"id{user['telegram_id']}"
+                asyncio.create_task(
+                    membership.send_to_community(f"📻 Эфирга хабар\n👤 {author}:\n{message}")
+                )
+
+                await websocket.send_json({
+                    "type": "studio_ack",
                     "data": {"points": str(spent["points"])},
                 })
 

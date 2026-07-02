@@ -70,3 +70,24 @@ async def is_member_cached(telegram_id: int) -> bool:
 
 def invalidate(telegram_id: int) -> None:
     _cache.pop(telegram_id, None)
+
+
+async def send_to_community(text: str) -> bool:
+    """Matnli xabarni Community guruhiga (COMMUNITY_CHAT_ID) bot orqali yuboradi.
+
+    BOT_TOKEN yoki COMMUNITY_CHAT_ID yo'q bo'lsa — jim o'tkazib yuboradi (False).
+    """
+    if not BOT_TOKEN or not COMMUNITY_CHAT_ID:
+        return False
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                url,
+                json={"chat_id": COMMUNITY_CHAT_ID, "text": text},
+                timeout=10,
+            )
+        return bool(resp.json().get("ok"))
+    except Exception:
+        return False

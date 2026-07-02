@@ -38,8 +38,13 @@ export function Splash() {
       localStorage.setItem(LS_CITY, DEFAULT_CITY);
 
       setTimeout(() => {
-        // Mini App ochilganda har doim: til tanlash → yangilik → platforma (TZ)
-        navigate('/welcome');
+        // Avval platformaga kirган bo'lsa — to'g'ridan radio (loop bo'lmaydi).
+        // Birinchi marta — til tanlash → yangilik → platforma (TZ).
+        if (localStorage.getItem('sfera5_entered') === '1') {
+          navigate('/radio');
+        } else {
+          navigate('/welcome');
+        }
       }, 1200);
     }
 
@@ -47,9 +52,9 @@ export function Splash() {
   }, [navigate]);
 
   const languages: { code: Language; label: string }[] = [
-    { code: 'ru', label: 'RU' },
-    { code: 'lt', label: 'LT' },
     { code: 'en', label: 'EN' },
+    { code: 'lt', label: 'LT' },
+    { code: 'ru', label: 'RU' },
   ];
 
   const features = [
@@ -125,8 +130,8 @@ export function Splash() {
 
           {/* Brand */}
           <div className="text-center">
-            <h1 className="text-5xl font-black tracking-[4px] text-glow">
-              IN<span className="text-[#38e1ff]">TR</span>
+            <h1 className="text-4xl font-black tracking-[3px] logo-gradient">
+              INTRA GROUP
             </h1>
             <div className="flex items-center justify-center gap-3 mt-2">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[rgba(56,225,255,0.4)]" />

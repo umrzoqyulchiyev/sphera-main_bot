@@ -74,3 +74,216 @@ async def list_users(admin: dict = Depends(require_admin)):
         """
     )
     return [dict(r) for r in rows]
+
+
+# ============================================================
+# Efir mavzulari (topics) — admin boshqaradi
+# ============================================================
+from pydantic import BaseModel
+
+
+class TopicCreateRequest(BaseModel):
+    title: str
+    description: str = ""
+
+
+@router.post("/topics")
+async def create_topic(payload: TopicCreateRequest, admin: dict = Depends(require_admin)):
+    """[admin] Yangi efir mavzusi yaratadi. Eski faollarni 'closed' qiladi."""
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title required")
+
+    # Avvalgi faol mavzularni yopamiz (bir vaqtda bitta faol mavzu)
+    await db.execute("UPDATE topics SET status = 'closed' WHERE status = 'active'")
+
+    row = await db.fetchrow(
+        """
+        INSERT INTO topics (title, description, status, created_by)
+        VALUES ($1, $2, 'active', $3)
+        RETURNING id, title, description, status, created_at
+        """,
+        title, payload.description.strip(), admin["id"],
+    )
+    log.info("Admin %d yangi mavzu yaratdi: %s", admin["id"], title)
+    return dict(row)
+
+
+@router.get("/topics")
+async def list_topics(admin: dict = Depends(require_admin)):
+    """[admin] Barcha mavzular ro'yxati (fikrlar soni bilan)."""
+    rows = await db.fetch(
+        """
+        SELECT t.id, t.title, t.description, t.status, t.created_at,
+               COUNT(o.id) AS opinion_count
+        FROM topics t
+        LEFT JOIN opinions o ON o.topic_id = t.id
+        GROUP BY t.id
+        ORDER BY t.created_at DESC
+        LIMIT 100
+        """
+    )
+    return [dict(r) for r in rows]
+
+
+@router.post("/topics/{topic_id}/close", response_model=OkResponse)
+async def close_topic(topic_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Mavzuni yopadi (fikr yig'ish to'xtaydi)."""
+    result = await db.execute(
+        "UPDATE topics SET status = 'closed' WHERE id = $1", topic_id
+    )
+    if result.endswith("0"):
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return OkResponse(detail={"topic_id": topic_id, "status": "closed"})
+
+
+@router.get("/topics/{topic_id}/opinions")
+async def topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Mavzudagi barcha fikrlar (moderatsiya/ko'rish uchun)."""
+    rows = await db.fetch(
+        """
+        SELECT o.id, o.kind, o.text, o.tg_file_id, o.tg_message_id,
+               o.points_spent, o.status, o.created_at,
+               u.username, u.display_name, u.telegram_id
+        FROM opinions o
+        LEFT JOIN users u ON u.id = o.user_id
+        WHERE o.topic_id = $1
+        ORDER BY o.created_at DESC
+        LIMIT 500
+        """,
+        topic_id,
+    )
+    return [dict(r) for r in rows]
+
+
+# ============================================================
+# OPINION AGREGATSIYA — boshliq asosiy g'oyasi
+# Fikrlar → 3 pozitsiya → 2 personaj dialog → efir
+# ============================================================
+
+@router.post("/topics/{topic_id}/aggregate")
+async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Mavzu bo'yicha fikrlarni yig'ib, 3 pozitsiya va dialog yaratadi.
+
+    Boshliqning asosiy g'oyasi:
+      Opinions → Gemini → 1/2/3 ko'pchilik pozitsiya → 2 personaj (Aleksey+Maya) dialog
+      → broadcast_drafts da 'pending' → tasdiqlansa efirga chiqadi.
+    """
+    from app.services.opinion_aggregator import aggregate_opinions
+    draft = await aggregate_opinions(topic_id)
+    if draft is None:
+        # Fikr soni yetarli emas yoki mavzu topilmadi
+        topic = await db.fetchrow(
+            "SELECT id, (SELECT COUNT(*) FROM opinions WHERE topic_id=$1 AND kind='text') cnt FROM topics WHERE id=$1",
+            topic_id
+        )
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Fikr yetarli emas (hozir: {topic['cnt']}, kerak: 3+). "
+                   "Avval foydalanuvchilar fikr yuborgach agregatsiya qiling."
+        )
+    return {
+        "ok": True,
+        "draft_id": draft["id"],
+        "topic": draft["main_topic"],
+        "source_count": draft["source_count"],
+        "status": draft["status"],
+        "message": "Dialog yaratildi. /admin/drafts/{id} dan ko'ring va tasdiqlang.",
+    }
+
+
+@router.get("/drafts")
+async def list_drafts(admin: dict = Depends(require_admin)):
+    """[admin] Barcha broadcast drafts (pending/approved/rejected)."""
+    rows = await db.fetch(
+        """
+        SELECT id, city, main_topic, source_count, status, created_at,
+               LEFT(script, 300) as script_preview
+        FROM broadcast_drafts
+        ORDER BY created_at DESC
+        LIMIT 50
+        """
+    )
+    return [dict(r) for r in rows]
+
+
+@router.get("/drafts/{draft_id}")
+async def get_draft(draft_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Draft to'liq (dialog matni + META)."""
+    from app.services.opinion_aggregator import get_draft_dialog
+    draft = await get_draft_dialog(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return draft
+
+
+@router.post("/drafts/{draft_id}/approve")
+async def approve_draft(draft_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Dilaogni tasdiqlaydi va Icecast efirga yuboradi.
+
+    Zanjir: draft.script (dialog) → TTS (3 til) → continuous navbatiga → efir.
+    """
+    from app.services.opinion_aggregator import get_draft_dialog
+    draft = await get_draft_dialog(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    if draft["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Draft already {draft['status']}")
+
+    # Statusni yangilaymiz
+    await db.execute(
+        "UPDATE broadcast_drafts SET status = 'approved' WHERE id = $1", draft_id
+    )
+
+    # TTS va efirga yuborish (fon vazifasi — bloklamasin)
+    import asyncio
+    asyncio.create_task(_broadcast_dialog(draft))
+
+    return {
+        "ok": True,
+        "draft_id": draft_id,
+        "message": "Dialog tasdiqlandi. TTS va efirga yuborish boshlandi.",
+    }
+
+
+@router.post("/drafts/{draft_id}/reject")
+async def reject_draft(draft_id: int, admin: dict = Depends(require_admin)):
+    """[admin] Dialogni rad etadi."""
+    result = await db.execute(
+        "UPDATE broadcast_drafts SET status = 'rejected' WHERE id = $1", draft_id
+    )
+    if result.endswith("0"):
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return {"ok": True, "draft_id": draft_id, "status": "rejected"}
+
+
+async def _broadcast_dialog(draft: dict) -> None:
+    """Dialog matnini TTS qilib Icecast'ga yuboradi (fon vazifasi)."""
+    import os, uuid
+    from app.services import tts, continuous
+
+    dialog_text = draft.get("dialog", draft.get("script", ""))
+    if not dialog_text:
+        log.warning("_broadcast_dialog: dialog matni bo'sh, draft_id=%s", draft.get("id"))
+        return
+
+    audio_dir = os.getenv("AUDIO_DIR", "/mnt/d/KIro_projectsbot/sphera-main/.audio")
+    os.makedirs(audio_dir, exist_ok=True)
+
+    log.info("[broadcast_dialog] draft #%s TTS boshlandi (%d so'z)",
+             draft.get("id"), len(dialog_text.split()))
+
+    # Har 3 tilda TTS + navbatga
+    for lang in ("ru", "lt", "en"):
+        try:
+            out = os.path.join(audio_dir, f"dialog_{lang}_{uuid.uuid4().hex}.mp3")
+            await tts.synthesize(dialog_text, out, lang)
+            if os.path.isfile(out) and os.path.getsize(out) > 800:
+                continuous.enqueue(lang, out)
+                log.info("[broadcast_dialog] %s → Icecast navbatiga (%s)", lang, out)
+            else:
+                log.warning("[broadcast_dialog] %s TTS bo'sh chiqdi", lang)
+        except Exception as exc:
+            log.error("[broadcast_dialog] %s TTS xato: %s", lang, exc)

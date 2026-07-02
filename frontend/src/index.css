@@ -15,6 +15,10 @@
     --green: #22e3a5;
     --red: #ff4d6d;
     --app-vh: 100vh;
+    /* Stitch design tokens */
+    --primary-dim: #27d9f7;
+    --primary-light: #c2f3ff;
+    --secondary-blue: #059af0;
   }
 
   * {
@@ -31,6 +35,7 @@
     overflow: hidden;          /* body scroll qilmaydi — ichki div qiladi */
     -webkit-text-size-adjust: 100%;
     height: 100%;
+    font-family: 'Sora', system-ui, sans-serif;
   }
 
   html {
@@ -42,8 +47,6 @@
     display: flex;
     flex-direction: column;
   }
-  
-  /* Range slider styling */
   input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -163,4 +166,181 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* ============================================================
+   STITCH DESIGN SYSTEM — INTRA GROUP
+   ============================================================ */
+
+/* Material Symbols icon font */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Monospace font (raqamlar, ID, label) */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Stitch glass-card */
+.stitch-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+}
+
+.stitch-card-bordered {
+  background: rgba(15, 19, 30, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(39, 217, 247, 0.2);
+  border-radius: 24px;
+}
+
+/* Neon text glow */
+.neon-glow-text {
+  text-shadow: 0 0 20px rgba(39, 217, 247, 0.6);
+}
+
+/* 3-color gradient logo text */
+.logo-gradient {
+  background: linear-gradient(to right, #ffffff 0%, #38e1ff 50%, #7c5cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Primary gradient button with glow */
+.btn-primary-glow {
+  background: linear-gradient(135deg, #27d9f7, #059af0);
+  color: #060a14;
+  box-shadow: 0 0 25px rgba(39, 217, 247, 0.4);
+  transition: all 0.2s ease;
+}
+.btn-primary-glow:active {
+  transform: scale(0.96);
+  box-shadow: 0 0 35px rgba(39, 217, 247, 0.7);
+}
+
+/* Central navigation ORB (breathing animation) */
+.orb-nav {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #02101f;
+  background: radial-gradient(circle at 38% 32%, #eafdff 0%, #c2f3ff 22%, #38e1ff 52%, #1f9fe8 78%, #0c6fc4 100%);
+  box-shadow:
+    0 0 18px rgba(39, 217, 247, 0.7),
+    0 0 36px rgba(39, 217, 247, 0.35),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6),
+    inset 0 -3px 8px rgba(12, 111, 196, 0.5);
+  animation: orb-breathe 3.2s ease-in-out infinite alternate;
+}
+/* Ichki yorqin nuqta (glossy highlight) */
+.orb-nav::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 13px;
+  width: 16px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, transparent 70%);
+  pointer-events: none;
+}
+.orb-nav .material-symbols-outlined {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 1px 1px rgba(255,255,255,0.4));
+}
+@keyframes orb-breathe {
+  0% { box-shadow: 0 0 14px rgba(39, 217, 247, 0.6), 0 0 28px rgba(39,217,247,0.25), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -3px 8px rgba(12,111,196,0.5); }
+  100% { box-shadow: 0 0 26px rgba(39, 217, 247, 1), 0 0 52px rgba(39,217,247,0.45), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -3px 8px rgba(12,111,196,0.5); }
+}
+
+/* Active holatda kuchliroq porlash */
+.orb-active {
+  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #d4f8ff 20%, #38e1ff 50%, #1f9fe8 80%, #0c6fc4 100%);
+}
+
+/* Aylanuvchi tashqi halqa (orb atrofida) */
+.orb-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: rgba(56, 225, 255, 0.9);
+  border-right-color: rgba(56, 225, 255, 0.3);
+  animation: orb-spin 2.8s linear infinite;
+  pointer-events: none;
+}
+@keyframes orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Circular waveform visualization */
+.waveform-ring {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 2px solid rgba(39, 217, 247, 0.5);
+  box-shadow: 0 0 40px rgba(39, 217, 247, 0.2), inset 0 0 40px rgba(39, 217, 247, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(39, 217, 247, 0.1) 0%, transparent 70%);
+}
+.waveform-bar {
+  width: 6px;
+  background: linear-gradient(to top, #059af0, #27d9f7, #c2f3ff);
+  border-radius: 3px;
+  margin: 0 3px;
+  animation: wave-pulse 1s ease-in-out infinite alternate;
+  box-shadow: 0 0 10px rgba(39, 217, 247, 0.8);
+}
+@keyframes wave-pulse {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1); }
+}
+
+/* Avatar neon glow */
+.avatar-glow {
+  box-shadow: 0 0 40px rgba(39, 217, 247, 0.5), inset 0 0 20px rgba(39, 217, 247, 0.2);
+  border: 2px solid rgba(39, 217, 247, 0.8);
+}
+
+/* Cyber grid background (language select) */
+.bg-cyber-grid {
+  background-size: 30px 30px;
+  background-image:
+    linear-gradient(to right, rgba(39, 217, 247, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(39, 217, 247, 0.04) 1px, transparent 1px);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
 }

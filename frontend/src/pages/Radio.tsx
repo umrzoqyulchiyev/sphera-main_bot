@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { TopBar } from '../components/layout/TopBar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { AnonsScreen } from '../components/announcements/AnonsScreen';
@@ -16,9 +15,7 @@ import type { Screen, User } from '../types';
 const ONBOARDING_KEY = 'sfera5_onboarded';
 
 export function Radio() {
-  const navigate = useNavigate();
   const [currentScreen, setCurrentScreen] = useState<Screen>('anons');
-  const [visible, setVisible] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,8 +30,8 @@ export function Radio() {
           }
         } catch (e) {
           console.error('[Radio] Auth error:', e);
-          navigate('/');
-          return;
+          // Loop'ga tushmaslik uchun bu yerda navigate('/') QILMAYMIZ.
+          // Auth keyinroq loadUser ichida qayta urinadi.
         }
       }
 
@@ -62,7 +59,7 @@ export function Radio() {
     }
 
     init();
-  }, [navigate]);
+  }, []);
 
   const handlePointsUpdate = (newPoints: number) => {
     if (user) {
@@ -77,15 +74,8 @@ export function Radio() {
 
   const handleNavigate = (newScreen: Screen) => {
     if (newScreen === currentScreen) return;
-    setVisible(false);
-    setTimeout(() => {
-      setCurrentScreen(newScreen);
-      // Ichki scroll containerni tepaga qaytarish
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = 0;
-      }
-      setVisible(true);
-    }, 120);
+    setCurrentScreen(newScreen);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
 
   const renderScreen = (screen: Screen) => {
@@ -128,13 +118,9 @@ export function Radio() {
           msOverflowStyle: 'none',
         }}
       >
-        <div className="max-w-[460px] mx-auto w-full px-4 pt-3 pb-[100px] flex flex-col gap-4">
+        <div className="w-full max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pt-3 pb-[120px] flex flex-col gap-4">
           <TopBar points={user?.points || 0} />
-
-          {/* Fade transition */}
-          <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.12s ease' }}>
-            {renderScreen(currentScreen)}
-          </div>
+          {renderScreen(currentScreen)}
         </div>
       </div>
 

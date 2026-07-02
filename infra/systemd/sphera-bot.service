@@ -1,0 +1,14 @@
+[Unit]
+Description=Sphera Telegram Bot
+After=network.target sphera-backend.service
+
+[Service]
+Type=simple
+ExecStart=/mnt/d/KIro_projectsbot/sphera-main/infra/systemd/sphera-bot.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/bot.log
+StandardError=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/bot.log
+
+[Install]
+WantedBy=default.target

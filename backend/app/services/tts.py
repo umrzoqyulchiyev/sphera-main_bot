@@ -25,7 +25,7 @@ ELEVEN_VOICES = {
 
 # edge-tts голоса по языку (фолбэк, без ключей)
 EDGE_VOICES = {
-    "ru": "ru-RU-DmitryNeural",
+    "ru": "ru-RU-SvetlanaNeural",
     "lt": "lt-LT-LeonasNeural",
     "en": "en-US-GuyNeural",
 }

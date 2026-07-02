@@ -1,4 +1,4 @@
-.PHONY: dev stop db-init db-reset test build logs tunnel frontend-build frontend-dev
+.PHONY: dev stop db-init db-reset test build logs tunnel frontend-build frontend-dev session
 
 VENV := .venv/bin
 LOGS := .logs
@@ -23,6 +23,14 @@ frontend-build:
 tunnel:
 	@echo "Starting Cloudflare Tunnel on port 8001..."
 	cloudflared tunnel --url http://localhost:8001
+
+# ── Voice Chat session (userbot) ─────────────────────────────
+# Telegram Voice Chat (jonli efir) uchun userbot session string yaratadi.
+# Telefon raqam + Telegram kodi so'raydi. Natija .env ga qo'yiladi.
+session:
+	@echo "Voice Chat userbot session yaratish..."
+	@echo "Telefon raqam va Telegram kodini tayyorlang."
+	$(VENV)/python backend/scripts/gen_session.py
 
 # ── Database ─────────────────────────────────────────────────
 db-init:

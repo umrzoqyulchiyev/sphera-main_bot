@@ -151,7 +151,9 @@ export async function getPlaylist(_city?: string): Promise<AudioSegment[]> {
   return [];
 }
 
-export function getStreamUrl(lang: string): string {
+export function getStreamUrl(lang: string, _streamUrlFromStatus?: string | null): string {
+  // Har doim same-origin proxy — CORS muammosi yo'q,
+  // Telegram WebView ham bemalol ulanadi.
   return `${API_URL}/radio/live/${lang}`;
 }
 
@@ -224,6 +226,77 @@ export async function uploadFile(_city: string, _file: File) {
   throw Object.assign(new Error('File upload not supported'), { status: 400 });
 }
 
+// ============ Opinions / Topics (yangi konsepsiya) ============
+export interface CurrentTopic {
+  id: number;
+  title: string;
+  description: string;
+  opinion_count: number;
+}
+
+export async function getCurrentTopic(): Promise<CurrentTopic | null> {
+  const resp = await fetch(`${API_URL}/opinions/current-topic`, { headers: authHeaders() });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  return data.topic || null;
+}
+
+export async function sendOpinionText(text: string) {
+  const resp = await fetch(`${API_URL}/opinions/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ kind: 'text', text, tg_message_id: 0 }),
+  });
+  if (!resp.ok) {
+    const err: any = new Error('Failed to send opinion');
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
+}
+
+export async function sendOpinionVoice(audioBlob: Blob) {
+  // Ovoz mini-app orqali — backendga yuklaymiz (Telegram emas, lekin file saqlanmaydi-zarur emas MVP)
+  const fd = new FormData();
+  fd.append('audio_file', audioBlob, 'opinion.webm');
+  const resp = await fetch(`${API_URL}/opinions/voice`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: fd,
+  });
+  if (!resp.ok) {
+    const err: any = new Error('Failed to send voice opinion');
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
+}
+
+// Admin: topics
+export async function adminCreateTopic(title: string, description = '') {
+  const resp = await fetch(`${API_URL}/admin/topics`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ title, description }),
+  });
+  if (!resp.ok) throw new Error('Failed to create topic');
+  return resp.json();
+}
+
+export async function adminGetTopics() {
+  const resp = await fetch(`${API_URL}/admin/topics`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch topics');
+  return resp.json();
+}
+
+export async function adminCloseTopic(topicId: number) {
+  const resp = await fetch(`${API_URL}/admin/topics/${topicId}/close`, {
+    method: 'POST', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to close topic');
+  return resp.json();
+}
+
 // ============ Announcements (admin — v3'da yo'q, stub) ============
 export async function updateAnnouncement(_slot: number, _data: any) {
   return { ok: true };
@@ -263,3 +336,79 @@ export async function getDrafts(_status = 'pending'): Promise<any[]> {
 export async function editDraft(_id: number, _script: string) { return { ok: true }; }
 export async function approveDraft(_id: number) { return { ok: true }; }
 export async function rejectDraft(_id: number) { return { ok: true }; }
+
+// ============ Stats ============
+export interface UserStats {
+  total_messages: number;
+  chat_messages: number;
+  voice_messages: number;
+  studio_messages: number;
+  file_uploads: number;
+  points_earned: number;
+  points_spent: number;
+  current_points: number;
+  days_active: number;
+  broadcasts_count: number;
+  favorite_count: number;
+  level: number;
+}
+
+export async function getUserStats(): Promise<UserStats> {
+  const resp = await fetch(`${API_URL}/users/stats`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch stats');
+  return resp.json();
+}
+
+// ============ Favorites ============
+export interface FavoriteItem {
+  id: number;
+  item_type: string;
+  item_id: number;
+  title: string;
+  content: string | null;
+  broadcaster: string | null;
+  duration: number | null;
+  audio_url: string | null;
+  created_at: string;
+}
+
+export async function getFavorites(): Promise<FavoriteItem[]> {
+  const resp = await fetch(`${API_URL}/users/favorites`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch favorites');
+  return resp.json();
+}
+
+export async function addFavorite(data: {
+  item_type: string; item_id: number; title: string;
+  content?: string; broadcaster?: string; duration?: number; audio_url?: string;
+}): Promise<FavoriteItem> {
+  const resp = await fetch(`${API_URL}/users/favorites`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error('Failed to add favorite');
+  return resp.json();
+}
+
+export async function removeFavorite(favoriteId: number) {
+  const resp = await fetch(`${API_URL}/users/favorites/${favoriteId}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to remove favorite');
+  return resp.json();
+}
+
+// ============ Voice Chat Status ============
+export interface VoiceChatStatus {
+  configured: boolean;
+  in_call: boolean;
+}
+
+export async function getVoiceChatStatus(): Promise<VoiceChatStatus> {
+  try {
+    const resp = await fetch(`${API_URL}/voice/status`, { headers: authHeaders() });
+    if (resp.ok) return resp.json();
+  } catch {}
+  return { configured: false, in_call: false };
+}

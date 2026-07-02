@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, ArrowRight, Radio as RadioIcon } from 'lucide-react';
 import { updateLanguage, getNews } from '../lib/api';
 import { setLang } from '../lib/i18n';
 import { LS_LANG } from '../lib/config';
 import type { Language, News } from '../types';
 
-// Tillar + davlat (TZ: 3 til, 3 davlat)
+// Tillar + davlat (TZ: tartib EN → LT → RU)
 const LANGS: { code: Language; flag: string; label: string; country: string }[] = [
-  { code: 'ru', flag: '🇷🇺', label: 'Русский', country: 'Россия' },
   { code: 'en', flag: '🇬🇧', label: 'English', country: 'United Kingdom' },
   { code: 'lt', flag: '🇱🇹', label: 'Lietuvių', country: 'Lietuva' },
+  { code: 'ru', flag: '🇷🇺', label: 'Русский', country: 'Россия' },
 ];
 
 const WELCOME_TXT: Record<Language, { choose: string; welcome: string; enter: string; loading: string; podcast: string }> = {
@@ -22,9 +21,14 @@ const WELCOME_TXT: Record<Language, { choose: string; welcome: string; enter: st
 export function Welcome() {
   const navigate = useNavigate();
   const [step, setStep] = useState<'lang' | 'news'>('lang');
-  const [chosen, setChosen] = useState<Language>('ru');
+  const [chosen, setChosen] = useState<Language>('en');
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function enterPlatform() {
+    localStorage.setItem('sfera5_entered', '1');
+    navigate('/radio');
+  }
 
   async function choose(lang: Language) {
     setChosen(lang);
@@ -51,57 +55,74 @@ export function Welcome() {
   const main = news[0];
 
   return (
-    <div className="min-h-[var(--app-vh)] bg-[#060a14] text-[#dbe9ff] flex flex-col relative overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[480px] h-[480px] rounded-full bg-[radial-gradient(circle,rgba(56,225,255,0.08)_0%,transparent_70%)]" />
-        <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(124,92,255,0.06)_0%,transparent_70%)]" />
-      </div>
+    <div className="min-h-[var(--app-vh)] bg-[#0b0e14] text-[#dfe2f1] flex flex-col relative overflow-hidden">
+      {/* Cyber grid + ambient glow (Stitch) */}
+      <div className="absolute inset-0 bg-cyber-grid z-0 pointer-events-none opacity-50" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[#38e1ff]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
 
       {/* ====== STEP 1: TIL TANLASH ====== */}
       {step === 'lang' && (
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 gap-10">
-          <div className="text-center">
-            <h1 className="text-[44px] font-black tracking-[3px] leading-none">
-              IN<span className="text-[#38e1ff]">TRA</span>
-              <span className="text-[#7c5cff]"> GROUP</span>
+        <main className="relative z-10 w-full max-w-[390px] mx-auto flex-1 flex flex-col items-center justify-between px-5 py-8">
+          {/* Logo */}
+          <div className="w-full flex justify-center mt-6">
+            <h1 className="text-[28px] font-extrabold tracking-[2px] uppercase logo-gradient drop-shadow-[0_0_15px_rgba(56,225,255,0.2)]">
+              INTRA GROUP
             </h1>
-            <div className="flex items-center justify-center gap-3 mt-3">
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[rgba(56,225,255,0.4)]" />
-              <p className="text-[10px] tracking-[4px] text-[#6b7c9e] uppercase">Radio Platform</p>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[rgba(56,225,255,0.4)]" />
+          </div>
+
+          {/* Centerpiece animated orb */}
+          <div className="flex-1 flex items-center justify-center relative w-full">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#38e1ff]/5 to-transparent rounded-full blur-[40px] pointer-events-none" />
+            <div className="w-32 h-32 rounded-full relative flex items-center justify-center"
+              style={{
+                background: 'radial-gradient(circle at 40% 35%, rgba(56,225,255,0.35), rgba(46,168,255,0.12), transparent 70%)',
+              }}>
+              <div className="orb-nav" style={{ width: 72, height: 72 }} />
             </div>
           </div>
 
-          <div className="w-full max-w-[340px] flex flex-col gap-3">
-            <p className="text-center text-sm text-[#8b9bb3] mb-1">{WELCOME_TXT.ru.choose} · {WELCOME_TXT.en.choose}</p>
+          {/* Language buttons */}
+          <div className="w-full flex flex-col gap-4 pb-2">
+            <p className="text-center text-[13px] text-[#bbc9cd] mb-1">
+              {WELCOME_TXT.en.choose}
+            </p>
             {LANGS.map((l) => (
               <button
                 key={l.code}
                 onClick={() => choose(l.code)}
-                className="glass w-full flex items-center gap-4 px-5 py-4 rounded-2xl hover:border-[rgba(56,225,255,0.4)] transition-all active:scale-[0.98]"
+                className="group relative w-full flex items-center justify-between p-5 rounded-2xl transition-all duration-300 active:scale-[0.98] overflow-hidden"
+                style={{
+                  background: 'rgba(19,24,36,0.6)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(56,225,255,0.2)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                }}
               >
-                <span className="text-2xl">{l.flag}</span>
-                <div className="flex flex-col items-start">
-                  <span className="text-base font-semibold text-[#dbe9ff]">{l.label}</span>
-                  <span className="text-[10px] text-[#6b7c9e]">{l.country}</span>
+                <div className="flex items-center gap-5 relative z-10">
+                  <span className="text-[30px] leading-none">{l.flag}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[17px] font-semibold text-white tracking-wide">{l.label}</span>
+                    <span className="text-[11px] text-[#859397] font-mono">{l.country}</span>
+                  </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-[#38e1ff] ml-auto" />
+                <span className="material-symbols-outlined text-[#859397] group-active:text-[#38e1ff] transition-colors relative z-10">
+                  chevron_right
+                </span>
               </button>
             ))}
           </div>
-        </div>
+        </main>
       )}
 
       {/* ====== STEP 2: YANGILIK (PODKAST) ====== */}
       {step === 'news' && (
         <>
-          <div className="relative z-10 flex-1 px-5 pt-10 pb-4 overflow-y-auto flex flex-col gap-5 max-w-[460px] w-full mx-auto">
+          <div className="relative z-10 flex-1 px-5 pt-10 pb-4 overflow-y-auto flex flex-col gap-5 max-w-[440px] w-full mx-auto">
             <div className="text-center">
-              <div className="text-2xl font-black tracking-[2px]">
-                IN<span className="text-[#38e1ff]">TRA</span><span className="text-[#7c5cff]"> GROUP</span>
+              <div className="text-2xl font-extrabold tracking-[1.5px] uppercase logo-gradient">
+                INTRA GROUP
               </div>
-              <h2 className="text-xl font-extrabold text-[#38e1ff] mt-4 text-glow">{txt.welcome} 👋</h2>
+              <h2 className="text-xl font-bold text-[#27d9f7] mt-4 neon-glow-text">{txt.welcome} 👋</h2>
             </div>
 
             {loading ? (
@@ -112,7 +133,7 @@ export function Welcome() {
             ) : (
               <>
                 {main && (
-                  <div className="glass rounded-3xl overflow-hidden">
+                  <div className="stitch-card-bordered overflow-hidden">
                     <div
                       className="h-44 flex items-center justify-center"
                       style={{
@@ -121,42 +142,44 @@ export function Welcome() {
                           : 'linear-gradient(135deg, rgba(46,168,255,0.25), rgba(124,92,255,0.25))',
                       }}
                     >
-                      {!main.image_url && <Headphones className="w-12 h-12 text-[#38e1ff]" strokeWidth={1.5} />}
+                      {!main.image_url && (
+                        <span className="material-symbols-outlined text-[#38e1ff]" style={{ fontSize: 48 }}>
+                          podcasts
+                        </span>
+                      )}
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-2">
-                        <RadioIcon className="w-3.5 h-3.5 text-[#7c5cff]" />
-                        <span className="text-[10px] tracking-[2px] text-[#7c5cff] font-bold">{txt.podcast}</span>
+                        <span className="material-symbols-outlined text-[#7c5cff]" style={{ fontSize: 16 }}>radio</span>
+                        <span className="text-[10px] tracking-[2px] text-[#7c5cff] font-bold font-mono">{txt.podcast}</span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2 text-[#dbe9ff]">{main.title}</h3>
-                      <p className="text-sm text-[#8b9bb3] leading-relaxed">{main.body}</p>
+                      <h3 className="text-lg font-bold mb-2 text-[#dfe2f1]">{main.title}</h3>
+                      <p className="text-sm text-[#bbc9cd] leading-relaxed">{main.body}</p>
                     </div>
                   </div>
                 )}
 
                 {news.slice(1).map((n) => (
-                  <div key={n.id} className="glass rounded-2xl p-4">
-                    <h4 className="text-sm font-semibold text-[#dbe9ff] mb-1">{n.title}</h4>
-                    <p className="text-xs text-[#6b7c9e] leading-relaxed">{n.body}</p>
+                  <div key={n.id} className="stitch-card p-4">
+                    <h4 className="text-sm font-semibold text-[#dfe2f1] mb-1">{n.title}</h4>
+                    <p className="text-xs text-[#bbc9cd] leading-relaxed">{n.body}</p>
                   </div>
                 ))}
               </>
             )}
           </div>
 
-          <div className="relative z-10 max-w-[460px] w-full mx-auto px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-2">
+          <div className="relative z-10 max-w-[440px] w-full mx-auto px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-2">
             <button
-              onClick={() => navigate('/radio')}
-              className="w-full py-4 rounded-2xl font-bold text-[#02101f] text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-              style={{ background: 'linear-gradient(135deg, #2ea8ff, #38e1ff)', boxShadow: '0 0 24px rgba(46,168,255,0.45)' }}
+              onClick={enterPlatform}
+              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 btn-primary-glow"
             >
-              {txt.enter} <ArrowRight className="w-5 h-5" />
+              {txt.enter}
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
             </button>
           </div>
         </>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

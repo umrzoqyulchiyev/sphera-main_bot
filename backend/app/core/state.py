@@ -8,6 +8,9 @@ RADIO_PUBLIC_URL = settings.radio_public_url
 AUDIO_DIR = settings.audio_dir
 USE_ICECAST = settings.use_icecast
 
+# Icecast tunnel URL (agar alohida tunnel ochilgan bo'lsa — telefon to'g'ridan ulanadi)
+ICECAST_PUBLIC_URL = os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
+
 # Amaldagi shaharlar (bazadan yuklanadi, dinamik kengayadi)
 VALID_CITIES: set[str] = set()
 
@@ -42,10 +45,11 @@ class CityRadioState:
 
     def stream_url(self, lang: str = None) -> str:
         if USE_ICECAST:
-            # Мультипоток: /live_{lang}. Без языка — RU по умолчанию.
             lng = lang if lang in ("ru", "lt", "en") else "ru"
-            return f"{RADIO_PUBLIC_URL}/live_{lng}"
-        # Ichki rejim: eng oxirgi segment URL
+            # Har safar env'dan o'qiymiz (runtime'da o'zgarishi mumkin)
+            icecast_pub = os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
+            base = icecast_pub or RADIO_PUBLIC_URL
+            return f"{base}/live_{lng}"
         if self.segments:
             return f"/radio/audio/{self.city}/{self.segments[-1]['filename']}"
         return None

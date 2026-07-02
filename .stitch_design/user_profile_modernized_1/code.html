@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Profile - INTRA GROUP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#252a35",
+                    "secondary-container": "#059af0",
+                    "on-primary-fixed-variant": "#004e5b",
+                    "on-primary-container": "#00616f",
+                    "on-secondary-fixed": "#001d33",
+                    "inverse-on-surface": "#2c303c",
+                    "surface-container": "#1b1f2a",
+                    "tertiary": "#eee7ff",
+                    "secondary-fixed": "#cfe5ff",
+                    "on-tertiary-container": "#5933db",
+                    "background": "#0f131e",
+                    "on-tertiary-fixed-variant": "#4816cb",
+                    "on-secondary-container": "#002e4d",
+                    "error-container": "#93000a",
+                    "on-surface-variant": "#bbc9cd",
+                    "on-error": "#690005",
+                    "on-error-container": "#ffdad6",
+                    "primary-fixed-dim": "#27d9f7",
+                    "surface": "#0f131e",
+                    "secondary-fixed-dim": "#98cbff",
+                    "on-tertiary": "#31009a",
+                    "surface-dim": "#0f131e",
+                    "tertiary-container": "#d2c7ff",
+                    "surface-container-low": "#171b26",
+                    "on-secondary": "#003354",
+                    "surface-variant": "#303540",
+                    "inverse-primary": "#006878",
+                    "tertiary-fixed-dim": "#cabeff",
+                    "secondary": "#98cbff",
+                    "surface-tint": "#27d9f7",
+                    "outline-variant": "#3c494c",
+                    "primary-container": "#38e1ff",
+                    "inverse-surface": "#dfe2f1",
+                    "tertiary-fixed": "#e6deff",
+                    "outline": "#859397",
+                    "error": "#ffb4ab",
+                    "surface-bright": "#353945",
+                    "surface-container-highest": "#303540",
+                    "on-secondary-fixed-variant": "#004a77",
+                    "on-tertiary-fixed": "#1c0062",
+                    "on-background": "#dfe2f1",
+                    "on-primary-fixed": "#001f25",
+                    "on-surface": "#dfe2f1",
+                    "on-primary": "#00363f",
+                    "primary": "#c2f3ff",
+                    "surface-container-lowest": "#0a0e18",
+                    "primary-fixed": "#a6eeff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-gap-lg": "24px",
+                    "stack-gap-md": "16px",
+                    "stack-gap-sm": "8px",
+                    "safe-area-bottom": "34px",
+                    "grid-margin": "16px",
+                    "container-padding": "20px"
+            },
+            "fontFamily": {
+                    "title-sm": [
+                            "Sora"
+                    ],
+                    "display-lg": [
+                            "Sora"
+                    ],
+                    "body-sm": [
+                            "Sora"
+                    ],
+                    "label-caps": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Sora"
+                    ],
+                    "body-md": [
+                            "Sora"
+                    ]
+            },
+            "fontSize": {
+                    "title-sm": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "800"
+                            }
+                    ],
+                    "body-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-caps": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.1em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #0b101e;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(39, 217, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(39, 217, 247, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(15, 19, 30, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(39, 217, 247, 0.1);
+            border-radius: 24px;
+            box-shadow: inset 0 0 20px rgba(39, 217, 247, 0.02), 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .glass-card:active {
+            border-color: rgba(39, 217, 247, 0.3);
+        }
+        .neon-glow-text {
+            text-shadow: 0 0 20px rgba(39, 217, 247, 0.6), 0 0 10px rgba(39, 217, 247, 0.4);
+        }
+        .btn-glow {
+            box-shadow: 0 0 25px rgba(39, 217, 247, 0.4);
+        }
+        .btn-glow:active {
+            box-shadow: 0 0 35px rgba(39, 217, 247, 0.7);
+        }
+        .list-divider {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .avatar-ring {
+            box-shadow: 0 0 30px rgba(39, 217, 247, 0.4), inset 0 0 20px rgba(39, 217, 247, 0.2);
+            border: 2px solid rgba(39, 217, 247, 0.8);
+        }
+        
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-background font-body-md min-h-screen flex flex-col items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-grid-margin py-stack-gap-sm max-w-[390px]">
+<div class="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">radio</span>
+<span class="font-headline-md text-headline-md font-display-lg text-display-lg bg-gradient-to-r from-primary-fixed-dim via-primary-container to-secondary-container bg-clip-text text-transparent tracking-wider">INTRA GROUP</span>
+</div>
+<div class="flex items-center text-primary-fixed-dim font-title-sm text-title-sm hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[18px] mr-1">bolt</span>
+            5699.900
+        </div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-[390px] pt-[80px] pb-[120px] px-grid-margin flex flex-col gap-stack-gap-lg">
+<!-- Profile Header / Points Balance -->
+<section class="glass-card p-container-padding flex flex-col items-center justify-center relative overflow-hidden mt-6 animate-pulse-soft">
+<div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none rounded-3xl"></div>
+<div class="relative z-10 w-full flex items-center justify-center mb-6 mt-4">
+<!-- Premium Avatar -->
+<div class="w-32 h-32 rounded-full overflow-hidden avatar-ring flex-shrink-0 bg-surface-container-highest flex items-center justify-center relative">
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent"></div>
+<span class="material-symbols-outlined text-6xl text-primary/40 relative z-10">person</span>
+</div>
+</div>
+<h2 class="font-label-caps text-label-caps text-on-surface-variant mb-1 relative z-10 uppercase tracking-[0.2em] opacity-70">Current Balance</h2>
+<div class="flex items-baseline gap-2 relative z-10 mb-2">
+<span class="font-display-lg text-[40px] leading-[48px] font-bold bg-gradient-to-r from-primary-fixed-dim to-primary-container bg-clip-text text-transparent neon-glow-text">5699.900</span>
+<span class="font-title-sm text-title-sm text-primary-fixed-dim opacity-90">PTS</span>
+</div>
+</section>
+<!-- User Info Rows -->
+<section class="glass-card p-container-padding flex flex-col">
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">military_tech</span>
+                    Level
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Listener</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">language</span>
+                    Language
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">English</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">badge</span>
+                    ID
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold tracking-wider">7993413019</span>
+</div>
+<div class="flex justify-between items-center py-4 list-divider">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">person</span>
+                    Name
+                </span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Operative 799</span>
+</div>
+<div class="flex justify-between items-center py-4 border-none">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[20px]">alternate_email</span>
+                    Username
+                </span>
+<span class="font-title-sm text-title-sm text-primary-fixed-dim font-semibold">@intrasound</span>
+</div>
+</section>
+<!-- Action Buttons -->
+<section class="grid grid-cols-3 gap-4">
+<button class="glass-card p-4 flex flex-col items-center justify-center gap-3 hover:bg-surface-variant/40 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface text-[28px]">arrow_downward</span>
+<span class="font-label-caps text-label-caps text-on-surface tracking-wider">Request</span>
+</button>
+<button class="glass-card p-4 flex flex-col items-center justify-center gap-3 hover:bg-surface-variant/40 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface text-[28px]">arrow_upward</span>
+<span class="font-label-caps text-label-caps text-on-surface tracking-wider">Send</span>
+</button>
+<button class="bg-gradient-to-br from-primary-fixed-dim to-secondary-container rounded-2xl p-4 flex flex-col items-center justify-center gap-3 text-[#060a14] btn-glow active:scale-95 duration-200 transition-transform">
+<span class="material-symbols-outlined text-[#060a14] text-[28px]">shopping_cart</span>
+<span class="font-label-caps text-label-caps font-bold tracking-wider">Buy points</span>
+</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full pb-safe-area-bottom rounded-t-2xl bg-surface/80 backdrop-blur-xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] flex justify-around items-center h-20 px-4 max-w-[390px] z-50 md:hidden">
+<a class="flex flex-col items-center justify-center text-outline opacity-50 hover:opacity-100 hover:text-primary-fixed-dim transition-all" href="#">
+<span class="material-symbols-outlined text-[26px]">explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-50 hover:opacity-100 hover:text-primary-fixed-dim transition-all" href="#">
+<span class="material-symbols-outlined text-[26px]">podcasts</span>
+</a>
+<a class="flex flex-col items-center justify-center hover:text-secondary-fixed transition-colors scale-[1.35] bg-gradient-to-tr from-primary-fixed-dim to-secondary-container rounded-full p-4 -translate-y-6 shadow-[0_0_30px_rgba(39,217,247,0.5)] animate-pulse" href="#">
+<span class="material-symbols-outlined text-surface text-[28px]">radio</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-50 hover:opacity-100 hover:text-primary-fixed-dim transition-all" href="#">
+<span class="material-symbols-outlined text-[26px]">spatial_audio</span>
+</a>
+<!-- Active State for Profile -->
+<a class="flex flex-col items-center justify-center text-primary-fixed-dim filter drop-shadow-[0_0_12px_rgba(39,217,247,0.8)] scale-110 hover:text-secondary-fixed transition-all" href="#">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">person</span>
+</a>
+</nav>
+</body></html>

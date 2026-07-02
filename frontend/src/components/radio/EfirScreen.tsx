@@ -7,7 +7,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../ui/Toast';
-import { getRadioStatus, getChatHistory, sendVoiceMessage } from '../../lib/api';
+import { getRadioStatus, getChatHistory, sendVoiceMessage, sendChatMessage } from '../../lib/api';
 import { authHeaders } from '../../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -28,6 +28,8 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   const [isOnline, setIsOnline] = useState(true);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showStreamModal, setShowStreamModal] = useState(false);
+  const [showStudioModal, setShowStudioModal] = useState(false);
+  const [studioText, setStudioText] = useState('');
   const [streamDuration, setStreamDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -36,7 +38,10 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   const audioPlayer = useAudioPlayer({
     city,
     language: lang,
-    useIcecast: radioStatus?.use_icecast || false,
+    // USE_ICECAST=true (server sozlamasi), radioStatus yuklanguncha ham true
+    useIcecast: radioStatus?.use_icecast ?? true,
+    // Icecast tunnel URL — mavjud bo'lsa to'g'ridan-to'g'ri Icecast'ga ulanadi
+    streamUrl: radioStatus?.stream_url,
   });
 
   const { send: wsSend } = useWebSocket({ city, onMessage: handleWSMessage });
@@ -56,7 +61,11 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
       try {
         await Promise.all([
           getRadioStatus(city).then(setRadioStatus).catch(console.error),
-          getChatHistory(city).then(setMessages).catch(console.error),
+          getChatHistory(city).then(msgs => {
+            // id bo'yicha dedup (bir xil xabarlar bo'lmasin)
+            const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+            setMessages(unique);
+          }).catch(console.error),
         ]);
       } finally {
         setLoading(false);
@@ -77,7 +86,12 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
     if (!wsMessage.data) return;
     switch (wsMessage.type) {
       case 'chat':
-        setMessages(prev => [...prev, wsMessage.data]);
+        setMessages(prev => {
+          // Bir xil id li xabar allaqachon bor bo'lsa qo'shmaymiz (WS reconnect duplikatlari)
+          const newMsg = wsMessage.data;
+          if (newMsg?.id && prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
         break;
       case 'radio_status':
       case 'presence':
@@ -105,9 +119,26 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
     }
   }
 
-  const handleSendMessage = useCallback((msg: string, destination: 'chat' | 'studio') => {
-    wsSend({ type: destination, message: msg, lang });
-  }, [wsSend, lang]);
+  const handleSendMessage = useCallback(async (msg: string, destination: 'chat' | 'studio') => {
+    // 1-urinish: WebSocket (real-time). Ulanmagan bo'lsa — HTTP fallback.
+    const sentViaWs = wsSend({ type: destination, message: msg, lang });
+    if (sentViaWs) return;
+
+    // WS yopiq — HTTP orqali yuboramiz (xabar yo'qolmasin)
+    try {
+      const res: any = await sendChatMessage('global', msg);
+      if (res?.points !== undefined) onPointsUpdate(Number(res.points));
+      showToast(destination === 'studio' ? t('toast_sent_studio') : t('toast_sent_chat'));
+      // Tarixni yangilash (WS yo'q, shuning uchun qo'lda qo'shamiz)
+      getChatHistory(city).then(msgs => {
+        const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+        setMessages(unique);
+      }).catch(() => {});
+    } catch (e: any) {
+      if (e?.status === 402) showToast(t('toast_limit'));
+      else showToast(t('send_error'));
+    }
+  }, [wsSend, lang, onPointsUpdate, showToast, t, city]);
 
   const handleVoiceMessage = async () => {
     if (isRecording && mediaRecorderRef.current) {
@@ -160,8 +191,24 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   };
 
   const handleSendToStudio = () => {
-    const msg = prompt('Введите сообщение для эфира:');
-    if (msg?.trim()) handleSendMessage(msg.trim(), 'studio');
+    setStudioText('');
+    setShowStudioModal(true);
+  };
+
+  // Chat modalni ochish — har ochilganda tarixni yangilaymiz
+  const openChat = useCallback(() => {
+    setShowChatModal(true);
+    getChatHistory(city).then(msgs => {
+      const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+      setMessages(unique);
+    }).catch(() => {});
+  }, [city]);
+
+  const submitStudioMessage = () => {
+    const msg = studioText.trim();
+    if (msg) handleSendMessage(msg, 'studio');
+    setShowStudioModal(false);
+    setStudioText('');
   };
 
   const level = user?.level || 1;
@@ -179,7 +226,7 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
         <Loader className="w-10 h-10 text-[#38e1ff] animate-spin" />
         <p className="text-xs text-[#6b7c9e] tracking-widest uppercase">Загрузка эфира...</p>
       </div>
@@ -187,7 +234,7 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   }
 
   return (
-    <div className="flex flex-col relative select-none" style={{ minHeight: 'calc(100vh - 100px)' }}>
+    <div className="flex flex-col relative select-none">
 
       {/* ── УРОВЕНЬ / ПОТОК REAL TIME ── */}
       <div className="text-center pt-2 pb-4">
@@ -208,7 +255,13 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
           aria-label={audioPlayer.isPlaying ? 'pause' : 'play'}
         >
           <Visualizer isPlaying={audioPlayer.isPlaying} />
-          {!audioPlayer.isPlaying && (
+          {audioPlayer.isLoading && (
+            <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(6,10,20,0.5)', backdropFilter: 'blur(4px)' }}>
+              <Loader className="w-6 h-6 text-[#38e1ff] animate-spin" />
+            </span>
+          )}
+          {!audioPlayer.isPlaying && !audioPlayer.isLoading && (
             <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(6,10,20,0.5)', backdropFilter: 'blur(4px)' }}>
               <svg className="w-6 h-6 text-[#38e1ff] ml-1" fill="currentColor" viewBox="0 0 24 24">
@@ -248,7 +301,7 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
 
         {/* Чай / Сверхмощность — левая */}
         <button
-          onClick={() => setShowChatModal(true)}
+          onClick={openChat}
           className="flex flex-col items-center gap-2 group flex-1"
         >
           <div
@@ -475,7 +528,7 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
 
             {/* 3 buttons */}
             <div className="flex items-end justify-around gap-3 mb-5">
-              <button onClick={() => { setShowStreamModal(false); setShowChatModal(true); }}
+              <button onClick={() => { setShowStreamModal(false); openChat(); }}
                 className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full h-[58px] rounded-2xl flex items-center justify-center"
                   style={{ background: 'rgba(16,28,52,0.8)', border: '1px solid rgba(56,225,255,0.15)' }}>
@@ -623,7 +676,13 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4" ref={(el) => {
+            // FAQAT modal birinchi ochilganda pastga scroll (keyinroq foydalanuvchi o'zi scroll qiladi)
+            if (el && !el.dataset.scrolled) {
+              el.dataset.scrolled = '1';
+              setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+            }
+          }}>
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
@@ -646,7 +705,97 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
               onSendText={(msg) => handleSendMessage(msg, 'chat')}
               onPointsUpdate={onPointsUpdate}
               onToast={showToast}
+              onSent={() => {
+                getChatHistory(city).then(msgs => {
+                  const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+                  setMessages(unique);
+                }).catch(() => {});
+              }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODAL: ОТПРАВИТЬ В ЭФИР (matn yuborish)
+      ══════════════════════════════════════════════════ */}
+      {showStudioModal && (
+        <div
+          className="fixed z-[10000] flex items-center justify-center px-6"
+          style={{
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(6,10,20,0.75)',
+            backdropFilter: 'blur(6px)',
+            isolation: 'isolate',
+          }}
+          onClick={() => setShowStudioModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl p-5"
+            style={{
+              background: 'rgba(16,28,52,0.98)',
+              border: '1px solid rgba(56,225,255,0.25)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(56,225,255,0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(56,225,255,0.12)' }}>
+                <Send className="w-4 h-4 text-[#38e1ff]" strokeWidth={2} />
+              </div>
+              <div className="text-[13px] font-bold tracking-wide text-[#dbe9ff] uppercase">
+                Сообщение для эфира
+              </div>
+              <button onClick={() => setShowStudioModal(false)}
+                className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(56,225,255,0.08)' }}>
+                <X className="w-4 h-4 text-[#6b7c9e]" />
+              </button>
+            </div>
+
+            {/* Textarea */}
+            <textarea
+              autoFocus
+              value={studioText}
+              onChange={(e) => setStudioText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  submitStudioMessage();
+                }
+              }}
+              placeholder="Введите сообщение..."
+              rows={3}
+              className="w-full rounded-xl px-3 py-2.5 text-sm text-[#dbe9ff] resize-none outline-none placeholder:text-[#6b7c9e]"
+              style={{
+                background: 'rgba(6,10,20,0.6)',
+                border: '1px solid rgba(56,225,255,0.2)',
+              }}
+            />
+
+            {/* Buttons */}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setShowStudioModal(false)}
+                className="flex-1 h-11 rounded-xl text-sm font-semibold text-[#6b7c9e] active:scale-95 transition-transform"
+                style={{ background: 'rgba(56,225,255,0.06)', border: '1px solid rgba(56,225,255,0.12)' }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={submitStudioMessage}
+                disabled={!studioText.trim()}
+                className="flex-1 h-11 rounded-xl text-sm font-bold text-[#060a14] active:scale-95 transition-transform disabled:opacity-40"
+                style={{
+                  background: 'linear-gradient(90deg, #2ea8ff, #38e1ff)',
+                  boxShadow: '0 0 20px rgba(56,225,255,0.4)',
+                }}
+              >
+                Отправить
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -660,12 +809,13 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
 interface ChatInputBarProps {
   city: string;
   lang: string;
-  onSendText: (msg: string) => void;
+  onSendText: (msg: string) => void | Promise<void>;
   onPointsUpdate: (pts: number) => void;
   onToast: (msg: string) => void;
+  onSent?: () => void;
 }
 
-function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, onToast }: ChatInputBarProps) {
+function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, onToast, onSent }: ChatInputBarProps) {
   const [val, setVal] = useState('');
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -766,6 +916,7 @@ function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, on
         if (pts !== undefined) onPointsUpdate(Number(pts));
         onToast('Голосовое отправлено ✅');
         discardVoice();
+        onSent?.();
       }
     } catch (e) {
       onToast('Ошибка отправки');
@@ -779,8 +930,15 @@ function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, on
   const sendText = async () => {
     if (!val.trim() || busy) return;
     setBusy(true);
-    try { onSendText(val.trim()); setVal(''); }
-    finally { setBusy(false); }
+    const text = val.trim();
+    setVal('');
+    try {
+      await onSendText(text);
+    } catch {
+      setVal(text); // xato bo'lsa matnni qaytaramiz
+    } finally {
+      setBusy(false);
+    }
   };
 
   const fmtSec = (s: number) =>

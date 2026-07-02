@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir \
     "python-jose[cryptography]==3.3.0" \
     httpx==0.27.0 \
     google-generativeai==0.7.0 \
-    edge-tts==6.1.10 \
+    edge-tts==7.2.8 \
     python-multipart==0.0.9 \
     "pydantic-settings==2.3.0" \
     "redis[hiredis]==5.0.0" \

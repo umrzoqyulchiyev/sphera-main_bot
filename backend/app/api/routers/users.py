@@ -201,9 +201,10 @@ async def purchase_points(
     payload: PurchaseRequest,
     user: dict = Depends(get_current_user),
 ):
-    """Point sotib olish (test rejim — real to'lov keyinchalik).
+    """[DEV] Point sotib olish (test rejim — Telegram to'lovsiz).
 
-    Paket tanlash → bir marta points qo'shiladi + bir marta transaction yoziladi.
+    Production'da bu o'rniga bot Telegram Payments orqali to'lov qabul qiladi
+    va /users/credit-purchase (internal) chaqiriladi.
     """
     pkg = await db.fetchrow(
         "SELECT * FROM point_packages WHERE id = $1 AND is_active = true",
@@ -212,7 +213,6 @@ async def purchase_points(
     if pkg is None:
         raise HTTPException(status_code=404, detail="Package not found")
 
-    # add_points — ichida transaction ham yozadi, level ham yangilanadi
     result = await points_service.add_points(
         user["id"],
         pkg["points_amount"],
@@ -223,3 +223,50 @@ async def purchase_points(
         raise HTTPException(status_code=500, detail="Purchase failed")
 
     return OkResponse(detail={"points": str(result["points"]), "purchased": str(pkg["points_amount"])})
+
+
+# ============ Telegram Payments (haqiqiy pul) — internal ============
+from app.core.internal_auth import require_internal_key
+from pydantic import BaseModel
+
+
+class CreditPurchaseRequest(BaseModel):
+    telegram_id: int
+    package_id: int
+    charge_id: str          # Telegram to'lov ID (idempotentlik uchun)
+
+
+@router.post("/credit-purchase", dependencies=[Depends(require_internal_key)])
+async def credit_purchase(payload: CreditPurchaseRequest):
+    """[INTERNAL] Bot Telegram to'lovini tasdiqlagach point qo'shadi.
+
+    Idempotent: bir xil charge_id ikki marta hisoblanmaydi.
+    """
+    # Idempotentlik — bu charge allaqachon hisoblangani tekshiriladi
+    existing = await db.fetchval(
+        "SELECT 1 FROM points_transactions WHERE event_type = 'purchase' AND description LIKE $1 LIMIT 1",
+        f"%{payload.charge_id}%",
+    )
+    if existing:
+        return {"ok": True, "already_credited": True}
+
+    user = await db.fetchrow("SELECT id FROM users WHERE telegram_id = $1", payload.telegram_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    pkg = await db.fetchrow(
+        "SELECT * FROM point_packages WHERE id = $1", payload.package_id
+    )
+    if pkg is None:
+        raise HTTPException(status_code=404, detail="Package not found")
+
+    result = await points_service.add_points(
+        user["id"],
+        pkg["points_amount"],
+        event_type="purchase",
+        description=f"TG Payment {pkg['label']} (charge:{payload.charge_id})",
+    )
+    if not result["ok"]:
+        raise HTTPException(status_code=500, detail="Credit failed")
+
+    return {"ok": True, "points": str(result["points"]), "credited": str(pkg["points_amount"])}

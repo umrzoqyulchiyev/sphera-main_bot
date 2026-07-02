@@ -1,0 +1,17 @@
+[Unit]
+Description=Sphera Radio Backend (FastAPI)
+After=network.target sphera-icecast.service
+Wants=sphera-icecast.service
+
+[Service]
+Type=simple
+ExecStart=/mnt/d/KIro_projectsbot/sphera-main/infra/systemd/sphera-backend.sh
+Restart=always
+RestartSec=3
+# PostgreSQL/Redis tayyor bo'lguncha kutish uchun startup'da biroz toqat
+StartLimitIntervalSec=0
+StandardOutput=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/backend.log
+StandardError=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/backend.log
+
+[Install]
+WantedBy=default.target

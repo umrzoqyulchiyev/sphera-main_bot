@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     community_chat_id: str = ""
     disable_group_check: bool = True
 
+    # ── Telegram MTProto (userbot — Voice Chat boshqaruvi uchun) ──
+    tg_api_id: int = 0
+    tg_api_hash: str = ""
+    tg_session_string: str = ""        # Pyrogram userbot session
+    voice_chat_group_id: str = ""      # Voice Chat ochilgan guruh ID
+
+    # ── Telegram Payments (point sotib olish) ──
+    payment_provider_token: str = ""   # BotFather → Payments
+    payment_currency: str = "XTR"      # XTR = Telegram Stars, yoki USD/EUR (provider bilan)
+
     # ── AI ──
     gemini_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
@@ -69,8 +79,8 @@ class Settings(BaseSettings):
     icecast_pass: str = "IcecastPass2025!"
 
     # ── Storage ──
-    audio_dir: str = "/tmp/sphera_audio"
-    upload_dir: str = "/tmp/sphera_uploads"
+    audio_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.audio"
+    upload_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.uploads"
     max_upload_mb: int = 20
 
     # ── Radio ──

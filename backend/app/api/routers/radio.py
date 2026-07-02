@@ -73,6 +73,12 @@ async def live_proxy(lang: str):
         headers={
             "Cache-Control": "no-cache, no-store",
             "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",       # nginx/cloudflare buferingini o'chiradi
+            "X-Content-Type-Options": "nosniff",
+            "Access-Control-Allow-Origin": "*",
+            "Transfer-Encoding": "chunked",
+            "icy-br": "128",
+            "icy-name": f"Radio AI {lang.upper()}",
         },
     )
 
@@ -102,14 +108,17 @@ async def clear_broadcast(city: str = Query(default="global")):
 async def radio_status(city: str = Query(...)):
     # "global" yoki VALID_CITIES da yo'q bo'lsa — umumiy holat qaytaramiz
     if city not in VALID_CITIES:
+        import os as _os
         from app.core.state import USE_ICECAST
+        _icecast_pub = _os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
+        _stream = f"{_icecast_pub}/live_ru" if (_icecast_pub and USE_ICECAST) else None
         return RadioStatus(
             is_live=True,
             broadcaster_type="ai",
             broadcaster_name="AI Host",
             listeners_count=0,
             use_icecast=USE_ICECAST,
-            stream_url=None,
+            stream_url=_stream,
         )
     st = get_state(city)
     return RadioStatus(**st.to_dict(listeners_count=manager.listeners_count(city)))

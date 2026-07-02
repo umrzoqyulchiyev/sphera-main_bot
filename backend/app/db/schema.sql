@@ -75,6 +75,21 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
 
+-- ============ Studiya/efir zayavkalari (AI agregator + moderator uchun) ============
+CREATE TABLE IF NOT EXISTS messages (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    city            VARCHAR(64) DEFAULT 'global',
+    text            TEXT,
+    audio_path      VARCHAR(500),
+    status          VARCHAR(20) DEFAULT 'pending',   -- pending | approved | rejected
+    is_for_studio   BOOLEAN DEFAULT false,
+    lang            VARCHAR(5),                       -- ru | lt | en | null(auto)
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_studio ON messages(is_for_studio, status, created_at DESC);
+
 -- ============ Psixotip tahlili (AI analitika — TZ §4) ============
 CREATE TABLE IF NOT EXISTS psychotypes (
     id                  SERIAL PRIMARY KEY,
@@ -130,3 +145,31 @@ INSERT INTO news (language, title, body, sort_order) VALUES
     ('lt', 'Lietuva šiandien', 'Vilnius — Lietuvos širdis. Senamiestis, Gedimino pilis ir Trakų ežerai laukia svečių iš viso pasaulio. Šiandien šalyje vyksta kultūros festivaliai.', 1),
     ('lt', 'Lietuvos kultūra ir mokslas', 'Lietuva — krepšinio šalis ir Čiurlionio tėvynė. Lietuvių mokslininkai garsėja lazerių technologijomis visame pasaulyje.', 2)
 ON CONFLICT DO NOTHING;
+
+
+-- ============ Efir mavzulari (admin yaratadi) ============
+CREATE TABLE IF NOT EXISTS topics (
+    id          SERIAL PRIMARY KEY,
+    title       TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    status      VARCHAR(20) DEFAULT 'active',  -- active | closed | aired
+    created_by  INTEGER REFERENCES users(id),
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- ============ Mneniyalar (foydalanuvchi fikrlari) ============
+CREATE TABLE IF NOT EXISTS opinions (
+    id            SERIAL PRIMARY KEY,
+    user_id       INTEGER REFERENCES users(id),
+    topic_id      INTEGER REFERENCES topics(id),
+    kind          VARCHAR(10) NOT NULL,            -- text | voice
+    text          TEXT,
+    tg_file_id    VARCHAR(255),                    -- ovoz: Telegram file_id (fayl serverda emas)
+    tg_message_id BIGINT,
+    points_spent  NUMERIC(12,4) DEFAULT 0,
+    status        VARCHAR(20) DEFAULT 'pending',   -- pending | processed
+    created_at    TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_opinions_topic ON opinions(topic_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_opinions_user ON opinions(user_id, created_at DESC);
