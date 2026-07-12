@@ -169,7 +169,10 @@ export function Admin() {
   }
 
   return (
-    <div className="min-h-[var(--app-vh)] bg-[#050506] text-[#ededef]">
+    <div
+      className="bg-[#050506] text-[#ededef] overflow-y-auto overscroll-contain"
+      style={{ height: 'var(--app-vh)', WebkitOverflowScrolling: 'touch' }}
+    >
       <div className="max-w-[520px] mx-auto px-3.5 pt-3.5 pb-6 flex flex-col gap-4">
         <header className="flex items-center justify-between pt-2">
           <div>
