@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminAddPoints,
@@ -105,6 +106,7 @@ async function adminRejectDraft(id: number) {
 }
 
 export function Admin() {
+  const navigate = useNavigate();
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
   const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music'>('topics');
@@ -174,7 +176,10 @@ export function Admin() {
       style={{ height: 'var(--app-vh)', WebkitOverflowScrolling: 'touch' }}
     >
       <div className="max-w-[520px] mx-auto px-3.5 pt-3.5 pb-6 flex flex-col gap-4">
-        <header className="flex items-center justify-between pt-2">
+        <header className="flex items-center gap-3 pt-2">
+          <button onClick={() => navigate('/radio')} className="glass w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-[0.95]">
+            <ArrowLeft className="w-4 h-4 text-[#ededef]" />
+          </button>
           <div>
             <div className="text-[20px] font-extrabold tracking-[3px] logo-gradient">INTRA GROUP</div>
             <div className="text-[9px] tracking-[4px] text-[#8a8f98] mt-0.5">{tx('title')}</div>
