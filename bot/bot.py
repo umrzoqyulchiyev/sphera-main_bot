@@ -11,6 +11,7 @@ TZ §1: /profile — real telegram_id ko'rsatiladi.
 """
 
 import os
+import re
 import logging
 
 import httpx
@@ -52,7 +53,7 @@ ADMIN_IDS = {
 }
 
 # ====== ConversationHandler states (so'rovnoma) ======
-TOPIC, DESCRIPTION, EXTRA = range(3)
+TOPIC, DESCRIPTION, EXTRA, TRANSFER_ID, TRANSFER_AMOUNT, REQUEST_ID, REQUEST_AMOUNT, REQUEST_MSG = range(8)
 
 # ====== Ko'p tilli xabarlar ======
 TEXTS = {
@@ -93,6 +94,22 @@ TEXTS = {
             "/mic <id> — Дать микрофон · /mute <id> — Забрать\n"
             "/help — Список команд"
         ),
+        "menu_buy":       "💎 Купить поинты",
+        "menu_transfer":  "💸 Перевести поинты",
+        "menu_request":   "🎁 Запросить поинты",
+        "menu_profile":   "👤 Профиль",
+        "menu_help":      "❓ Помощь",
+        "ask_transfer_id":     "💸 Введите Telegram ID получателя:",
+        "ask_transfer_amount": "Сколько поинтов отправить?",
+        "transfer_ok":         "✅ Отправлено {amount:.3f} поинтов пользователю `{id}`.\nВаш баланс: {points:.3f}",
+        "transfer_fail":       "⚠️ Не удалось отправить. Проверьте ID получателя и баланс.",
+        "ask_request_id":      "🎁 Введите Telegram ID пользователя, у которого хотите попросить поинты:",
+        "ask_request_amount":  "Сколько поинтов запросить?",
+        "ask_request_msg":     "Сообщение (необязательно, или /skip):",
+        "request_ok":          "✅ Запрос на {amount:.3f} поинтов отправлен пользователю `{id}`.",
+        "request_fail":        "⚠️ Не удалось отправить запрос. Проверьте ID.",
+        "invalid_id":          "⚠️ Неверный ID. Введите число (Telegram ID).",
+        "invalid_amount":      "⚠️ Неверная сумма. Введите положительное число.",
     },
     "en": {
         "welcome": (
@@ -131,6 +148,22 @@ TEXTS = {
             "/mic <id> — Grant mic · /mute <id> — Revoke\n"
             "/help — Commands list"
         ),
+        "menu_buy":       "💎 Buy points",
+        "menu_transfer":  "💸 Transfer points",
+        "menu_request":   "🎁 Request points",
+        "menu_profile":   "👤 Profile",
+        "menu_help":      "❓ Help",
+        "ask_transfer_id":     "💸 Enter the recipient's Telegram ID:",
+        "ask_transfer_amount": "How many points to send?",
+        "transfer_ok":         "✅ Sent {amount:.3f} points to `{id}`.\nYour balance: {points:.3f}",
+        "transfer_fail":       "⚠️ Could not send. Check the recipient's ID and your balance.",
+        "ask_request_id":      "🎁 Enter the Telegram ID of the user to request points from:",
+        "ask_request_amount":  "How many points to request?",
+        "ask_request_msg":     "Message (optional, or /skip):",
+        "request_ok":          "✅ Request for {amount:.3f} points sent to `{id}`.",
+        "request_fail":        "⚠️ Could not send the request. Check the ID.",
+        "invalid_id":          "⚠️ Invalid ID. Enter a number (Telegram ID).",
+        "invalid_amount":      "⚠️ Invalid amount. Enter a positive number.",
     },
     "lt": {
         "welcome": (
@@ -169,6 +202,22 @@ TEXTS = {
             "/mic <id> — Duoti mikrofoną · /mute <id> — Atimti\n"
             "/help — Komandų sąrašas"
         ),
+        "menu_buy":       "💎 Pirkti taškus",
+        "menu_transfer":  "💸 Pervesti taškus",
+        "menu_request":   "🎁 Prašyti taškų",
+        "menu_profile":   "👤 Profilis",
+        "menu_help":      "❓ Pagalba",
+        "ask_transfer_id":     "💸 Įveskite gavėjo Telegram ID:",
+        "ask_transfer_amount": "Kiek taškų siųsti?",
+        "transfer_ok":         "✅ Išsiųsta {amount:.3f} taškų vartotojui `{id}`.\nJūsų likutis: {points:.3f}",
+        "transfer_fail":       "⚠️ Nepavyko išsiųsti. Patikrinkite gavėjo ID ir likutį.",
+        "ask_request_id":      "🎁 Įveskite vartotojo, iš kurio norite prašyti taškų, Telegram ID:",
+        "ask_request_amount":  "Kiek taškų prašyti?",
+        "ask_request_msg":     "Žinutė (nebūtina, arba /skip):",
+        "request_ok":          "✅ Prašymas dėl {amount:.3f} taškų išsiųstas vartotojui `{id}`.",
+        "request_fail":        "⚠️ Nepavyko išsiųsti prašymo. Patikrinkite ID.",
+        "invalid_id":          "⚠️ Neteisingas ID. Įveskite skaičių (Telegram ID).",
+        "invalid_amount":      "⚠️ Neteisinga suma. Įveskite teigiamą skaičių.",
     },
 }
 
@@ -186,6 +235,24 @@ def webapp_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("📻 Открыть радио", web_app=WebAppInfo(url=MINI_APP_URL))]]
     )
+
+
+def main_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    """Doimiy pastki klaviatura — asosiy amallar (chat input yonidagi grid orqali)."""
+    return ReplyKeyboardMarkup(
+        [
+            [tx(lang, "menu_buy"), tx(lang, "menu_transfer")],
+            [tx(lang, "menu_request"), tx(lang, "menu_profile")],
+            [tx(lang, "menu_help")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def _menu_pattern(key: str) -> str:
+    """Barcha tillardagi menyu tugmasi matnlarini bitta regexga birlashtiradi."""
+    variants = {TEXTS[l][key] for l in ("ru", "en", "lt")}
+    return "^(" + "|".join(re.escape(v) for v in variants) + ")$"
 
 
 async def _get_user_lang(telegram_id: int) -> str:
@@ -258,6 +325,58 @@ POINT_PACKAGES = [
     {"id": 4, "points": 5000, "price": 2500, "label": "5000 поинтов"},
 ]
 # price — Telegram Stars (XTR) miqdori (XTR uchun provider token kerak emas).
+
+
+async def _show_slot(update: Update, context: ContextTypes.DEFAULT_TYPE, slot_ref: str) -> None:
+    """Slot ma'lumotini ko'rsatadi (deep-link orqali)."""
+    user = update.effective_user
+    lang = await _get_user_lang(user.id)
+    try:
+        slot_id = int(slot_ref.split("_")[1])
+        token = await _get_user_token(user.id, user.username, user.full_name)
+        if not token:
+            await update.message.reply_text("⚠️ Profil yuklanmadi.")
+            return
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{INTERNAL_API_URL}/slots/{slot_id}",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                await update.message.reply_text("❌ Slot topilmadi.")
+                return
+            s = resp.json()
+    except Exception as exc:
+        log.warning("slot fetch failed: %s", exc)
+        await update.message.reply_text("⚠️ Xatolik.")
+        return
+
+    host = s.get("display_name") or s.get("username") or "Ведущий"
+    live_label = {"ru": "🔴 СЕЙЧАС В ЭФИРЕ", "en": "🔴 LIVE NOW", "lt": "🔴 DABAR ETERYJE"}
+    soon_label = {"ru": "⏳ Скоро", "en": "⏳ Soon", "lt": "⏳ Netrukus"}
+    sched_label = {"ru": "📅 Запланирован", "en": "📅 Scheduled", "lt": "📅 Suplanuota"}
+
+    status_txt = (
+        live_label.get(lang, live_label["ru"]) if s.get("is_live_now") else
+        soon_label.get(lang, soon_label["ru"]) if s.get("is_soon") else
+        sched_label.get(lang, sched_label["ru"])
+    )
+    countdown = s.get("countdown_sec", 0)
+    h, m = countdown // 3600, (countdown % 3600) // 60
+
+    text = (
+        f"🎙 *{s['title']}*\n\n"
+        f"{status_txt}\n"
+        f"📻 {host}\n"
+        f"⏱ {s.get('duration_min', 60)} мин\n"
+    )
+    if s.get("description"):
+        text += f"\n{s['description']}\n"
+    if countdown > 0:
+        text += f"\n⏳ Через {h}ч {m}м\n"
+
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=webapp_keyboard())
 
 
 async def buy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -340,10 +459,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if context.args and context.args[0] == "buy":
         await buy_cmd(update, context)
         return
+    # Deep-link: /start slot_N → efir slot ma'lumoti
+    if context.args and context.args[0].startswith("slot_"):
+        await _show_slot(update, context, context.args[0])
+        return
     lang = await _get_user_lang(update.effective_user.id)
     await update.message.reply_text(
         tx(lang, "welcome"),
-        reply_markup=webapp_keyboard(),
+        reply_markup=main_keyboard(lang),
         parse_mode="Markdown",
     )
 
@@ -458,8 +581,13 @@ async def studio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{INTERNAL_API_URL}/messages/text",
-                json={"city": "global", "text": full_text, "lang": lang},
+                f"{INTERNAL_API_URL}/opinions/save",
+                json={
+                    "kind": "text",
+                    "text": full_text,
+                    "tg_message_id": query.message.message_id if query.message else 0,
+                    "cost": 0.001,
+                },
                 headers={"Authorization": f"Bearer {token}"},
                 timeout=15,
             )
@@ -492,6 +620,157 @@ async def cancel_studio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     )
     context.user_data.clear()
     return ConversationHandler.END
+
+
+async def cancel_menu_flow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """/cancel — transfer/request oqimini to'xtatadi, asosiy menyuni qaytaradi."""
+    lang = context.user_data.get("lang") or await _get_user_lang(update.effective_user.id)
+    await update.message.reply_text(
+        tx(lang, "cancelled"),
+        reply_markup=main_keyboard(lang),
+    )
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+# ============================================================
+# 💸 Перевести поинты — ConversationHandler: ID → summa → yuborish
+# ============================================================
+async def transfer_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = await _get_user_lang(update.effective_user.id)
+    context.user_data["lang"] = lang
+    await update.message.reply_text(tx(lang, "ask_transfer_id"), reply_markup=ReplyKeyboardRemove())
+    return TRANSFER_ID
+
+
+async def transfer_got_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get("lang", "ru")
+    text = update.message.text.strip()
+    if not text.isdigit():
+        await update.message.reply_text(tx(lang, "invalid_id"))
+        return TRANSFER_ID
+    context.user_data["target_id"] = int(text)
+    await update.message.reply_text(tx(lang, "ask_transfer_amount"))
+    return TRANSFER_AMOUNT
+
+
+async def transfer_got_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get("lang", "ru")
+    try:
+        amount = float(update.message.text.strip().replace(",", "."))
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(tx(lang, "invalid_amount"))
+        return TRANSFER_AMOUNT
+
+    user = update.effective_user
+    target_id = context.user_data.get("target_id")
+    token = await _get_user_token(user.id, user.username, user.full_name)
+
+    if token:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{INTERNAL_API_URL}/users/me/points/transfer",
+                    json={"to_user_id": target_id, "amount": amount},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+            if resp.status_code == 200:
+                pts = resp.json().get("detail", {}).get("points", 0)
+                await update.message.reply_text(
+                    tx(lang, "transfer_ok").format(amount=amount, id=target_id, points=float(pts)),
+                    reply_markup=main_keyboard(lang),
+                    parse_mode="Markdown",
+                )
+            else:
+                await update.message.reply_text(tx(lang, "transfer_fail"), reply_markup=main_keyboard(lang))
+        except Exception as exc:
+            log.warning("transfer failed: %s", exc)
+            await update.message.reply_text(tx(lang, "transfer_fail"), reply_markup=main_keyboard(lang))
+    else:
+        await update.message.reply_text(tx(lang, "transfer_fail"), reply_markup=main_keyboard(lang))
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+# ============================================================
+# 🎁 Запросить поинты — ConversationHandler: ID → summa → xabar → yuborish
+# ============================================================
+async def request_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = await _get_user_lang(update.effective_user.id)
+    context.user_data["lang"] = lang
+    await update.message.reply_text(tx(lang, "ask_request_id"), reply_markup=ReplyKeyboardRemove())
+    return REQUEST_ID
+
+
+async def request_got_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get("lang", "ru")
+    text = update.message.text.strip()
+    if not text.isdigit():
+        await update.message.reply_text(tx(lang, "invalid_id"))
+        return REQUEST_ID
+    context.user_data["target_id"] = int(text)
+    await update.message.reply_text(tx(lang, "ask_request_amount"))
+    return REQUEST_AMOUNT
+
+
+async def request_got_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get("lang", "ru")
+    try:
+        amount = float(update.message.text.strip().replace(",", "."))
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(tx(lang, "invalid_amount"))
+        return REQUEST_AMOUNT
+    context.user_data["amount"] = amount
+    await update.message.reply_text(tx(lang, "ask_request_msg"))
+    return REQUEST_MSG
+
+
+async def _finish_request(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str) -> int:
+    lang = context.user_data.get("lang", "ru")
+    user = update.effective_user
+    target_id = context.user_data.get("target_id")
+    amount = context.user_data.get("amount")
+    token = await _get_user_token(user.id, user.username, user.full_name)
+
+    if token:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{INTERNAL_API_URL}/users/me/points/request",
+                    json={"from_user_id": target_id, "amount": amount, "message": message},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+            if resp.status_code == 200:
+                await update.message.reply_text(
+                    tx(lang, "request_ok").format(amount=amount, id=target_id),
+                    reply_markup=main_keyboard(lang),
+                    parse_mode="Markdown",
+                )
+            else:
+                await update.message.reply_text(tx(lang, "request_fail"), reply_markup=main_keyboard(lang))
+        except Exception as exc:
+            log.warning("points request failed: %s", exc)
+            await update.message.reply_text(tx(lang, "request_fail"), reply_markup=main_keyboard(lang))
+    else:
+        await update.message.reply_text(tx(lang, "request_fail"), reply_markup=main_keyboard(lang))
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+async def request_got_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await _finish_request(update, context, update.message.text.strip())
+
+
+async def request_skip_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await _finish_request(update, context, "")
 
 
 # ============================================================
@@ -929,8 +1208,36 @@ def main() -> None:
         per_chat=True,
     )
 
+    # Doimiy pastki menyu — 💸 Перевести / 🎁 Запросить поинты
+    transfer_conv = ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex(_menu_pattern("menu_transfer")), transfer_start)],
+        states={
+            TRANSFER_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, transfer_got_id)],
+            TRANSFER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, transfer_got_amount)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_menu_flow)],
+        per_user=True,
+        per_chat=True,
+    )
+    request_conv = ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex(_menu_pattern("menu_request")), request_start)],
+        states={
+            REQUEST_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_got_id)],
+            REQUEST_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_got_amount)],
+            REQUEST_MSG: [
+                CommandHandler("skip", request_skip_msg),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, request_got_msg),
+            ],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_menu_flow)],
+        per_user=True,
+        per_chat=True,
+    )
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(studio_conv)
+    app.add_handler(transfer_conv)
+    app.add_handler(request_conv)
     app.add_handler(CallbackQueryHandler(studio_callback, pattern="^studio_"))
     app.add_handler(CommandHandler("radio", radio))
     app.add_handler(CommandHandler("topic", topic_cmd))
@@ -938,6 +1245,11 @@ def main() -> None:
     app.add_handler(CommandHandler("profile", profile))
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
+
+    # Doimiy pastki menyu tugmalari (chat input yonidagi grid orqali ochiladi)
+    app.add_handler(MessageHandler(filters.Regex(_menu_pattern("menu_buy")), buy_cmd))
+    app.add_handler(MessageHandler(filters.Regex(_menu_pattern("menu_profile")), profile))
+    app.add_handler(MessageHandler(filters.Regex(_menu_pattern("menu_help")), help_cmd))
 
     # ── Voice Chat boshqaruvi (modarator/admin) — Boss talabi ──
     app.add_handler(CommandHandler("efir", efir_cmd))

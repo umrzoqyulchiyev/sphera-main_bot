@@ -2,25 +2,16 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Tizim kutubxonalari: ffmpeg (audio), curl (healthcheck)
+# Tizim kutubxonalari: ffmpeg (audio), curl (healthcheck), build-essential (tgcrypto native build)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Python paketlari
-RUN pip install --no-cache-dir \
-    fastapi==0.111.0 \
-    "uvicorn[standard]==0.30.0" \
-    asyncpg==0.29.0 \
-    "python-jose[cryptography]==3.3.0" \
-    httpx==0.27.0 \
-    google-generativeai==0.7.0 \
-    edge-tts==7.2.8 \
-    python-multipart==0.0.9 \
-    "pydantic-settings==2.3.0" \
-    "redis[hiredis]==5.0.0" \
-    faster-whisper==1.0.3
+# Python paketlari — requirements.txt yagona manba
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Ilova kodi
 COPY app ./app

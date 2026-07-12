@@ -2,23 +2,23 @@
 
 @layer base {
   :root {
-    --bg: #060a14;
-    --bg2: #0a1020;
-    --card: rgba(18, 28, 48, 0.55);
-    --card-solid: #0e1729;
-    --glass-border: rgba(80, 160, 255, 0.18);
-    --accent: #2ea8ff;
-    --accent2: #38e1ff;
-    --glow: rgba(46, 168, 255, 0.55);
-    --text: #dbe9ff;
-    --muted: #6b7c9e;
+    --bg: #050506;
+    --bg2: #0a0a0c;
+    --card: rgba(18,28,48, 0.55);
+    --card-solid: #101014;
+    --glass-border: rgba(110,118,220, 0.18);
+    --accent: #7b85e8;
+    --accent2: #5e6ad2;
+    --glow: rgba(123,133,232, 0.55);
+    --text: #ededef;
+    --muted: #8a8f98;
     --green: #22e3a5;
     --red: #ff4d6d;
     --app-vh: 100vh;
     /* Stitch design tokens */
-    --primary-dim: #27d9f7;
-    --primary-light: #c2f3ff;
-    --secondary-blue: #059af0;
+    --primary-dim: #6e78e1;
+    --primary-light: #c5c9f5;
+    --secondary-blue: #6670c9;
   }
 
   * {
@@ -27,8 +27,8 @@
 
   html,
   body {
-    background: radial-gradient(1200px 600px at 50% -10%, rgba(46, 168, 255, 0.12), transparent 60%),
-      radial-gradient(800px 500px at 50% 110%, rgba(46, 168, 255, 0.08), transparent 60%), var(--bg);
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(123,133,232, 0.12), transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, rgba(123,133,232, 0.08), transparent 60%), var(--bg);
     color: var(--text);
     letter-spacing: 0.3px;
     overscroll-behavior: none;
@@ -76,24 +76,24 @@
     border-radius: 20px;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 28px rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255, 0.05), 0 8px 28px rgba(0,0,0, 0.45);
   }
   
   /* Liquid Glass - enhanced version */
   .liquid-glass {
     background: linear-gradient(135deg, 
-      rgba(15, 30, 60, 0.7) 0%, 
-      rgba(10, 20, 40, 0.85) 50%, 
-      rgba(15, 30, 60, 0.7) 100%
+      rgba(15,30,60, 0.7) 0%, 
+      rgba(10,10,12, 0.85) 50%, 
+      rgba(15,30,60, 0.7) 100%
     );
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(0, 217, 255, 0.15);
+    border: 1px solid rgba(94,106,210, 0.15);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 -1px 0 rgba(0, 217, 255, 0.1),
-      0 0 0 1px rgba(0, 217, 255, 0.05);
+      0 8px 32px rgba(0,0,0, 0.4),
+      inset 0 1px 0 rgba(255,255,255, 0.1),
+      inset 0 -1px 0 rgba(94,106,210, 0.1),
+      0 0 0 1px rgba(94,106,210, 0.05);
   }
 
   .text-glow {
@@ -101,16 +101,16 @@
   }
   
   .text-glow-strong {
-    text-shadow: 0 0 20px rgba(0, 217, 255, 0.8), 0 0 40px rgba(0, 217, 255, 0.4);
+    text-shadow: 0 0 20px rgba(94,106,210, 0.8), 0 0 40px rgba(94,106,210, 0.4);
   }
   
   /* Glassmorphism navbar (legacy) */
   .glass-nav {
-    background: rgba(10, 20, 40, 0.8);
-    border: 1px solid rgba(0, 217, 255, 0.15);
+    background: rgba(10,10,12, 0.8);
+    border: 1px solid rgba(94,106,210, 0.15);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0,0,0, 0.4), inset 0 1px 0 rgba(255,255,255, 0.05);
   }
   
   /* Scrollbar yashirin — lekin scroll ISHLAYDI (mouse wheel + touch) */
@@ -128,6 +128,15 @@
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes liveGlow {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(255,77,109,0.35);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(255,77,109,0.75);
   }
 }
 
@@ -200,29 +209,29 @@
 
 /* Stitch glass-card */
 .stitch-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255,255,255, 0.03);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255, 0.05);
   border-radius: 24px;
 }
 
 .stitch-card-bordered {
-  background: rgba(15, 19, 30, 0.4);
+  background: rgba(15,19,30, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(39, 217, 247, 0.2);
+  border: 1px solid rgba(110,120,225, 0.2);
   border-radius: 24px;
 }
 
 /* Neon text glow */
 .neon-glow-text {
-  text-shadow: 0 0 20px rgba(39, 217, 247, 0.6);
+  text-shadow: 0 0 20px rgba(110,120,225, 0.6);
 }
 
 /* 3-color gradient logo text */
 .logo-gradient {
-  background: linear-gradient(to right, #ffffff 0%, #38e1ff 50%, #7c5cff 100%);
+  background: linear-gradient(to right, #ffffff 0%, #5e6ad2 50%, #7c5cff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -230,14 +239,14 @@
 
 /* Primary gradient button with glow */
 .btn-primary-glow {
-  background: linear-gradient(135deg, #27d9f7, #059af0);
-  color: #060a14;
-  box-shadow: 0 0 25px rgba(39, 217, 247, 0.4);
+  background: linear-gradient(135deg, #6e78e1, #6670c9);
+  color: #050506;
+  box-shadow: 0 0 25px rgba(110,120,225, 0.4);
   transition: all 0.2s ease;
 }
 .btn-primary-glow:active {
   transform: scale(0.96);
-  box-shadow: 0 0 35px rgba(39, 217, 247, 0.7);
+  box-shadow: 0 0 35px rgba(110,120,225, 0.7);
 }
 
 /* Central navigation ORB (breathing animation) */
@@ -249,13 +258,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #02101f;
-  background: radial-gradient(circle at 38% 32%, #eafdff 0%, #c2f3ff 22%, #38e1ff 52%, #1f9fe8 78%, #0c6fc4 100%);
+  color: #020203;
+  background: radial-gradient(circle at 38% 32%, #e4e5f7 0%, #c5c9f5 22%, #5e6ad2 52%, #646edc 78%, #4a56b4 100%);
   box-shadow:
-    0 0 18px rgba(39, 217, 247, 0.7),
-    0 0 36px rgba(39, 217, 247, 0.35),
-    inset 0 2px 4px rgba(255, 255, 255, 0.6),
-    inset 0 -3px 8px rgba(12, 111, 196, 0.5);
+    0 0 18px rgba(110,120,225, 0.7),
+    0 0 36px rgba(110,120,225, 0.35),
+    inset 0 2px 4px rgba(255,255,255, 0.6),
+    inset 0 -3px 8px rgba(74,86,180, 0.5);
   animation: orb-breathe 3.2s ease-in-out infinite alternate;
 }
 /* Ichki yorqin nuqta (glossy highlight) */
@@ -276,13 +285,13 @@
   filter: drop-shadow(0 1px 1px rgba(255,255,255,0.4));
 }
 @keyframes orb-breathe {
-  0% { box-shadow: 0 0 14px rgba(39, 217, 247, 0.6), 0 0 28px rgba(39,217,247,0.25), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -3px 8px rgba(12,111,196,0.5); }
-  100% { box-shadow: 0 0 26px rgba(39, 217, 247, 1), 0 0 52px rgba(39,217,247,0.45), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -3px 8px rgba(12,111,196,0.5); }
+  0% { box-shadow: 0 0 14px rgba(110,120,225, 0.6), 0 0 28px rgba(110,120,225,0.25), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -3px 8px rgba(74,86,180,0.5); }
+  100% { box-shadow: 0 0 26px rgba(110,120,225, 1), 0 0 52px rgba(110,120,225,0.45), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -3px 8px rgba(74,86,180,0.5); }
 }
 
 /* Active holatda kuchliroq porlash */
 .orb-active {
-  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #d4f8ff 20%, #38e1ff 50%, #1f9fe8 80%, #0c6fc4 100%);
+  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #dee0f6 20%, #5e6ad2 50%, #646edc 80%, #4a56b4 100%);
 }
 
 /* Aylanuvchi tashqi halqa (orb atrofida) */
@@ -295,8 +304,8 @@
   margin: -36px 0 0 -36px;
   border-radius: 50%;
   border: 1.5px solid transparent;
-  border-top-color: rgba(56, 225, 255, 0.9);
-  border-right-color: rgba(56, 225, 255, 0.3);
+  border-top-color: rgba(94,106,210, 0.9);
+  border-right-color: rgba(94,106,210, 0.3);
   animation: orb-spin 2.8s linear infinite;
   pointer-events: none;
 }
@@ -309,20 +318,20 @@
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 2px solid rgba(39, 217, 247, 0.5);
-  box-shadow: 0 0 40px rgba(39, 217, 247, 0.2), inset 0 0 40px rgba(39, 217, 247, 0.2);
+  border: 2px solid rgba(110,120,225, 0.5);
+  box-shadow: 0 0 40px rgba(110,120,225, 0.2), inset 0 0 40px rgba(110,120,225, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(39, 217, 247, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(110,120,225, 0.1) 0%, transparent 70%);
 }
 .waveform-bar {
   width: 6px;
-  background: linear-gradient(to top, #059af0, #27d9f7, #c2f3ff);
+  background: linear-gradient(to top, #6670c9, #6e78e1, #c5c9f5);
   border-radius: 3px;
   margin: 0 3px;
   animation: wave-pulse 1s ease-in-out infinite alternate;
-  box-shadow: 0 0 10px rgba(39, 217, 247, 0.8);
+  box-shadow: 0 0 10px rgba(110,120,225, 0.8);
 }
 @keyframes wave-pulse {
   0% { transform: scaleY(0.4); }
@@ -331,16 +340,16 @@
 
 /* Avatar neon glow */
 .avatar-glow {
-  box-shadow: 0 0 40px rgba(39, 217, 247, 0.5), inset 0 0 20px rgba(39, 217, 247, 0.2);
-  border: 2px solid rgba(39, 217, 247, 0.8);
+  box-shadow: 0 0 40px rgba(110,120,225, 0.5), inset 0 0 20px rgba(110,120,225, 0.2);
+  border: 2px solid rgba(110,120,225, 0.8);
 }
 
 /* Cyber grid background (language select) */
 .bg-cyber-grid {
   background-size: 30px 30px;
   background-image:
-    linear-gradient(to right, rgba(39, 217, 247, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(39, 217, 247, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(110,120,225, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(110,120,225, 0.04) 1px, transparent 1px);
   -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
   mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
 }

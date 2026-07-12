@@ -59,13 +59,13 @@ class PointsBalanceOut(BaseModel):
 
 
 class PointsTransferRequest(BaseModel):
-    to_user_id: int
+    to_user_id: int  # aslida telegram_id (profilda ko'rsatiladigan ID)
     amount: Decimal = Field(gt=0)
 
 
 class PointsRequestCreate(BaseModel):
     """Boshqa foydalanuvchidan point so'rash."""
-    from_user_id: int  # kimdan so'ralyapti (ID bo'yicha)
+    from_user_id: int  # kimdan so'ralyapti — aslida telegram_id (profilda ko'rsatiladigan ID)
     amount: Decimal = Field(gt=0)
     message: str = ""
 

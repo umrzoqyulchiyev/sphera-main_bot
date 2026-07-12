@@ -16,7 +16,7 @@ export SECRET_KEY=devsecretkey1234567890devsecret
 export UPLOAD_DIR=/tmp/sphera_uploads AUDIO_DIR=/tmp/sphera_audio
 export MINIAPP_DIR="$ROOT/frontend/dist"
 export FILLER_SECONDS=30
-export BOT_TOKEN=8858693463:AAEf2t1kWgBD6gv7-Nlm7si1HPABdRA9C-0
+export BOT_TOKEN=6725497158:AAG4sl-lm7E8G7AsyKrhBgjg-Li2jwl47ek
 export COMMUNITY_CHAT_ID=-1003883809940
 export ADMIN_IDS=7993413019
 export DISABLE_GROUP_CHECK=true

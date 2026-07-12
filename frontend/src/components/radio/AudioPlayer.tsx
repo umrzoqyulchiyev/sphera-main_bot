@@ -31,25 +31,25 @@ export function AudioPlayer({
 
         {/* Play belgisi faqat to'xtatilganda (markazda kichik, yarim shaffof) */}
         {!isPlaying && (
-          <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center bg-[rgba(6,10,20,0.45)] backdrop-blur-sm">
-            <Play className="w-6 h-6 text-[#38e1ff] ml-0.5" strokeWidth={2.5} />
+          <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center bg-[rgba(5,5,6,0.45)] backdrop-blur-sm">
+            <Play className="w-6 h-6 text-[#5e6ad2] ml-0.5" strokeWidth={2.5} />
           </span>
         )}
       </button>
 
       {/* Broadcaster info */}
       <div className="text-center">
-        <div className="text-[10px] text-[#6b7c9e] tracking-wider">
+        <div className="text-[10px] text-[#8a8f98] tracking-wider">
           ID: {userId}
         </div>
-        <div className="text-sm font-bold text-[#38e1ff] text-glow mt-0.5">
+        <div className="text-sm font-bold text-[#5e6ad2] text-glow mt-0.5">
           {broadcasterName}
         </div>
       </div>
 
       {/* Volume control */}
       <div className="w-full max-w-[260px] glass px-4 py-2.5 rounded-2xl flex items-center gap-3">
-        <Volume2 className="w-4 h-4 text-[#38e1ff] shrink-0" strokeWidth={1.8} />
+        <Volume2 className="w-4 h-4 text-[#5e6ad2] shrink-0" strokeWidth={1.8} />
         <input
           type="range"
           min="0"
@@ -58,10 +58,10 @@ export function AudioPlayer({
           onChange={(e) => onVolumeChange(Number(e.target.value))}
           className="flex-1 h-1 rounded-full appearance-none outline-none cursor-pointer"
           style={{
-            background: `linear-gradient(90deg, #38e1ff 0%, #38e1ff ${volume}%, rgba(46,168,255,0.15) ${volume}%, rgba(46,168,255,0.15) 100%)`,
+            background: `linear-gradient(90deg, #5e6ad2 0%, #5e6ad2 ${volume}%, rgba(123,133,232,0.15) ${volume}%, rgba(123,133,232,0.15) 100%)`,
           }}
         />
-        <span className="text-[10px] text-[#6b7c9e] w-7 text-right">{volume}%</span>
+        <span className="text-[10px] text-[#8a8f98] w-7 text-right">{volume}%</span>
       </div>
     </div>
   );

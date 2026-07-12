@@ -84,15 +84,15 @@ export function AIOrb({ isActive = false, size = 68 }: AIOrbProps) {
         centerX, centerY - 5, 0,
         centerX, centerY, baseRadius * 0.8
       );
-      coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-      coreGradient.addColorStop(0.3, 'rgba(0, 217, 255, 0.8)');
-      coreGradient.addColorStop(1, 'rgba(0, 136, 255, 0.6)');
+      coreGradient.addColorStop(0, 'rgba(255,255,255, 0.9)');
+      coreGradient.addColorStop(0.3, 'rgba(94,106,210, 0.8)');
+      coreGradient.addColorStop(1, 'rgba(94,106,210, 0.6)');
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, baseRadius * 0.6, 0, Math.PI * 2);
       ctx.fillStyle = coreGradient;
       ctx.shadowBlur = isActive ? 30 : 15;
-      ctx.shadowColor = 'rgba(0, 217, 255, 0.8)';
+      ctx.shadowColor = 'rgba(94,106,210, 0.8)';
       ctx.fill();
 
       animationId = requestAnimationFrame(animate);
@@ -114,8 +114,8 @@ export function AIOrb({ isActive = false, size = 68 }: AIOrbProps) {
         className="absolute inset-0 rounded-full blur-2xl transition-opacity duration-500"
         style={{
           background: isActive 
-            ? 'radial-gradient(circle, rgba(0,217,255,0.4) 0%, rgba(138,92,246,0.3) 50%, transparent 100%)'
-            : 'radial-gradient(circle, rgba(0,217,255,0.2) 0%, transparent 70%)',
+            ? 'radial-gradient(circle, rgba(94,106,210,0.4) 0%, rgba(138,92,246,0.3) 50%, transparent 100%)'
+            : 'radial-gradient(circle, rgba(94,106,210,0.2) 0%, transparent 70%)',
           animation: 'pulse-slow 4s ease-in-out infinite',
         }}
       />

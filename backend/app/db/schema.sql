@@ -173,3 +173,44 @@ CREATE TABLE IF NOT EXISTS opinions (
 
 CREATE INDEX IF NOT EXISTS idx_opinions_topic ON opinions(topic_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_opinions_user ON opinions(user_id, created_at DESC);
+
+-- ============ Musiqa nomzodlari (foydalanuvchi taklif qiladi) ============
+CREATE TABLE IF NOT EXISTS music_nominations (
+    id          SERIAL PRIMARY KEY,
+    topic_id    INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+    user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title       VARCHAR(300) NOT NULL,    -- "Qo'shiq nomi — Artist"
+    artist      VARCHAR(200) DEFAULT '',
+    vote_count  INTEGER DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_music_nom_topic ON music_nominations(topic_id, vote_count DESC);
+
+-- ============ Musiqa ovoz berish ============
+CREATE TABLE IF NOT EXISTS music_votes (
+    id              SERIAL PRIMARY KEY,
+    nomination_id   INTEGER REFERENCES music_nominations(id) ON DELETE CASCADE,
+    user_id         INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    topic_id        INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, topic_id)   -- har mavzu uchun bitta ovoz
+);
+CREATE INDEX IF NOT EXISTS idx_music_votes_nom ON music_votes(nomination_id);
+
+-- ============ Efir jadvali (broadcast slots) ============
+-- Admin ведущийga vaqt beradi, u shu vaqtda efirga chiqadi
+CREATE TABLE IF NOT EXISTS broadcast_slots (
+    id              SERIAL PRIMARY KEY,
+    host_user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title           VARCHAR(300) NOT NULL,         -- "Kechki efir: Sport"
+    description     TEXT DEFAULT '',
+    scheduled_at    TIMESTAMP NOT NULL,            -- efir boshlanadigan vaqt
+    duration_min    INTEGER DEFAULT 60,            -- daqiqalarda
+    status          VARCHAR(20) DEFAULT 'scheduled', -- scheduled | live | done | cancelled
+    share_url       VARCHAR(500) DEFAULT '',       -- bot orqali ulashish linki
+    cost_points     NUMERIC(12,4) DEFAULT 0,       -- ведущийdan olinadigan to'lov (keyingi bosqich)
+    created_by      INTEGER REFERENCES users(id),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_slots_scheduled ON broadcast_slots(scheduled_at, status);
+CREATE INDEX IF NOT EXISTS idx_slots_host ON broadcast_slots(host_user_id, status);

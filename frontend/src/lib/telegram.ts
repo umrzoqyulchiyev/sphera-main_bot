@@ -9,6 +9,12 @@ export function initTelegramWebApp() {
     tg.ready();
     tg.expand();
 
+    // To'liq ekran (Bot API 8.0+) — expand() o'zi Telegram xromini yashirmaydi,
+    // ayniqsa iOS'da. requestFullscreen shart.
+    if (typeof tg.requestFullscreen === 'function') {
+      try { tg.requestFullscreen(); } catch (e) { /* eski versiya */ }
+    }
+
     // Android: prevent accidental closing
     if (typeof tg.disableVerticalSwipes === 'function') {
       tg.disableVerticalSwipes();
@@ -24,8 +30,8 @@ export function initTelegramWebApp() {
 
     // Telegram theme colors
     try {
-      if (tg.setHeaderColor) tg.setHeaderColor('#060a14');
-      if (tg.setBackgroundColor) tg.setBackgroundColor('#060a14');
+      if (tg.setHeaderColor) tg.setHeaderColor('#050506');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#050506');
     } catch (e) {
       /* old versions */
     }

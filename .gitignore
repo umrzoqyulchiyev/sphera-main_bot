@@ -10,6 +10,7 @@ secrets/
 
 # ── Python ───────────────────────────────────────────────
 .venv/
+.venv_mac/
 __pycache__/
 *.pyc
 *.pyo
@@ -37,6 +38,7 @@ frontend/node_modules/
 # ── IDE ──────────────────────────────────────────────────
 .vscode/
 .idea/
+.DS_Store
 
 # ── Test artefaktlari ────────────────────────────────────
 .test*.txt

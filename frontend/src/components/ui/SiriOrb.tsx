@@ -16,19 +16,19 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
         <div className="absolute inset-[-12px]">
           <div className="siri-atmosphere-1 absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(56,225,255,0.15) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(94,106,210,0.15) 0%, transparent 70%)',
               filter: 'blur(18px)',
             }}
           />
           <div className="siri-atmosphere-2 absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(0,200,255,0.12) 0%, transparent 65%)',
+              background: 'radial-gradient(circle, rgba(94,106,210,0.12) 0%, transparent 65%)',
               filter: 'blur(22px)',
             }}
           />
           <div className="siri-atmosphere-3 absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(46,168,255,0.1) 0%, transparent 60%)',
+              background: 'radial-gradient(circle, rgba(123,133,232,0.1) 0%, transparent 60%)',
               filter: 'blur(28px)',
             }}
           />
@@ -52,9 +52,9 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
                 background: `conic-gradient(
                   from 0deg,
                   transparent 0deg,
-                  rgba(56,225,255,0.4) 90deg,
+                  rgba(94,106,210,0.4) 90deg,
                   transparent 180deg,
-                  rgba(46,168,255,0.3) 270deg,
+                  rgba(123,133,232,0.3) 270deg,
                   transparent 360deg
                 )`,
               }}
@@ -65,9 +65,9 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
                 background: `conic-gradient(
                   from 180deg,
                   transparent 0deg,
-                  rgba(0,217,255,0.35) 90deg,
+                  rgba(94,106,210,0.35) 90deg,
                   transparent 180deg,
-                  rgba(0,200,255,0.25) 270deg,
+                  rgba(94,106,210,0.25) 270deg,
                   transparent 360deg
                 )`,
               }}
@@ -98,26 +98,26 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
                   transparent 50%
                 ),
                 linear-gradient(135deg, 
-                  #00e5ff 0%, 
-                  #00d0ff 20%,
-                  #00b8ff 40%,
-                  #0099ff 60%,
-                  #00b0ff 80%,
-                  #00d5ff 100%
+                  #5e6ad2 0%, 
+                  #5e6ad2 20%,
+                  #5e6ad2 40%,
+                  #5e6ad2 60%,
+                  #5e6ad2 80%,
+                  #5e6ad2 100%
                 )
               `,
               boxShadow: isActive
                 ? `
-                  0 0 60px rgba(56,225,255,0.9), 
-                  0 0 120px rgba(46,168,255,0.5),
-                  0 0 180px rgba(0,200,255,0.3),
+                  0 0 60px rgba(94,106,210,0.9), 
+                  0 0 120px rgba(123,133,232,0.5),
+                  0 0 180px rgba(94,106,210,0.3),
                   inset 0 0 40px rgba(255,255,255,0.25),
                   inset 0 -10px 30px rgba(0,150,255,0.3)
                 `
                 : `
-                  0 0 50px rgba(56,225,255,0.7), 
-                  0 0 100px rgba(46,168,255,0.4),
-                  0 0 150px rgba(0,200,255,0.2),
+                  0 0 50px rgba(94,106,210,0.7), 
+                  0 0 100px rgba(123,133,232,0.4),
+                  0 0 150px rgba(94,106,210,0.2),
                   inset 0 0 35px rgba(255,255,255,0.2),
                   inset 0 -10px 25px rgba(0,150,255,0.25)
                 `,
@@ -182,8 +182,8 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
               style={{ 
                 top: '70%', 
                 right: '20%',
-                background: 'radial-gradient(circle, rgba(200,240,255,0.8), rgba(0,200,255,0.3))',
-                boxShadow: '0 0 6px rgba(200,240,255,0.5)',
+                background: 'radial-gradient(circle, rgba(195,198,235,0.8), rgba(94,106,210,0.3))',
+                boxShadow: '0 0 6px rgba(195,198,235,0.5)',
                 filter: 'blur(0.5px)',
               }} 
             />
@@ -191,8 +191,8 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
               style={{ 
                 bottom: '18%', 
                 left: '12%',
-                background: 'radial-gradient(circle, rgba(180,230,255,0.7), rgba(46,168,255,0.3))',
-                boxShadow: '0 0 7px rgba(180,230,255,0.4)',
+                background: 'radial-gradient(circle, rgba(178,182,230,0.7), rgba(123,133,232,0.3))',
+                boxShadow: '0 0 7px rgba(178,182,230,0.4)',
                 filter: 'blur(0.5px)',
               }} 
             />
@@ -200,8 +200,8 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
               style={{ 
                 top: '45%', 
                 right: '8%',
-                background: 'radial-gradient(circle, rgba(220,245,255,0.6), rgba(0,180,255,0.2))',
-                boxShadow: '0 0 5px rgba(220,245,255,0.3)',
+                background: 'radial-gradient(circle, rgba(210,212,240,0.6), rgba(0,180,255,0.2))',
+                boxShadow: '0 0 5px rgba(210,212,240,0.3)',
                 filter: 'blur(0.5px)',
               }} 
             />
@@ -226,7 +226,7 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
                 filter: `
                   drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
                   drop-shadow(0 0 12px rgba(255,255,255,0.4))
-                  drop-shadow(0 0 20px rgba(56,225,255,0.3))
+                  drop-shadow(0 0 20px rgba(94,106,210,0.3))
                 `,
               }}
             />

@@ -359,46 +359,6 @@ export async function getUserStats(): Promise<UserStats> {
   return resp.json();
 }
 
-// ============ Favorites ============
-export interface FavoriteItem {
-  id: number;
-  item_type: string;
-  item_id: number;
-  title: string;
-  content: string | null;
-  broadcaster: string | null;
-  duration: number | null;
-  audio_url: string | null;
-  created_at: string;
-}
-
-export async function getFavorites(): Promise<FavoriteItem[]> {
-  const resp = await fetch(`${API_URL}/users/favorites`, { headers: authHeaders() });
-  if (!resp.ok) throw new Error('Failed to fetch favorites');
-  return resp.json();
-}
-
-export async function addFavorite(data: {
-  item_type: string; item_id: number; title: string;
-  content?: string; broadcaster?: string; duration?: number; audio_url?: string;
-}): Promise<FavoriteItem> {
-  const resp = await fetch(`${API_URL}/users/favorites`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify(data),
-  });
-  if (!resp.ok) throw new Error('Failed to add favorite');
-  return resp.json();
-}
-
-export async function removeFavorite(favoriteId: number) {
-  const resp = await fetch(`${API_URL}/users/favorites/${favoriteId}`, {
-    method: 'DELETE', headers: authHeaders(),
-  });
-  if (!resp.ok) throw new Error('Failed to remove favorite');
-  return resp.json();
-}
-
 // ============ Voice Chat Status ============
 export interface VoiceChatStatus {
   configured: boolean;
@@ -411,4 +371,142 @@ export async function getVoiceChatStatus(): Promise<VoiceChatStatus> {
     if (resp.ok) return resp.json();
   } catch {}
   return { configured: false, in_call: false };
+}
+
+// ============ Music Voting ============
+export interface MusicNomination {
+  id: number;
+  title: string;
+  artist: string;
+  vote_count: number;
+  username: string | null;
+  display_name: string | null;
+  user_voted: boolean;
+  created_at: string;
+}
+
+export interface MusicCurrentResult {
+  topic: { id: number; title: string } | null;
+  nominations: MusicNomination[];
+}
+
+export async function getMusicCurrent(): Promise<MusicCurrentResult> {
+  const resp = await fetch(`${API_URL}/music/current`, { headers: authHeaders() });
+  if (!resp.ok) return { topic: null, nominations: [] };
+  return resp.json();
+}
+
+export async function getMusicNominations(topicId: number): Promise<MusicNomination[]> {
+  const resp = await fetch(`${API_URL}/music/nominations/${topicId}`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed');
+  return resp.json();
+}
+
+export async function addMusicNomination(topicId: number, title: string, artist = '') {
+  const resp = await fetch(`${API_URL}/music/nominations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ topic_id: topicId, title, artist }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed');
+  }
+  return resp.json();
+}
+
+export async function voteMusicNomination(nominationId: number) {
+  const resp = await fetch(`${API_URL}/music/vote/${nominationId}`, {
+    method: 'POST', headers: authHeaders(),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed');
+  }
+  return resp.json();
+}
+
+export async function getMusicWinner(topicId: number) {
+  const resp = await fetch(`${API_URL}/music/winner/${topicId}`, { headers: authHeaders() });
+  if (!resp.ok) return { winner: null };
+  return resp.json();
+}
+
+// ============ Broadcast Slots (Efir jadvali) ============
+export interface BroadcastSlot {
+  id: number;
+  title: string;
+  description: string;
+  scheduled_at: string;
+  duration_min: number;
+  status: string;
+  share_url: string;
+  username: string | null;
+  display_name: string | null;
+  host_telegram_id: number | null;
+  countdown_sec: number;
+  is_soon: boolean;
+  is_live_now: boolean;
+}
+
+export async function getUpcomingSlots(): Promise<BroadcastSlot[]> {
+  const resp = await fetch(`${API_URL}/slots/upcoming`, { headers: authHeaders() });
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
+export async function getAllSlots(): Promise<BroadcastSlot[]> {
+  const resp = await fetch(`${API_URL}/slots/`, { headers: authHeaders() });
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
+export async function adminCreateSlot(data: {
+  host_user_id: number;
+  title: string;
+  description?: string;
+  scheduled_at: string;
+  duration_min?: number;
+}) {
+  const resp = await fetch(`${API_URL}/slots/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    if (typeof e.detail === 'string') throw new Error(e.detail);
+    if (e.detail?.error === 'insufficient_points') {
+      throw new Error(`У ведущего недостаточно поинтов для слота (нужно ${e.detail.required}, есть ${e.detail.points})`);
+    }
+    throw new Error('Failed to create slot');
+  }
+  return resp.json();
+}
+
+export async function adminUpdateSlotStatus(slotId: number, status: string) {
+  const resp = await fetch(`${API_URL}/slots/${slotId}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ status }),
+  });
+  if (!resp.ok) throw new Error('Failed');
+  return resp.json();
+}
+
+export async function adminDeleteSlot(slotId: number) {
+  const resp = await fetch(`${API_URL}/slots/${slotId}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed');
+  return resp.json();
+}
+
+// ============ Music: admin moderation ============
+export async function adminDeleteNomination(nominationId: number) {
+  const resp = await fetch(`${API_URL}/music/nominations/${nominationId}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to delete nomination');
+  return resp.json();
 }

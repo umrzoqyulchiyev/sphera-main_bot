@@ -113,7 +113,7 @@ export function ModerScreen() {
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'pending'
               ? 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-              : 'bg-[rgba(10,20,40,0.4)] text-[#6b7c9e] hover:text-white'
+              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
           }`}
         >
           ⏳ Ожидают
@@ -123,7 +123,7 @@ export function ModerScreen() {
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'approved'
               ? 'bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-              : 'bg-[rgba(10,20,40,0.4)] text-[#6b7c9e] hover:text-white'
+              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
           }`}
         >
           ✅ Одобрены
@@ -133,7 +133,7 @@ export function ModerScreen() {
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'rejected'
               ? 'bg-gradient-to-r from-[#ef4444] to-[#dc2626] text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]'
-              : 'bg-[rgba(10,20,40,0.4)] text-[#6b7c9e] hover:text-white'
+              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
           }`}
         >
           ❌ Отклонены
@@ -143,18 +143,18 @@ export function ModerScreen() {
       {/* Loading */}
       {loading && (
         <div className="glass p-8 rounded-[24px] text-center">
-          <Loader className="w-8 h-8 text-[#00d9ff] animate-spin mx-auto mb-3" />
-          <div className="text-sm text-[#6b7c9e]">Загрузка черновиков...</div>
+          <Loader className="w-8 h-8 text-[#5e6ad2] animate-spin mx-auto mb-3" />
+          <div className="text-sm text-[#8a8f98]">Загрузка черновиков...</div>
         </div>
       )}
 
       {/* Empty State */}
       {!loading && drafts.length === 0 && (
         <div className="glass p-8 rounded-[24px] text-center space-y-3">
-          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[rgba(0,217,255,0.2)] to-[rgba(0,217,255,0.05)] flex items-center justify-center">
-            <Radio className="w-8 h-8 text-[#00d9ff] opacity-40" />
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[rgba(94,106,210,0.2)] to-[rgba(94,106,210,0.05)] flex items-center justify-center">
+            <Radio className="w-8 h-8 text-[#5e6ad2] opacity-40" />
           </div>
-          <div className="text-sm text-[#6b7c9e]">
+          <div className="text-sm text-[#8a8f98]">
             {statusFilter === 'pending' && 'Нет черновиков на модерации'}
             {statusFilter === 'approved' && 'Нет одобренных черновиков'}
             {statusFilter === 'rejected' && 'Нет отклоненных черновиков'}
@@ -167,16 +167,16 @@ export function ModerScreen() {
         {drafts.map((draft) => (
           <div 
             key={draft.id}
-            className="glass rounded-[24px] p-5 space-y-4 hover:border-[rgba(0,217,255,0.3)] transition-all"
+            className="glass rounded-[24px] p-5 space-y-4 hover:border-[rgba(94,106,210,0.3)] transition-all"
           >
             {/* Header */}
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#00d9ff]">
+                  <span className="text-xs font-bold text-[#5e6ad2]">
                     #{draft.id}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-[rgba(0,217,255,0.15)] text-[#00d9ff] font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded-md bg-[rgba(94,106,210,0.15)] text-[#5e6ad2] font-medium">
                     {draft.city}
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export function ModerScreen() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[10px] text-[#6b7c9e]">
+              <div className="flex items-center gap-2 text-[10px] text-[#8a8f98]">
                 <Users className="w-3 h-3" />
                 <span>{draft.source_count} источников</span>
               </div>
@@ -197,7 +197,7 @@ export function ModerScreen() {
                 <textarea
                   value={editedScript}
                   onChange={(e) => setEditedScript(e.target.value)}
-                  className="w-full h-32 bg-[rgba(10,20,40,0.6)] border border-[rgba(0,217,255,0.3)] rounded-xl p-3 text-sm text-white resize-none outline-none focus:border-[rgba(0,217,255,0.5)]"
+                  className="w-full h-32 bg-[rgba(10,10,12,0.6)] border border-[rgba(94,106,210,0.3)] rounded-xl p-3 text-sm text-white resize-none outline-none focus:border-[rgba(94,106,210,0.5)]"
                   placeholder="Редактировать скрипт..."
                 />
                 <div className="flex gap-2">
@@ -210,15 +210,15 @@ export function ModerScreen() {
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="px-4 py-2 rounded-xl bg-[rgba(10,20,40,0.6)] text-[#6b7c9e] text-xs font-semibold hover:text-white transition-colors"
+                    className="px-4 py-2 rounded-xl bg-[rgba(10,10,12,0.6)] text-[#8a8f98] text-xs font-semibold hover:text-white transition-colors"
                   >
                     Отмена
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-[rgba(10,20,40,0.4)] rounded-xl p-4">
-                <p className="text-xs text-[#8b9cbe] leading-relaxed whitespace-pre-wrap">
+              <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-4">
+                <p className="text-xs text-[#8a8f98] leading-relaxed whitespace-pre-wrap">
                   {draft.script}
                 </p>
               </div>
@@ -228,17 +228,17 @@ export function ModerScreen() {
             {draft.status === 'approved' && (draft.script_lt || draft.script_en) && (
               <div className="grid grid-cols-2 gap-2">
                 {draft.script_lt && (
-                  <div className="bg-[rgba(10,20,40,0.4)] rounded-xl p-3">
-                    <div className="text-[9px] text-[#6b7c9e] uppercase mb-2">🇱🇹 Lithuanian</div>
-                    <p className="text-[10px] text-[#8b9cbe] leading-relaxed line-clamp-3">
+                  <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
+                    <div className="text-[9px] text-[#8a8f98] uppercase mb-2">🇱🇹 Lithuanian</div>
+                    <p className="text-[10px] text-[#8a8f98] leading-relaxed line-clamp-3">
                       {draft.script_lt}
                     </p>
                   </div>
                 )}
                 {draft.script_en && (
-                  <div className="bg-[rgba(10,20,40,0.4)] rounded-xl p-3">
-                    <div className="text-[9px] text-[#6b7c9e] uppercase mb-2">🇬🇧 English</div>
-                    <p className="text-[10px] text-[#8b9cbe] leading-relaxed line-clamp-3">
+                  <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
+                    <div className="text-[9px] text-[#8a8f98] uppercase mb-2">🇬🇧 English</div>
+                    <p className="text-[10px] text-[#8a8f98] leading-relaxed line-clamp-3">
                       {draft.script_en}
                     </p>
                   </div>
@@ -247,8 +247,8 @@ export function ModerScreen() {
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-[rgba(107,124,158,0.1)]">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#6b7c9e]">
+            <div className="flex items-center justify-between pt-2 border-t border-[rgba(138,143,152,0.1)]">
+              <div className="flex items-center gap-1.5 text-[10px] text-[#8a8f98]">
                 <Clock className="w-3 h-3" />
                 <span>{formatDate(draft.created_at)}</span>
               </div>
@@ -259,7 +259,7 @@ export function ModerScreen() {
                   <button
                     onClick={() => handleEdit(draft)}
                     disabled={processing === draft.id}
-                    className="p-2 rounded-lg hover:bg-[rgba(0,217,255,0.1)] text-[#00d9ff] transition-colors disabled:opacity-50"
+                    className="p-2 rounded-lg hover:bg-[rgba(94,106,210,0.1)] text-[#5e6ad2] transition-colors disabled:opacity-50"
                     title="Редактировать"
                   >
                     <Edit2 className="w-4 h-4" />

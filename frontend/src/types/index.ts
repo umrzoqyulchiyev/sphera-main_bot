@@ -134,6 +134,6 @@ export interface WSMessage {
 }
 
 // Navigation
-export type Screen = 'anons' | 'efir' | 'profile' | 'stats' | 'favorites';
+export type Screen = 'anons' | 'efir' | 'profile' | 'stats' | 'music' | 'schedule';
 
 export type { Language } from '../locales';

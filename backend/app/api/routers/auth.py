@@ -12,7 +12,6 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.database import db
-from app.core.config import settings
 from app.core.models import (
     TelegramAuthRequest, AuthResponse, SelectLanguageRequest, OkResponse,
 )

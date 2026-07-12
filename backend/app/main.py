@@ -22,7 +22,7 @@ from app.core.logging_config import setup_logging
 from app.core.database import db
 from app.core import redis as redis_client
 from app.core.middleware import RequestLoggingMiddleware
-from app.api.routers import auth, users, chat, admin, news, messages, radio, voicechat, opinions, stats, favorites
+from app.api.routers import auth, users, chat, admin, news, messages, radio, voicechat, opinions, stats, favorites, music, slots
 
 setup_logging(debug=settings.debug)
 log = logging.getLogger("app")
@@ -118,6 +118,8 @@ app.include_router(voicechat.router)
 app.include_router(opinions.router)
 app.include_router(stats.router)
 app.include_router(favorites.router)
+app.include_router(music.router)
+app.include_router(slots.router)
 
 
 # Global exception handler

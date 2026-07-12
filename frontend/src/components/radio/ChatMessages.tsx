@@ -26,8 +26,8 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="text-3xl mb-3 opacity-20">🎤</div>
-        <p className="text-xs text-[#6b7c9e]">Чат пока пуст</p>
-        <p className="text-[10px] text-[#6b7c9e]/50 mt-1">Начните общение!</p>
+        <p className="text-xs text-[#8a8f98]">Чат пока пуст</p>
+        <p className="text-[10px] text-[#8a8f98]/50 mt-1">Начните общение!</p>
       </div>
     );
   }
@@ -54,19 +54,19 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
             style={{
               background: isAI
                 ? 'rgba(124,92,255,0.1)'
-                : 'rgba(14,24,44,0.85)',
-              border: `1px solid ${isAI ? 'rgba(124,92,255,0.2)' : isStudio ? 'rgba(245,158,11,0.2)' : 'rgba(56,225,255,0.08)'}`,
+                : 'rgba(14,14,18,0.85)',
+              border: `1px solid ${isAI ? 'rgba(124,92,255,0.2)' : isStudio ? 'rgba(245,158,11,0.2)' : 'rgba(94,106,210,0.08)'}`,
             }}
           >
             {/* Имя + время */}
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold" style={{
-                color: isAI ? '#a78bfa' : isStudio ? '#f59e0b' : '#38e1ff'
+                color: isAI ? '#a78bfa' : isStudio ? '#f59e0b' : '#5e6ad2'
               }}>
                 {isStudio && <span className="mr-1 opacity-60 text-[9px]">[СТУДИЯ]</span>}
                 {msg.username || 'Гость'}
               </span>
-              <span className="text-[9px] text-[#4a5a7a]">{formatTime(msg.created_at)}</span>
+              <span className="text-[9px] text-[#5a5f68]">{formatTime(msg.created_at)}</span>
             </div>
 
             {/* Контент */}
@@ -75,7 +75,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
             ) : msg.file_url ? (
               <FileCard url={msg.file_url} name={msg.file_name || 'Файл'} />
             ) : (
-              <p className="text-[13px] text-[#c8d8f0] leading-relaxed break-words">
+              <p className="text-[13px] text-[#d5d6dc] leading-relaxed break-words">
                 {msg.message}
               </p>
             )}
@@ -214,8 +214,8 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
     <div
       className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
       style={{
-        background: 'rgba(10,20,40,0.6)',
-        border: '1px solid rgba(56,225,255,0.12)',
+        background: 'rgba(10,10,12,0.6)',
+        border: '1px solid rgba(94,106,210,0.12)',
       }}
     >
       {/* Play / Pause tugma */}
@@ -225,8 +225,8 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
         style={{
           background: error
             ? 'rgba(239,68,68,0.2)'
-            : 'linear-gradient(135deg, #1a6aff 0%, #38e1ff 100%)',
-          boxShadow: isPlaying ? '0 0 12px rgba(56,225,255,0.5)' : 'none',
+            : 'linear-gradient(135deg, #5e6ad2 0%, #5e6ad2 100%)',
+          boxShadow: isPlaying ? '0 0 12px rgba(94,106,210,0.5)' : 'none',
         }}
         title={error ? 'Ошибка загрузки' : isPlaying ? 'Пауза' : 'Воспроизвести'}
       >
@@ -260,8 +260,8 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
                   height: `${h}px`,
                   borderRadius: '2px',
                   background: filled
-                    ? 'linear-gradient(180deg, #38e1ff 0%, #2ea8ff 100%)'
-                    : 'rgba(56,225,255,0.25)',
+                    ? 'linear-gradient(180deg, #5e6ad2 0%, #7b85e8 100%)'
+                    : 'rgba(94,106,210,0.25)',
                   transition: 'background 0.1s',
                 }}
               />
@@ -272,13 +272,13 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
         {/* Progress bar ingichka */}
         <div
           className="h-[2px] rounded-full overflow-hidden"
-          style={{ background: 'rgba(56,225,255,0.12)' }}
+          style={{ background: 'rgba(94,106,210,0.12)' }}
         >
           <div
             style={{
               height: '100%',
               width: `${progress}%`,
-              background: 'linear-gradient(90deg, #2ea8ff, #38e1ff)',
+              background: 'linear-gradient(90deg, #7b85e8, #5e6ad2)',
               borderRadius: '2px',
               transition: 'width 0.05s linear',
             }}
@@ -289,7 +289,7 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
       {/* Вaqt */}
       <span
         className="shrink-0 tabular-nums text-[10px]"
-        style={{ color: '#4a5a7a', minWidth: '28px', textAlign: 'right' }}
+        style={{ color: '#5a5f68', minWidth: '28px', textAlign: 'right' }}
       >
         {isPlaying ? fmtSec(currentTime) : fmtSec(totalDuration)}
       </span>
@@ -309,17 +309,17 @@ function FileCard({ url, name }: { url: string; name: string }) {
       rel="noopener noreferrer"
       className="flex items-center gap-2.5 rounded-xl px-3 py-2 no-underline active:scale-[0.98] transition-transform"
       style={{
-        background: 'rgba(56,225,255,0.05)',
-        border: '1px solid rgba(56,225,255,0.1)',
+        background: 'rgba(94,106,210,0.05)',
+        border: '1px solid rgba(94,106,210,0.1)',
       }}
     >
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-        style={{ background: 'rgba(56,225,255,0.1)' }}
+        style={{ background: 'rgba(94,106,210,0.1)' }}
       >
-        <FileText className="w-4 h-4 text-[#38e1ff]" />
+        <FileText className="w-4 h-4 text-[#5e6ad2]" />
       </div>
-      <span className="text-[12px] text-[#8baad0] truncate">{clean}</span>
+      <span className="text-[12px] text-[#8c91be] truncate">{clean}</span>
     </a>
   );
 }

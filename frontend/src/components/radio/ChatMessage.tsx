@@ -25,11 +25,11 @@ export function ChatMessage({ message, currentUser }: ChatMessageProps) {
 
   let bubbleClass = 'max-w-[80%] px-3 py-2 rounded-2xl';
   if (isAI) {
-    bubbleClass += ' bg-[rgba(56,225,255,0.1)] border border-dashed border-[#38e1ff] text-center max-w-[92%]';
+    bubbleClass += ' bg-[rgba(94,106,210,0.1)] border border-dashed border-[#5e6ad2] text-center max-w-[92%]';
   } else if (isMine) {
-    bubbleClass += ' bg-gradient-to-br from-[#2ea8ff] to-[#38e1ff] text-[#02101f] rounded-br-sm';
+    bubbleClass += ' bg-gradient-to-br from-[#7b85e8] to-[#5e6ad2] text-[#020203] rounded-br-sm';
   } else {
-    bubbleClass += ' bg-[rgba(46,168,255,0.12)] border border-[var(--glass-border)] rounded-bl-sm';
+    bubbleClass += ' bg-[rgba(123,133,232,0.12)] border border-[var(--glass-border)] rounded-bl-sm';
   }
 
   const renderContent = () => {
@@ -46,12 +46,12 @@ export function ChatMessage({ message, currentUser }: ChatMessageProps) {
     <div className={messageClass}>
       <div className={bubbleClass}>
         {!isMine && !isAI && (
-          <div className="text-[11px] font-bold text-[#38e1ff] mb-0.5">
+          <div className="text-[11px] font-bold text-[#5e6ad2] mb-0.5">
             {message.username || t('guest')}
           </div>
         )}
         {renderContent()}
-        <div className={`text-[10px] text-right mt-0.5 ${isMine ? 'text-[rgba(2,16,31,0.6)]' : 'text-[#6b7c9e]'}`}>
+        <div className={`text-[10px] text-right mt-0.5 ${isMine ? 'text-[rgba(2,2,3,0.6)]' : 'text-[#8a8f98]'}`}>
           {time}
         </div>
       </div>
@@ -91,7 +91,7 @@ function VoicePlayer({ url, duration, voiceLabel }: { url: string; duration: num
       <button
         onClick={handlePlay}
         className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] ${
-          failed ? 'bg-[#ff4d6d] text-white' : 'bg-[rgba(2,16,31,0.25)]'
+          failed ? 'bg-[#ff4d6d] text-white' : 'bg-[rgba(2,2,3,0.25)]'
         }`}
       >
         {failed ? '!' : playing ? '❚❚' : '▶'}
@@ -120,7 +120,7 @@ function FileAttachment({ url, name, isMine }: { url: string; name: string; isMi
       className="flex items-center gap-2 min-w-[120px] no-underline"
     >
       <div className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center text-[15px] flex-shrink-0 ${
-        isMine ? 'bg-[rgba(2,16,31,0.2)]' : 'bg-[var(--accent)] text-[#02101f]'
+        isMine ? 'bg-[rgba(2,2,3,0.2)]' : 'bg-[var(--accent)] text-[#020203]'
       }`}>
         📎
       </div>

@@ -127,8 +127,12 @@ async def transfer_points(
     payload: PointsTransferRequest,
     user: dict = Depends(get_current_user),
 ):
-    """Boshqa foydalanuvchiga point o'tkazish (ID bo'yicha)."""
-    result = await points_service.transfer(user["id"], payload.to_user_id, payload.amount)
+    """Boshqa foydalanuvchiga point o'tkazish (telegram_id bo'yicha — profilda ko'rsatiladigan ID)."""
+    target = await db.fetchrow("SELECT id FROM users WHERE telegram_id = $1", payload.to_user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = await points_service.transfer(user["id"], target["id"], payload.amount)
     if not result["ok"]:
         raise HTTPException(status_code=400, detail=result.get("reason", "Transfer failed"))
     return OkResponse(detail={"points": result["points"]})
@@ -140,15 +144,15 @@ async def request_points(
     payload: PointsRequestCreate,
     user: dict = Depends(get_current_user),
 ):
-    """Boshqa foydalanuvchidan point so'rash."""
-    # user = so'rovchi (from), payload.from_user_id = kimdan so'ralyapti (to)
-    target = await db.fetchrow("SELECT id FROM users WHERE id = $1", payload.from_user_id)
+    """Boshqa foydalanuvchidan point so'rash (telegram_id bo'yicha — profilda ko'rsatiladigan ID)."""
+    # user = so'rovchi (from), payload.from_user_id = kimdan so'ralyapti (to) — telegram_id
+    target = await db.fetchrow("SELECT id FROM users WHERE telegram_id = $1", payload.from_user_id)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     result = await points_service.create_request(
         from_user_id=user["id"],
-        to_user_id=payload.from_user_id,
+        to_user_id=target["id"],
         amount=payload.amount,
         message=payload.message,
     )

@@ -50,10 +50,10 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
     # current = user.points (from users table)
     points_stats = await db.fetchrow(
         """
-        SELECT 
+        SELECT
             COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0) as earned,
             COALESCE(SUM(ABS(amount)) FILTER (WHERE amount < 0), 0) as spent
-        FROM point_transactions
+        FROM points_transactions
         WHERE user_id = $1
         """,
         user_id
@@ -80,16 +80,6 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
         user_id
     )
     
-    # Favorites count
-    favorites = await db.fetchrow(
-        """
-        SELECT COUNT(*) as count
-        FROM favorites
-        WHERE user_id = $1
-        """,
-        user_id
-    )
-    
     # Current points and level
     current_points = user["points"]
     level = (current_points // 100) + 1
@@ -105,6 +95,6 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
         current_points=current_points,
         days_active=activity["days_active"] or 0,
         broadcasts_count=broadcasts["count"] or 0,
-        favorite_count=favorites["count"] or 0,
+        favorite_count=0,
         level=level,
     )

@@ -7,6 +7,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     WebSocket,
     WebSocketDisconnect,
 )
@@ -377,3 +378,82 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
             "type": "radio_status",
             "data": st.to_dict(listeners_count=manager.listeners_count(city)),
         })
+
+
+# ──────────────────────────────────────────────────────────
+# HTTP fallback (ba'zi Telegram WebView'larda WebSocket ishlamaydi —
+# mikrofon audiosini oddiy POST chunk'lar orqali uzatamiz).
+# ──────────────────────────────────────────────────────────
+
+_http_broadcast_owner: dict[str, int] = {}  # city -> user_id
+
+
+@router.post("/{city}/broadcast/start")
+async def broadcast_http_start(city: str, user: dict = Depends(require_role("doverenniy"))):
+    """[doverenniy+] Mikrofon efirini boshlaydi (HTTP chunk fallback)."""
+    if city not in VALID_CITIES and city != "global":
+        raise HTTPException(status_code=404, detail="City not found")
+
+    if not broadcast.is_available():
+        return {"status": "unavailable"}
+    if broadcast.is_busy(city):
+        return {"status": "busy"}
+
+    name = user["full_name"] or user["username"] or "Doverenniy"
+
+    from app.services import continuous
+    continuous.pause("ru")
+    await asyncio.sleep(1.0)
+
+    session = broadcast.open_session(city, name)
+    if session is None:
+        continuous.resume("ru")
+        return {"status": "busy"}
+
+    _http_broadcast_owner[city] = user["id"]
+
+    st = get_state(city)
+    st.is_live = True
+    st.broadcaster_type = "doverenniy"
+    st.broadcaster_name = name
+    await manager.broadcast(city, {
+        "type": "radio_status",
+        "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+    })
+    return {"status": "started"}
+
+
+@router.post("/{city}/broadcast/chunk")
+async def broadcast_http_chunk(city: str, request: Request, user: dict = Depends(require_role("doverenniy"))):
+    """[doverenniy+] Navbatdagi audio chunk'ni yuboradi (HTTP chunk fallback)."""
+    if _http_broadcast_owner.get(city) != user["id"]:
+        raise HTTPException(status_code=403, detail="No active broadcast session for this user")
+
+    chunk = await request.body()
+    ok = broadcast.feed(city, chunk)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Feed failed")
+    return {"ok": True}
+
+
+@router.post("/{city}/broadcast/stop")
+async def broadcast_http_stop(city: str, user: dict = Depends(require_role("doverenniy"))):
+    """[doverenniy+] Mikrofon efirini tugatadi (HTTP chunk fallback)."""
+    if _http_broadcast_owner.get(city) != user["id"]:
+        raise HTTPException(status_code=403, detail="No active broadcast session for this user")
+
+    _http_broadcast_owner.pop(city, None)
+    broadcast.close_session(city)
+
+    from app.services import continuous
+    continuous.resume("ru")
+
+    st = get_state(city)
+    st.is_live = False
+    st.broadcaster_type = "ai"
+    st.broadcaster_name = "AI Host"
+    await manager.broadcast(city, {
+        "type": "radio_status",
+        "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+    })
+    return {"ok": True}

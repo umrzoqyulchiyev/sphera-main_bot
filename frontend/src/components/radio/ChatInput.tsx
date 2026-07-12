@@ -136,9 +136,9 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
     <div className="flex flex-col gap-3">
       {/* Voice preview banner */}
       {pendingVoice && (
-        <div className="glass px-4 py-3 rounded-2xl flex items-center justify-between border border-dashed border-[#38e1ff]">
-          <span className="text-xs text-[#38e1ff]">{t('voice_ready')}</span>
-          <button onClick={() => setPendingVoice(null)} className="text-[#6b7c9e] hover:text-white transition-colors">
+        <div className="glass px-4 py-3 rounded-2xl flex items-center justify-between border border-dashed border-[#5e6ad2]">
+          <span className="text-xs text-[#5e6ad2]">{t('voice_ready')}</span>
+          <button onClick={() => setPendingVoice(null)} className="text-[#8a8f98] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -149,7 +149,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
         {/* Attach */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b7c9e] hover:text-[#38e1ff] hover:bg-[rgba(56,225,255,0.08)] transition-all"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)] transition-all"
         >
           <Paperclip className="w-4.5 h-4.5" strokeWidth={1.8} />
         </button>
@@ -162,7 +162,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend('chat')}
           placeholder={t('chat_placeholder')}
-          className="flex-1 min-w-0 bg-transparent text-sm text-[#dbe9ff] placeholder-[#4a5568] outline-none"
+          className="flex-1 min-w-0 bg-transparent text-sm text-[#ededef] placeholder-[#4a5568] outline-none"
         />
 
         {/* Mic */}
@@ -171,7 +171,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
           className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
             isRecording
               ? 'bg-[#ff4d6d] text-white animate-pulse'
-              : 'text-[#6b7c9e] hover:text-[#38e1ff] hover:bg-[rgba(56,225,255,0.08)]'
+              : 'text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)]'
           }`}
         >
           <Mic className="w-4.5 h-4.5" strokeWidth={1.8} />
@@ -182,21 +182,21 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
       <div className="grid grid-cols-2 gap-2.5">
         <button
           onClick={() => handleSend('chat')}
-          className="glass py-3 px-4 rounded-2xl flex items-center justify-center gap-2 hover:border-[rgba(56,225,255,0.3)] transition-all active:scale-[0.97]"
+          className="glass py-3 px-4 rounded-2xl flex items-center justify-center gap-2 hover:border-[rgba(94,106,210,0.3)] transition-all active:scale-[0.97]"
         >
-          <MessageSquare className="w-4 h-4 text-[#38e1ff]" strokeWidth={1.8} />
-          <span className="text-xs font-semibold text-[#dbe9ff]">{t('send_to_chat')}</span>
+          <MessageSquare className="w-4 h-4 text-[#5e6ad2]" strokeWidth={1.8} />
+          <span className="text-xs font-semibold text-[#ededef]">{t('send_to_chat')}</span>
         </button>
         <button
           onClick={() => handleSend('studio')}
           className="py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
           style={{
-            background: 'linear-gradient(135deg, rgba(46,168,255,0.9), rgba(56,225,255,0.9))',
-            boxShadow: '0 0 20px rgba(56,225,255,0.3)',
+            background: 'linear-gradient(135deg, rgba(123,133,232,0.9), rgba(94,106,210,0.9))',
+            boxShadow: '0 0 20px rgba(94,106,210,0.3)',
           }}
         >
-          <Send className="w-4 h-4 text-[#060a14]" strokeWidth={2} />
-          <span className="text-xs font-bold text-[#060a14]">{t('send_to_studio')}</span>
+          <Send className="w-4 h-4 text-[#050506]" strokeWidth={2} />
+          <span className="text-xs font-bold text-[#050506]">{t('send_to_studio')}</span>
         </button>
       </div>
     </div>

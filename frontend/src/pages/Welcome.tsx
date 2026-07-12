@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Podcast, Radio as RadioIcon, ArrowRight } from 'lucide-react';
 import { updateLanguage, getNews } from '../lib/api';
 import { setLang } from '../lib/i18n';
 import { LS_LANG } from '../lib/config';
@@ -55,27 +56,27 @@ export function Welcome() {
   const main = news[0];
 
   return (
-    <div className="min-h-[var(--app-vh)] bg-[#0b0e14] text-[#dfe2f1] flex flex-col relative overflow-hidden">
+    <div className="min-h-[var(--app-vh)] bg-[#0a0a0c] text-[#d5d6dc] flex flex-col relative overflow-hidden">
       {/* Cyber grid + ambient glow (Stitch) */}
       <div className="absolute inset-0 bg-cyber-grid z-0 pointer-events-none opacity-50" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[#38e1ff]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[#5e6ad2]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
 
       {/* ====== STEP 1: TIL TANLASH ====== */}
       {step === 'lang' && (
         <main className="relative z-10 w-full max-w-[390px] mx-auto flex-1 flex flex-col items-center justify-between px-5 py-8">
           {/* Logo */}
           <div className="w-full flex justify-center mt-6">
-            <h1 className="text-[28px] font-extrabold tracking-[2px] uppercase logo-gradient drop-shadow-[0_0_15px_rgba(56,225,255,0.2)]">
+            <h1 className="text-[28px] font-extrabold tracking-[2px] uppercase logo-gradient drop-shadow-[0_0_15px_rgba(94,106,210,0.2)]">
               INTRA GROUP
             </h1>
           </div>
 
           {/* Centerpiece animated orb */}
           <div className="flex-1 flex items-center justify-center relative w-full">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#38e1ff]/5 to-transparent rounded-full blur-[40px] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#5e6ad2]/5 to-transparent rounded-full blur-[40px] pointer-events-none" />
             <div className="w-32 h-32 rounded-full relative flex items-center justify-center"
               style={{
-                background: 'radial-gradient(circle at 40% 35%, rgba(56,225,255,0.35), rgba(46,168,255,0.12), transparent 70%)',
+                background: 'radial-gradient(circle at 40% 35%, rgba(94,106,210,0.35), rgba(123,133,232,0.12), transparent 70%)',
               }}>
               <div className="orb-nav" style={{ width: 72, height: 72 }} />
             </div>
@@ -83,7 +84,7 @@ export function Welcome() {
 
           {/* Language buttons */}
           <div className="w-full flex flex-col gap-4 pb-2">
-            <p className="text-center text-[13px] text-[#bbc9cd] mb-1">
+            <p className="text-center text-[13px] text-[#9a9fa8] mb-1">
               {WELCOME_TXT.en.choose}
             </p>
             {LANGS.map((l) => (
@@ -94,7 +95,7 @@ export function Welcome() {
                 style={{
                   background: 'rgba(19,24,36,0.6)',
                   backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(56,225,255,0.2)',
+                  border: '1px solid rgba(94,106,210,0.2)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 }}
               >
@@ -102,11 +103,13 @@ export function Welcome() {
                   <span className="text-[30px] leading-none">{l.flag}</span>
                   <div className="flex flex-col items-start">
                     <span className="text-[17px] font-semibold text-white tracking-wide">{l.label}</span>
-                    <span className="text-[11px] text-[#859397] font-mono">{l.country}</span>
+                    <span className="text-[11px] text-[#7d818a] font-mono">{l.country}</span>
                   </div>
                 </div>
-                <span className="material-symbols-outlined text-[#859397] group-active:text-[#38e1ff] transition-colors relative z-10">
-                  chevron_right
+                <span className="text-[#7d818a] group-active:text-[#5e6ad2] transition-colors relative z-10">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
                 </span>
               </button>
             ))}
@@ -122,13 +125,13 @@ export function Welcome() {
               <div className="text-2xl font-extrabold tracking-[1.5px] uppercase logo-gradient">
                 INTRA GROUP
               </div>
-              <h2 className="text-xl font-bold text-[#27d9f7] mt-4 neon-glow-text">{txt.welcome} 👋</h2>
+              <h2 className="text-xl font-bold text-[#6e78e1] mt-4 neon-glow-text">{txt.welcome} 👋</h2>
             </div>
 
             {loading ? (
               <div className="flex flex-col items-center gap-3 mt-10">
-                <div className="w-9 h-9 rounded-full border-[3px] border-[rgba(46,168,255,0.2)] border-t-[#38e1ff] animate-spin" />
-                <span className="text-sm text-[#6b7c9e]">{txt.loading}</span>
+                <div className="w-9 h-9 rounded-full border-[3px] border-[rgba(123,133,232,0.2)] border-t-[#5e6ad2] animate-spin" />
+                <span className="text-sm text-[#8a8f98]">{txt.loading}</span>
               </div>
             ) : (
               <>
@@ -139,30 +142,28 @@ export function Welcome() {
                       style={{
                         background: main.image_url
                           ? `url('${main.image_url}') center/cover`
-                          : 'linear-gradient(135deg, rgba(46,168,255,0.25), rgba(124,92,255,0.25))',
+                          : 'linear-gradient(135deg, rgba(123,133,232,0.25), rgba(124,92,255,0.25))',
                       }}
                     >
                       {!main.image_url && (
-                        <span className="material-symbols-outlined text-[#38e1ff]" style={{ fontSize: 48 }}>
-                          podcasts
-                        </span>
+                        <Podcast size={48} className="text-[#5e6ad2]" />
                       )}
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-[#7c5cff]" style={{ fontSize: 16 }}>radio</span>
+                        <RadioIcon size={16} className="text-[#7c5cff]" />
                         <span className="text-[10px] tracking-[2px] text-[#7c5cff] font-bold font-mono">{txt.podcast}</span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2 text-[#dfe2f1]">{main.title}</h3>
-                      <p className="text-sm text-[#bbc9cd] leading-relaxed">{main.body}</p>
+                      <h3 className="text-lg font-bold mb-2 text-[#d5d6dc]">{main.title}</h3>
+                      <p className="text-sm text-[#9a9fa8] leading-relaxed">{main.body}</p>
                     </div>
                   </div>
                 )}
 
                 {news.slice(1).map((n) => (
                   <div key={n.id} className="stitch-card p-4">
-                    <h4 className="text-sm font-semibold text-[#dfe2f1] mb-1">{n.title}</h4>
-                    <p className="text-xs text-[#bbc9cd] leading-relaxed">{n.body}</p>
+                    <h4 className="text-sm font-semibold text-[#d5d6dc] mb-1">{n.title}</h4>
+                    <p className="text-xs text-[#9a9fa8] leading-relaxed">{n.body}</p>
                   </div>
                 ))}
               </>
@@ -175,7 +176,7 @@ export function Welcome() {
               className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 btn-primary-glow"
             >
               {txt.enter}
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
+              <ArrowRight size={20} />
             </button>
           </div>
         </>

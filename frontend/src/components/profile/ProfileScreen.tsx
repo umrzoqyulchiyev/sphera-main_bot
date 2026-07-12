@@ -1,11 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Check, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Check, X, Award, Globe, IdCard, User as UserIcon, AtSign, Focus, Smile, Tag,
+  ArrowDown, ArrowUp, Edit, ShoppingCart, ChevronRight, type LucideIcon,
+} from 'lucide-react';
 import {
   updateProfile, transferPoints, requestPoints, getMyRequests,
-  decideRequest, getPackages, getMe,
+  decideRequest, getPackages, getMe, updateLanguage,
 } from '../../lib/api';
-import { getLang } from '../../lib/i18n';
-import type { User, PointsRequest, PointPackage } from '../../types';
+import { getLang, setLang as setI18nLang } from '../../lib/i18n';
+import { LanguageSelector } from '../announcements/LanguageSelector';
+import type { User, PointsRequest, PointPackage, Language } from '../../types';
 
 interface ProfileScreenProps {
   user: User | null;
@@ -43,11 +48,12 @@ const L: Record<string, Record<string, string>> = {
   },
 };
 
-type Modal = null | 'edit' | 'give' | 'request' | 'buy';
+type Modal = null | 'edit' | 'give' | 'request' | 'buy' | 'lang';
 
 export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
+  const navigate = useNavigate();
   const [modal, setModal] = useState<Modal>(null);
   const [requests, setRequests] = useState<PointsRequest[]>([]);
   const [packages, setPackages] = useState<PointPackage[]>([]);
@@ -71,6 +77,18 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
     getMyRequests().then(setRequests).catch(() => {});
   }
 
+  async function handleLangChange(newLang: Language) {
+    setI18nLang(newLang);
+    try {
+      await updateLanguage(newLang);
+      if (user) onUserUpdate?.({ ...user, language: newLang });
+    } catch {
+      showToast(tx('error'));
+    } finally {
+      setModal(null);
+    }
+  }
+
   async function handleDecide(id: number, approve: boolean) {
     try {
       await decideRequest(id, approve);
@@ -84,7 +102,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-[#6b7c9e] text-sm">Loading...</div>
+        <div className="text-[#8a8f98] text-sm">Loading...</div>
       </div>
     );
   }
@@ -102,39 +120,41 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
     <div className="flex flex-col gap-6">
       {/* Balance card — avatar + neon balance (Stitch) */}
       <section className="stitch-card p-8 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#38e1ff]/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#5e6ad2]/5 to-transparent pointer-events-none" />
         <div className="relative z-10 w-full flex flex-col items-center justify-center">
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full overflow-hidden avatar-glow bg-[rgba(37,42,53,0.5)] flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-[#38e1ff]/50" style={{ fontSize: 48 }}>person</span>
+            <UserIcon size={48} className="text-[#5e6ad2]/50" />
           </div>
-          <h2 className="text-[11px] text-[#bbc9cd] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
+          <h2 className="text-[11px] text-[#9a9fa8] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
           <div className="flex items-baseline gap-2">
-            <span className="text-[40px] leading-[48px] font-extrabold text-[#27d9f7] neon-glow-text font-mono">
+            <span className="text-[40px] leading-[48px] font-extrabold text-[#6e78e1] neon-glow-text font-mono">
               {Number(user.points).toFixed(3)}
             </span>
-            <span className="text-[18px] font-semibold text-[#c2f3ff]">PTS</span>
+            <span className="text-[18px] font-semibold text-[#c5c9f5]">PTS</span>
           </div>
         </div>
       </section>
 
       {/* Info rows — Level / Language / ID / Name / Username (TZ tartibi) */}
       <section className="stitch-card p-6 flex flex-col">
-        <StitchRow icon="military_tech" label={tx('level')} value={levelDisplay} highlight />
-        <StitchRow icon="language" label={tx('language')} value={langLabel} />
-        <StitchRow icon="badge" label={tx('id')} value={String(user.telegram_id)} mono />
-        <StitchRow icon="person" label={tx('name')} value={user.display_name || user.full_name || '—'} />
-        <StitchRow icon="alternate_email" label={tx('username')} value={user.username ? `@${user.username}` : '—'} accent last />
+        <StitchRow icon={Award} label={tx('level')} value={levelDisplay} highlight />
+        <button className="w-full" onClick={() => setModal('lang')}>
+          <StitchRow icon={Globe} label={tx('language')} value={langLabel} clickable />
+        </button>
+        <StitchRow icon={IdCard} label={tx('id')} value={String(user.telegram_id)} mono />
+        <StitchRow icon={UserIcon} label={tx('name')} value={user.display_name || user.full_name || '—'} />
+        <StitchRow icon={AtSign} label={tx('username')} value={user.username ? `@${user.username}` : '—'} accent last />
       </section>
 
       {/* Psixoprofil — mavjud bo'lsa */}
       {(user.focus_of_attention || user.emotional_tone) && (
         <section className="stitch-card p-6 flex flex-col">
-          <div className="text-[11px] font-bold text-[#27d9f7] uppercase tracking-wide mb-2 font-mono">
+          <div className="text-[11px] font-bold text-[#6e78e1] uppercase tracking-wide mb-2 font-mono">
             🧠 {lang === 'ru' ? 'Психопрофиль' : lang === 'lt' ? 'Psichotipas' : 'Psychotype'}
           </div>
           {user.focus_of_attention && (
-            <StitchRow icon="center_focus_strong"
+            <StitchRow icon={Focus}
               label={lang === 'ru' ? 'Фокус' : lang === 'lt' ? 'Fokusas' : 'Focus'}
               value={
                 user.focus_of_attention === 'vnutrenniy'
@@ -144,7 +164,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
             />
           )}
           {user.emotional_tone && (
-            <StitchRow icon="mood"
+            <StitchRow icon={Smile}
               label={lang === 'ru' ? 'Тон' : lang === 'lt' ? 'Tonas' : 'Tone'}
               value={
                 user.emotional_tone === 'optimist'
@@ -156,7 +176,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
             />
           )}
           {user.key_topic && (
-            <StitchRow icon="tag"
+            <StitchRow icon={Tag}
               label={lang === 'ru' ? 'Тема' : lang === 'lt' ? 'Tema' : 'Topic'}
               value={user.key_topic} last
             />
@@ -167,38 +187,38 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Tahrirlash */}
       <button
         onClick={() => setModal('edit')}
-        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#dfe2f1] active:scale-[0.98] transition-transform"
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#d5d6dc] active:scale-[0.98] transition-transform"
       >
-        <span className="material-symbols-outlined text-[#38e1ff]" style={{ fontSize: 20 }}>edit</span>
+        <Edit size={20} className="text-[#5e6ad2]" />
         {tx('edit')}
       </button>
 
       {/* Point amallar — Request / Send / Buy (Stitch) */}
       <section className="grid grid-cols-3 gap-4">
-        <StitchAction icon="arrow_downward" label={tx('request')} onClick={() => setModal('request')} />
-        <StitchAction icon="arrow_upward" label={tx('give')} onClick={() => setModal('give')} />
+        <StitchAction icon={ArrowDown} label={tx('request')} onClick={() => setModal('request')} />
+        <StitchAction icon={ArrowUp} label={tx('give')} onClick={() => setModal('give')} />
         <button
           onClick={() => setModal('buy')}
           className="rounded-[20px] p-4 flex flex-col items-center justify-center gap-2.5 btn-primary-glow active:scale-95 transition-transform"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 28 }}>shopping_cart</span>
+          <ShoppingCart size={28} />
           <span className="text-[11px] font-bold tracking-wider font-mono">{tx('buy')}</span>
         </button>
       </section>
 
       {/* Menga kelgan so'rovlar */}
       <div className="flex flex-col gap-2">
-        <div className="text-[11px] font-bold text-[#27d9f7] uppercase tracking-wide font-mono">{tx('requests')}</div>
+        <div className="text-[11px] font-bold text-[#6e78e1] uppercase tracking-wide font-mono">{tx('requests')}</div>
         {requests.length === 0 ? (
-          <div className="stitch-card p-4 text-center text-xs text-[#6b7c9e]">{tx('no_req')}</div>
+          <div className="stitch-card p-4 text-center text-xs text-[#8a8f98]">{tx('no_req')}</div>
         ) : (
           requests.map((r) => (
             <div key={r.id} className="stitch-card p-3.5">
-              <div className="text-sm text-[#dfe2f1]">
+              <div className="text-sm text-[#d5d6dc]">
                 <b>{r.from_display_name || `#${r.from_user_id}`}</b> {tx('from_you')}{' '}
-                <b className="text-[#27d9f7]">{Number(r.amount).toFixed(3)}</b>
+                <b className="text-[#6e78e1]">{Number(r.amount).toFixed(3)}</b>
               </div>
-              {r.message && <div className="text-xs text-[#6b7c9e] mt-1">{r.message}</div>}
+              {r.message && <div className="text-xs text-[#8a8f98] mt-1">{r.message}</div>}
               <div className="flex gap-2 mt-2.5">
                 <button
                   onClick={() => handleDecide(r.id, true)}
@@ -220,9 +240,9 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 
       {/* Admin link */}
       {user.role === 'admin' && (
-        <a href="/admin" className="stitch-card py-3 text-center text-sm font-bold text-[#27d9f7] transition-all">
+        <button onClick={() => navigate('/admin')} className="stitch-card py-3 text-center text-sm font-bold text-[#6e78e1] transition-all">
           {tx('admin')}
-        </a>
+        </button>
       )}
 
       {/* Modallar */}
@@ -246,9 +266,14 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
           onDone={async () => { setModal(null); await refresh(); showToast(tx('saved')); }}
           onError={() => showToast(tx('error'))} />
       )}
+      {modal === 'lang' && (
+        <ModalShell title={tx('language')} onClose={() => setModal(null)}>
+          <LanguageSelector selectedLang={lang} onLangChange={handleLangChange} />
+        </ModalShell>
+      )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#dbe9ff] border border-[rgba(56,225,255,0.4)] z-[200]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#ededef] border border-[rgba(94,106,210,0.4)] z-[200]">
           {toast}
         </div>
       )}
@@ -257,38 +282,41 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 }
 
 // Stitch dizayni: ikonka + label (chap), value (o'ng), pastki chiziq
-function StitchRow({ icon, label, value, highlight, accent, mono, last }: {
-  icon: string; label: string; value: string;
-  highlight?: boolean; accent?: boolean; mono?: boolean; last?: boolean;
+function StitchRow({ icon: Icon, label, value, highlight, accent, mono, last, clickable }: {
+  icon: LucideIcon; label: string; value: string;
+  highlight?: boolean; accent?: boolean; mono?: boolean; last?: boolean; clickable?: boolean;
 }) {
   return (
     <div
       className="flex justify-between items-center py-4"
       style={last ? {} : { borderBottom: '1px solid rgba(255,255,255,0.05)' }}
     >
-      <span className="text-[15px] text-[#bbc9cd] flex items-center gap-3">
-        <span className="material-symbols-outlined text-[#859397]" style={{ fontSize: 20 }}>{icon}</span>
+      <span className="text-[15px] text-[#9a9fa8] flex items-center gap-3">
+        <Icon size={20} className="text-[#7d818a]" />
         {label}
       </span>
-      {highlight ? (
-        <span className="px-3 py-1 rounded-lg bg-[rgba(56,225,255,0.12)] text-[#38e1ff] text-[13px] font-bold">{value}</span>
-      ) : (
-        <span className={`text-[15px] font-semibold ${accent ? 'text-[#98cbff]' : 'text-[#dfe2f1]'} ${mono ? 'font-mono' : ''}`}>
-          {value}
-        </span>
-      )}
+      <span className="flex items-center gap-1.5">
+        {highlight ? (
+          <span className="px-3 py-1 rounded-lg bg-[rgba(94,106,210,0.12)] text-[#5e6ad2] text-[13px] font-bold">{value}</span>
+        ) : (
+          <span className={`text-[15px] font-semibold ${accent ? 'text-[#aaafe6]' : 'text-[#d5d6dc]'} ${mono ? 'font-mono' : ''}`}>
+            {value}
+          </span>
+        )}
+        {clickable && <ChevronRight size={16} className="text-[#5a5f68]" />}
+      </span>
     </div>
   );
 }
 
-function StitchAction({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function StitchAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className="stitch-card p-4 flex flex-col items-center justify-center gap-2.5 active:scale-95 transition-transform"
     >
-      <span className="material-symbols-outlined text-[#38e1ff]" style={{ fontSize: 28 }}>{icon}</span>
-      <span className="text-[11px] text-[#dfe2f1] tracking-wider font-mono">{label}</span>
+      <Icon size={28} className="text-[#5e6ad2]" />
+      <span className="text-[11px] text-[#d5d6dc] tracking-wider font-mono">{label}</span>
     </button>
   );
 }
@@ -296,17 +324,17 @@ function StitchAction({ icon, label, onClick }: { icon: string; label: string; o
 function ModalShell({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#0e1729]" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-bold text-[#38e1ff] mb-4">{title}</h3>
+      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-bold text-[#5e6ad2] mb-4">{title}</h3>
         {children}
       </div>
     </div>
   );
 }
 
-const inputCls = 'w-full bg-[rgba(6,10,20,0.7)] border border-[rgba(80,160,255,0.18)] rounded-xl px-4 py-3 text-sm text-[#dbe9ff] outline-none focus:border-[#38e1ff] mb-3';
-const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#02101f] text-sm';
-const primaryStyle = { background: 'linear-gradient(135deg, #2ea8ff, #38e1ff)' };
+const inputCls = 'w-full bg-[rgba(5,5,6,0.7)] border border-[rgba(110,118,220,0.18)] rounded-xl px-4 py-3 text-sm text-[#ededef] outline-none focus:border-[#5e6ad2] mb-3';
+const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#020203] text-sm';
+const primaryStyle = { background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' };
 type TX = (k: string) => string;
 
 function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX; onClose: () => void; onSaved: () => void; onError: () => void }) {
@@ -322,9 +350,9 @@ function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX
   }
   return (
     <ModalShell title={tx('edit')} onClose={onClose}>
-      <label className="text-xs text-[#6b7c9e]">{tx('name')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('name')}</label>
       <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
-      <label className="text-xs text-[#6b7c9e]">{tx('username')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('username')}</label>
       <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={save} disabled={busy}>{tx('save')}</button>
     </ModalShell>
@@ -344,9 +372,9 @@ function TransferModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =
   }
   return (
     <ModalShell title={tx('give')} onClose={onClose}>
-      <label className="text-xs text-[#6b7c9e]">{tx('user_id')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('user_id')}</label>
       <input className={inputCls} value={toId} onChange={(e) => setToId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#6b7c9e]">{tx('amount')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('give')}</button>
     </ModalShell>
@@ -367,11 +395,11 @@ function RequestModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =>
   }
   return (
     <ModalShell title={tx('request')} onClose={onClose}>
-      <label className="text-xs text-[#6b7c9e]">{tx('user_id')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('user_id')}</label>
       <input className={inputCls} value={fromId} onChange={(e) => setFromId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#6b7c9e]">{tx('amount')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
-      <label className="text-xs text-[#6b7c9e]">{tx('msg')}</label>
+      <label className="text-xs text-[#8a8f98]">{tx('msg')}</label>
       <input className={inputCls} value={msg} onChange={(e) => setMsg(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('request')}</button>
     </ModalShell>
@@ -384,16 +412,16 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
     const tg = (window as any).Telegram?.WebApp;
     if (tg?.openTelegramLink) {
       // Bot'da /buy buyrug'i — paketlar ko'rinadi
-      tg.openTelegramLink('https://t.me/sfera5radio_bot?start=buy');
+      tg.openTelegramLink('https://t.me/mybot_12_bot?start=buy');
       tg.close?.();
     } else {
-      window.open('https://t.me/sfera5radio_bot', '_blank');
+      window.open('https://t.me/mybot_12_bot', '_blank');
     }
   }
 
   return (
     <ModalShell title={tx('buy')} onClose={onClose}>
-      <p className="text-xs text-[#8b9bb3] mb-3 leading-relaxed">
+      <p className="text-xs text-[#8a8f98] mb-3 leading-relaxed">
         {/* Ru/En/Lt — to'lov bot orqali */}
         Оплата проходит через бота безопасно (Telegram Payments).
         Нажмите кнопку — откроется бот с пакетами.
@@ -401,9 +429,9 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
       <div className="flex flex-col gap-2 mb-3">
         {packages.map((p) => (
           <div key={p.id}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(80,160,255,0.18)] bg-[rgba(6,10,20,0.5)]">
-            <span className="font-semibold text-[#dbe9ff]">{p.label}</span>
-            <span className="text-[#38e1ff] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
+            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(110,118,220,0.18)] bg-[rgba(5,5,6,0.5)]">
+            <span className="font-semibold text-[#ededef]">{p.label}</span>
+            <span className="text-[#5e6ad2] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
           </div>
         ))}
       </div>
