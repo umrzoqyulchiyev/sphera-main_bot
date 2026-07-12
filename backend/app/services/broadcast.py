@@ -9,8 +9,13 @@ USE_ICECAST=false (dev) bo'lsa — jonli efir mavjud emas (AI playlist ishlaydi)
 
 import os
 import subprocess
+import time
 
 USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
+# Mikrofon chunk'lari har ~0.5s kelib turishi kerak (GoLiveButton.tsx).
+# Shuncha vaqt chunk kelmasa — sessiya "osilib qolgan" deb hisoblanadi
+# (masalan foydalanuvchi /stop chaqirmasdan ilovani yopib qo'ygan).
+STALE_TIMEOUT_SEC = 15
 ICECAST_HOST = os.getenv("ICECAST_HOST", "icecast")
 ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
 ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
@@ -36,6 +41,7 @@ class BroadcastSession:
         self.city = city
         self.broadcaster_name = broadcaster_name
         self.proc: subprocess.Popen | None = None
+        self.last_activity = time.monotonic()
 
     def start(self) -> None:
         # Jonli efir /live_ru mount'ga uzatiladi (tinglovchilar shu yerni eshitadi)
@@ -65,9 +71,13 @@ class BroadcastSession:
         try:
             self.proc.stdin.write(chunk)
             self.proc.stdin.flush()
+            self.last_activity = time.monotonic()
             return True
         except (BrokenPipeError, OSError):
             return False
+
+    def is_stale(self) -> bool:
+        return time.monotonic() - self.last_activity > STALE_TIMEOUT_SEC
 
     def stop(self) -> None:
         if self.proc is not None:
@@ -96,12 +106,21 @@ def is_available() -> bool:
     return USE_ICECAST
 
 
+def _reap_if_stale(city: str) -> None:
+    """Chunk oqimi to'xtab qolgan (klient /stop chaqirmasdan uzilgan) sessiyani tozalaydi."""
+    session = _active.get(city)
+    if session is not None and session.is_stale():
+        close_session(city)
+
+
 def is_busy(city: str) -> bool:
+    _reap_if_stale(city)
     return city in _active
 
 
 def open_session(city: str, broadcaster_name: str) -> BroadcastSession | None:
     """Yangi efir sessiyasini ochadi. Shahar band bo'lsa — None."""
+    _reap_if_stale(city)
     if city in _active:
         return None
     session = BroadcastSession(city, broadcaster_name)
