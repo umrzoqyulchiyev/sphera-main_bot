@@ -44,14 +44,14 @@ FastAPI Backend (port 8001)
     ├── Static Files      → frontend/dist  (React SPA)
     └── Continuous Worker → RTMP push /live_ru, /live_lt, /live_en  (uzluksiz oqim)
         ↓ (RTMP, ingest)
-MediaMTX Server (RTMP :1935 / WebRTC :8889)
-    ├── /live_ru    → RU efir (WHEP)
-    ├── /live_lt    → LT efir (WHEP)
-    └── /live_en    → EN efir (WHEP)
-        ↓ (WebRTC, publik VPS IP — brauzer to'g'ridan ulanadi)
+MediaMTX Server (RTMP :1935 / HLS :8888)
+    ├── /live_ru/index.m3u8    → RU efir
+    ├── /live_lt/index.m3u8    → LT efir
+    └── /live_en/index.m3u8    → EN efir
+        ↓ (HLS, Railway HTTP proxy orqali — brauzer to'g'ridan ulanadi)
 React Frontend (Telegram Mini App)
     ├── EfirScreen    → Radio pleyer + chat + GO LIVE tugmasi
-    ├── AudioPlayer   → WebRTC/WHEP stream (MediaMTX'ga to'g'ridan ulanadi)
+    ├── AudioPlayer   → HLS stream (hls.js / native Safari, MediaMTX'ga to'g'ridan ulanadi)
     └── ChatMessages  → Ovozli va matnli xabarlar
 ```
 
@@ -64,7 +64,7 @@ React Frontend (Telegram Mini App)
 | **Backend** | Python 3.12, FastAPI 0.111, asyncpg, pydantic-settings |
 | **Database** | PostgreSQL 16 |
 | **Cache/Pub-Sub** | Redis 7 |
-| **Streaming** | MediaMTX (RTMP ingest / WebRTC delivery), FFmpeg |
+| **Streaming** | MediaMTX (RTMP ingest / HLS delivery), FFmpeg |
 | **AI** | Google Gemini 2.5 Flash |
 | **TTS** | Microsoft Edge TTS (fallback: gTTS) |
 | **Frontend** | React 18, TypeScript, Vite, TailwindCSS |
@@ -137,7 +137,7 @@ sphera-main/
 │   │   │   ├── profile/        # Foydalanuvchi profili
 │   │   │   └── ui/             # Umumiy UI (Toast, Modal)
 │   │   ├── hooks/
-│   │   │   ├── useAudioPlayer.ts   # WebRTC/WHEP stream / playlist player
+│   │   │   ├── useAudioPlayer.ts   # HLS stream (hls.js) / playlist player
 │   │   │   ├── useWebSocket.ts     # Chat WebSocket
 │   │   │   └── useTranslation.ts   # i18n
 │   │   ├── lib/
@@ -157,7 +157,7 @@ sphera-main/
 │
 ├── infra/
 │   ├── mediamtx/
-│   │   └── mediamtx.yml        # MediaMTX konfiguratsiya (RTMP + WebRTC/WHEP)
+│   │   └── mediamtx.yml        # MediaMTX konfiguratsiya (RTMP ingest + HLS delivery)
 │   └── scripts/
 │       ├── run-dev.sh          # Lokal dev muhitni ishga tushirish
 │       └── stop-dev.sh         # Dev muhitni to'xtatish
@@ -226,8 +226,8 @@ sudo -u postgres psql -d radio_db -f backend/app/db/schema.sql
 # MEDIAMTX_PUBLISH_PASS ni .env ga yozing (RTMP publish paroli)
 mediamtx infra/mediamtx/mediamtx.yml
 
-# Production: WebRTC UDP talab qiladi — Cloudflare Tunnel emas,
-# VPS'ning doimiy public IP/domeni kerak (MEDIAMTX_PUBLIC_URL).
+# Production: HLS oddiy HTTP orqali ishlaydi — Railway/istalgan PaaS'ning
+# standart HTTP proxy'si yetarli (maxsus UDP/TCP proxy shart emas).
 ```
 
 ### 4. Barcha xizmatlarni ishga tushirish
@@ -274,18 +274,18 @@ cd frontend && npm run build && cd ..
 | FastAPI Backend | 8001 | `http://localhost:8001` |
 | API Docs (dev) | 8001 | `http://localhost:8001/docs` |
 | MediaMTX RTMP (ingest) | 1935 | `rtmp://localhost:1935` |
-| MediaMTX WebRTC/WHEP | 8889 | `http://localhost:8889` |
+| MediaMTX HLS (delivery) | 8888 | `http://localhost:8888` |
 | PostgreSQL | 5432 | `localhost:5432/radio_db` |
 | Redis | 6379 | `redis://localhost:6379/0` |
 | Cloudflare Tunnel | — | `https://*.trycloudflare.com` |
 
-### MediaMTX Mountlar (WHEP)
+### MediaMTX Mountlar (HLS)
 
 | Mount | Til | URL |
 |-------|-----|-----|
-| `/live_ru` | Rus | `http://localhost:8889/live_ru/whep` |
-| `/live_lt` | Litva | `http://localhost:8889/live_lt/whep` |
-| `/live_en` | Ingliz | `http://localhost:8889/live_en/whep` |
+| `/live_ru` | Rus | `http://localhost:8888/live_ru/index.m3u8` |
+| `/live_lt` | Litva | `http://localhost:8888/live_lt/index.m3u8` |
+| `/live_en` | Ingliz | `http://localhost:8888/live_en/index.m3u8` |
 
 ---
 
@@ -317,7 +317,7 @@ cd frontend && npm run build && cd ..
 ### Radio
 | Method | Endpoint | Tavsif |
 |--------|----------|--------|
-| GET | `/radio/status?city=...` | Efir holati (MediaMTX WHEP URL bilan — brauzer to'g'ridan ulanadi) |
+| GET | `/radio/status?city=...` | Efir holati (MediaMTX HLS URL bilan — brauzer to'g'ridan ulanadi) |
 | POST | `/radio/enqueue` | AI audio navbatga qo'shish (internal) |
 | POST | `/radio/broadcast/clear` | Qolgan sessiyani tozalash |
 | WS | `/radio/{city}/broadcast/ws?token=...` | Mikrofon → MediaMTX (RTMP) WebSocket |
@@ -350,7 +350,7 @@ Asosiy o'zgaruvchilar:
 | `SECRET_KEY` | JWT imzolash kaliti (≥32 belgi) | `randomsecret32chars` |
 | `USE_MEDIAMTX` | MediaMTX yoqish/o'chirish | `true` |
 | `MEDIAMTX_PUBLISH_PASS` | MediaMTX RTMP publish paroli | `MediaMTXPass2025!` |
-| `MEDIAMTX_PUBLIC_URL` | MediaMTX WHEP publik URL (VPS) | `https://media.example.com:8889` |
+| `MEDIAMTX_PUBLIC_URL` | MediaMTX HLS publik URL (Railway) | `https://mediamtx-production-xxxx.up.railway.app` |
 | `AI_AUTO_BROADCAST` | AI host avtomatik efir | `true` |
 
 ---
@@ -376,10 +376,10 @@ UPDATE users SET role='doverenniy' WHERE telegram_id = 123456789;
 ### ✅ Amalga oshirilgan
 
 - [x] Telegram Mini App orqali kirish (Telegram auth, JWT)
-- [x] Jonli radio efiri — MediaMTX (RTMP ingest + WebRTC delivery) + FFmpeg
+- [x] Jonli radio efiri — MediaMTX (RTMP ingest + HLS delivery) + FFmpeg
 - [x] 3 til oqimi: RU, LT, EN (`/live_ru`, `/live_lt`, `/live_en`)
 - [x] Uzluksiz oqim (continuous worker — mount uzilmaydi)
-- [x] Brauzer MediaMTX WHEP endpoint'iga to'g'ridan ulanadi (WebRTC, ~1s latency)
+- [x] Brauzer MediaMTX HLS endpoint'iga to'g'ridan ulanadi (hls.js / native Safari)
 - [x] AI Radio Host (Gemini AI + gTTS/Edge TTS)
 - [x] Real-time chat (WebSocket)
 - [x] Ovozli xabarlar → MP3 konvert (FFmpeg, barcha platformalarda ishlaydi)
@@ -437,5 +437,5 @@ curl -X POST "http://localhost:8001/radio/broadcast/clear?city=global"
 
 **MediaMTX mount tekshirish:**
 ```bash
-curl http://localhost:8889/live_ru/whep -X POST -H "Content-Type: application/sdp" --data-binary @offer.sdp
+curl http://localhost:8888/live_ru/index.m3u8
 ```

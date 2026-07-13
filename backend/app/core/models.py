@@ -136,7 +136,7 @@ class RadioStatus(BaseModel):
     broadcaster_name: str | None = None
     listeners_count: int = 0
     stream_url: str | None = None
-    use_webrtc: bool = False
+    use_hls: bool = False
     current_segment: Any | None = None
 
 

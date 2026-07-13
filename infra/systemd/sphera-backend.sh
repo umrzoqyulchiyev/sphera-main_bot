@@ -20,10 +20,10 @@ export MEDIAMTX_PUBLISH_PASS='MediaMTXPass2025!'
 export TTS_PROVIDER=edge TTS_FALLBACK_EDGE=true
 export AI_HOST_INTERVAL=60
 
-# MediaMTX'ning WebRTC/WHEP publik manzili — WebRTC to'g'ridan-to'g'ri UDP talab
-# qiladi, shuning uchun (Icecast'dagidek) Cloudflare tunnel orqali emas, VPS'ning
-# doimiy public domeni/IP'i orqali beriladi.
-export MEDIAMTX_PUBLIC_URL='https://your-vps-domain:8889'
+# MediaMTX'ning HLS publik manzili (RTMP ingest — shu skriptdagi
+# MEDIAMTX_HOST orqali, faqat backend uchun; bu esa tinglovchi brauzer
+# to'g'ridan ulanadigan HLS manzili).
+export MEDIAMTX_PUBLIC_URL='https://your-mediamtx-domain'
 
 cd "$ROOT/backend"
 exec "$VENV/uvicorn" app.main:app --host 0.0.0.0 --port 8001

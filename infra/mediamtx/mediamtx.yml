@@ -1,10 +1,17 @@
-# MediaMTX konfiguratsiyasi — Icecast o'rniga (RTMP ingest, WebRTC/WHEP delivery).
-# Docker Compose ham, lokal binary (`mediamtx mediamtx.yml`) ham shu faylni ishlatadi.
+# MediaMTX konfiguratsiyasi — Icecast o'rniga (RTMP ingest, HLS delivery).
+# Docker Compose ham, lokal binary (`mediamtx mediamtx.yml`) ham, Railway ham
+# shu faylni ishlatadi.
+#
+# Yetkazish HLS orqali (WebRTC emas): Railway kabi PaaS'larda ommaviy UDP yo'q,
+# WebRTC uchun kerak bo'ladigan ICE-over-TCP esa MediaMTX'da tashqi portni
+# qayta belgilab bo'lmaydi (Railway TCP Proxy portni doim tasodifiy qiladi) —
+# shuning uchun HLS (oddiy HTTP, Icecast'dagidek Railway HTTP proxy orqali
+# ishlaydi) tanlandi.
 
 logLevel: info
 
 # ---------- RTMP ingest (ffmpeg push: continuous.py / broadcast.py) ----------
-rtmp: yes
+rtmp: true
 rtmpAddress: :1935
 
 # Manba autentifikatsiyasi — Icecast'dagi source-password'ga o'xshash.
@@ -16,28 +23,35 @@ authInternalUsers:
     ips: []
     permissions:
       - action: publish
+        path:
       - action: read
+        path:
   - user: any
     pass:
     ips: []
     permissions:
       - action: read
+        path:
 
-# ---------- WebRTC/WHEP delivery (tinglovchilar to'g'ridan ulanadi) ----------
-webrtc: yes
-webrtcAddress: :8889
-# ICE media uchun bitta qat'iy UDP port — Docker'da faqat shu portni forward qilish kifoya.
-webrtcICEUDPMuxAddress: :8189
-# VPS'ning public IP'i (docker-compose orqali MTX_WEBRTCICEHOSTNAT1TO1IPS bilan beriladi),
-# aks holda ICE nomzodlari konteynerning ichki IP'ini e'lon qiladi va browser ulana olmaydi.
-webrtcICEHostNAT1To1IPs: []
-# Mini-app domeni hali beqaror (Cloudflare Quick Tunnel) — doimiy domen bo'lgach toraytiring.
-webrtcAllowOrigin: "*"
+# ---------- HLS delivery (tinglovchilar to'g'ridan ulanadi) ----------
+hls: true
+hlsAddress: :8888
+# Mini-app domeni hali beqaror (Cloudflare Quick Tunnel / Railway) — doimiy
+# domen bo'lgach toraytiring.
+hlsAllowOrigins: ["*"]
+# mpegts — maksimal moslik (lowLatency HTTPS talab qiladi, Railway edge'da
+# TLS allaqachon terminatsiya qilinadi, konteyner ichida sertifikat kerak emas).
+hlsVariant: mpegts
+# Har doim generatsiya qilinadi — birinchi tinglovchi kutmasin
+# (efir baribir 24/7 uzluksiz, continuous.py orqali).
+hlsAlwaysRemux: true
+hlsSegmentCount: 5
+hlsSegmentDuration: 2s
 
-# HLS/RTSP kerak emas — o'chiramiz.
-hls: no
-rtsp: no
-srt: no
+# WebRTC/RTSP/SRT kerak emas — o'chiramiz.
+webrtc: false
+rtsp: false
+srt: false
 
 # Aniq mountpoint'lar shart emas — Icecast'dagi kabi istalgan path'ga push qilsa bo'ladi
 # (masalan /live_ru, /live_lt, /live_en, yoki broadcast.py'dagi /{city}).

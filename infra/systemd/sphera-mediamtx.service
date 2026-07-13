@@ -1,5 +1,5 @@
 [Unit]
-Description=Sphera MediaMTX Streaming Server (RTMP ingest / WebRTC delivery)
+Description=Sphera MediaMTX Streaming Server (RTMP ingest / HLS delivery)
 After=network.target
 
 [Service]

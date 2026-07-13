@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     eleven_voice_lt: str = ""
     eleven_voice_en: str = ""
 
-    # ── MediaMTX (RTMP ingest / WebRTC delivery) ──
+    # ── MediaMTX (RTMP ingest / HLS delivery) ──
     use_mediamtx: bool = False
     mediamtx_host: str = "localhost"
     mediamtx_rtmp_port: int = 1935

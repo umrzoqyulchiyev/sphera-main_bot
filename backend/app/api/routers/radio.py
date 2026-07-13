@@ -61,7 +61,7 @@ async def radio_status(city: str = Query(...)):
         from app.core.state import MEDIAMTX_PUBLIC_URL, USE_MEDIAMTX
 
         _stream = (
-            f"{MEDIAMTX_PUBLIC_URL}/live_ru/whep"
+            f"{MEDIAMTX_PUBLIC_URL}/live_ru/index.m3u8"
             if (MEDIAMTX_PUBLIC_URL and USE_MEDIAMTX)
             else None
         )
@@ -70,7 +70,7 @@ async def radio_status(city: str = Query(...)):
             broadcaster_type="ai",
             broadcaster_name="AI Host",
             listeners_count=0,
-            use_webrtc=USE_MEDIAMTX,
+            use_hls=USE_MEDIAMTX,
             stream_url=_stream,
         )
     st = get_state(city)

@@ -136,12 +136,12 @@ export async function getRadioStatus(city?: string): Promise<RadioStatus> {
     const resp = await fetch(`${API_URL}/radio/status?city=${c}`);
     if (resp.ok) return resp.json();
   } catch (_) {}
-  // fallback — WebRTC yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
+  // fallback — HLS yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
   return {
     is_live: true,
     broadcaster_type: 'ai',
     broadcaster_name: 'AI Host',
-    use_webrtc: true,
+    use_hls: true,
     stream_url: null,
     listeners_count: 0,
   };
@@ -152,7 +152,7 @@ export async function getPlaylist(_city?: string): Promise<AudioSegment[]> {
 }
 
 export function getStreamUrl(_lang: string, streamUrlFromStatus?: string | null): string {
-  // MediaMTX WHEP endpoint publik (VPS'da UDP ochiq) — browser to'g'ridan ulanadi,
+  // MediaMTX HLS endpoint publik — browser to'g'ridan ulanadi (hls.js/native),
   // backend /radio/status orqali beradi (same-origin proksi endi kerak emas).
   return streamUrlFromStatus || '';
 }

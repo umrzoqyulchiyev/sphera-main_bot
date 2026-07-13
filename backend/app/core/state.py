@@ -6,7 +6,7 @@ from app.core.config import settings
 AUDIO_DIR = settings.audio_dir
 USE_MEDIAMTX = settings.use_mediamtx
 
-# MediaMTX'ning public URL'i (WHEP endpoint) — browser ICE orqali to'g'ridan ulanadi
+# MediaMTX'ning public URL'i (HLS) — browser to'g'ridan ulanadi
 MEDIAMTX_PUBLIC_URL = os.getenv("MEDIAMTX_PUBLIC_URL", settings.mediamtx_public_url).rstrip("/")
 
 # Amaldagi shaharlar (bazadan yuklanadi, dinamik kengayadi)
@@ -46,7 +46,7 @@ class CityRadioState:
             lng = lang if lang in ("ru", "lt", "en") else "ru"
             # Har safar env'dan o'qiymiz (runtime'da o'zgarishi mumkin)
             base = os.getenv("MEDIAMTX_PUBLIC_URL", "").rstrip("/") or MEDIAMTX_PUBLIC_URL
-            return f"{base}/live_{lng}/whep"
+            return f"{base}/live_{lng}/index.m3u8"
         if self.segments:
             return f"/radio/audio/{self.city}/{self.segments[-1]['filename']}"
         return None
@@ -77,7 +77,7 @@ class CityRadioState:
             "broadcaster_name": self.broadcaster_name,
             "listeners_count": listeners_count,
             "stream_url": self.stream_url(),
-            "use_webrtc": USE_MEDIAMTX,
+            "use_hls": USE_MEDIAMTX,
             "current_segment": self.segments[-1] if self.segments else None,
         }
 

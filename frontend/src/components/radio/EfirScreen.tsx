@@ -39,8 +39,8 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
     city,
     language: lang,
     // USE_MEDIAMTX=true (server sozlamasi), radioStatus yuklanguncha ham true
-    useWebrtc: radioStatus?.use_webrtc ?? true,
-    // MediaMTX WHEP publik URL — browser to'g'ridan-to'g'ri shu manzilga ulanadi
+    useHls: radioStatus?.use_hls ?? true,
+    // MediaMTX HLS publik URL — browser to'g'ridan-to'g'ri shu manzilga ulanadi
     streamUrl: radioStatus?.stream_url,
   });
 

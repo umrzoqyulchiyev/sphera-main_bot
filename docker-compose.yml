@@ -39,12 +39,10 @@ services:
     image: bluenviron/mediamtx:latest
     restart: unless-stopped
     ports:
-      - "1935:1935"     # RTMP ingest (ffmpeg push)
-      - "8889:8889"     # WHEP HTTP signaling
-      - "8189:8189/udp" # WebRTC ICE media (fixed mux port, see mediamtx.yml)
+      - "1935:1935"   # RTMP ingest (ffmpeg push)
+      - "8888:8888"   # HLS delivery (tinglovchilar to'g'ridan ulanadi)
     environment:
-      # Kerak: browserlar ICE orqali shu IP'ga to'g'ridan ulanadi (VPS public IP).
-      MTX_WEBRTCICEHOSTNAT1TO1IPS: ${MEDIAMTX_PUBLIC_IP:-}
+      MEDIAMTX_PUBLISH_PASS: ${MEDIAMTX_PUBLISH_PASS:-MediaMTXPass2025!}
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
 
