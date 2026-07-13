@@ -35,13 +35,18 @@ services:
         limits:
           memory: 192M
 
-  icecast:
-    image: moul/icecast
+  mediamtx:
+    image: bluenviron/mediamtx:latest
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "1935:1935"     # RTMP ingest (ffmpeg push)
+      - "8889:8889"     # WHEP HTTP signaling
+      - "8189:8189/udp" # WebRTC ICE media (fixed mux port, see mediamtx.yml)
+    environment:
+      # Kerak: browserlar ICE orqali shu IP'ga to'g'ridan ulanadi (VPS public IP).
+      MTX_WEBRTCICEHOSTNAT1TO1IPS: ${MEDIAMTX_PUBLIC_IP:-}
     volumes:
-      - ./infra/icecast/icecast.xml:/etc/icecast2/icecast.xml:ro
+      - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
 
   backend:
     build:
@@ -55,7 +60,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
-      ICECAST_HOST: icecast
+      MEDIAMTX_HOST: mediamtx
       MINIAPP_DIR: /app/frontend
     volumes:
       - audio_data:${AUDIO_DIR:-/tmp/sphera_audio}

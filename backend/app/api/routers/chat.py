@@ -10,21 +10,26 @@ import asyncio
 import logging
 import os
 import uuid
-from datetime import datetime
 
 from fastapi import (
-    APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query,
-    UploadFile, File,
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.responses import FileResponse
 
-from app.core.database import db
 from app.core.config import settings
-from app.core.models import ChatMessageRequest, ChatMessageOut, OkResponse
-from app.core.dependencies import get_current_user, decode_token
+from app.core.database import db
+from app.core.dependencies import decode_token, get_current_user
+from app.core.models import ChatMessageOut, ChatMessageRequest, OkResponse
 from app.core.ws_manager import manager
-from app.services import points as points_service
 from app.services import membership
+from app.services import points as points_service
 
 log = logging.getLogger("chat")
 
@@ -35,7 +40,12 @@ _ALLOWED_AUDIO = {".webm", ".ogg", ".mp3", ".m4a", ".wav", ".oga"}
 
 
 def _display_name(user: dict) -> str:
-    return user.get("display_name") or user.get("username") or user.get("full_name") or f"id{user['telegram_id']}"
+    return (
+        user.get("display_name")
+        or user.get("username")
+        or user.get("full_name")
+        or f"id{user['telegram_id']}"
+    )
 
 
 async def _convert_to_mp3(src_path: str, uid: str) -> str:
@@ -48,8 +58,15 @@ async def _convert_to_mp3(src_path: str, uid: str) -> str:
     mp3_fpath = os.path.join(settings.upload_dir, mp3_fname)
     try:
         proc = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y", "-i", src_path,
-            "-vn", "-acodec", "libmp3lame", "-b:a", "64k",
+            "ffmpeg",
+            "-y",
+            "-i",
+            src_path,
+            "-vn",
+            "-acodec",
+            "libmp3lame",
+            "-b:a",
+            "64k",
             mp3_fpath,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
@@ -91,15 +108,17 @@ async def get_chat_history(limit: int = 50):
         if r["message_type"] == "voice" and r["audio_file_path"]:
             # Relative (same-origin) URL — Telegram WebApp tunnel orqali ishlaydi
             voice_url = f"/chat/voice/{r['audio_file_path']}"
-        out.append(ChatMessageOut(
-            id=r["id"],
-            username=r["username"],
-            display_name=r["display_name"],
-            message=r["message"],
-            message_type=r["message_type"] or "text",
-            voice_url=voice_url,
-            created_at=r["created_at"],
-        ))
+        out.append(
+            ChatMessageOut(
+                id=r["id"],
+                username=r["username"],
+                display_name=r["display_name"],
+                message=r["message"],
+                message_type=r["message_type"] or "text",
+                voice_url=voice_url,
+                created_at=r["created_at"],
+            )
+        )
     return out
 
 
@@ -126,21 +145,25 @@ async def send_message(
         VALUES ($1, $2, 'text')
         RETURNING id, created_at
         """,
-        user["id"], payload.message.strip(),
+        user["id"],
+        payload.message.strip(),
     )
 
     # Broadcast
-    await manager.broadcast("global", {
-        "type": "chat",
-        "data": {
-            "id": row["id"],
-            "username": user["username"],
-            "display_name": _display_name(user),
-            "message": payload.message.strip(),
-            "message_type": "text",
-            "created_at": row["created_at"].isoformat(),
+    await manager.broadcast(
+        "global",
+        {
+            "type": "chat",
+            "data": {
+                "id": row["id"],
+                "username": user["username"],
+                "display_name": _display_name(user),
+                "message": payload.message.strip(),
+                "message_type": "text",
+                "created_at": row["created_at"].isoformat(),
+            },
         },
-    })
+    )
 
     return OkResponse(detail={"points": str(spent["points"])})
 
@@ -187,25 +210,29 @@ async def send_voice(
         VALUES ($1, '', 'voice', $2)
         RETURNING id, created_at
         """,
-        user["id"], fname,
+        user["id"],
+        fname,
     )
 
     voice_url = f"/chat/voice/{fname}"
     # Relative (same-origin) URL — Telegram WebApp tunnel orqali ishlaydi
     full_voice_url = voice_url
 
-    await manager.broadcast("global", {
-        "type": "chat",
-        "data": {
-            "id": row["id"],
-            "username": user["username"],
-            "display_name": _display_name(user),
-            "message": "",
-            "message_type": "voice",
-            "voice_url": full_voice_url,
-            "created_at": row["created_at"].isoformat(),
+    await manager.broadcast(
+        "global",
+        {
+            "type": "chat",
+            "data": {
+                "id": row["id"],
+                "username": user["username"],
+                "display_name": _display_name(user),
+                "message": "",
+                "message_type": "voice",
+                "voice_url": full_voice_url,
+                "created_at": row["created_at"].isoformat(),
+            },
         },
-    })
+    )
 
     return OkResponse(detail={"points": str(spent["points"]), "voice_url": full_voice_url})
 
@@ -239,9 +266,7 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
         await websocket.close(code=4401)
         return
 
-    user = await db.fetchrow(
-        "SELECT * FROM users WHERE telegram_id = $1", telegram_id
-    )
+    user = await db.fetchrow("SELECT * FROM users WHERE telegram_id = $1", telegram_id)
     if user is None:
         await websocket.close(code=4401)
         return
@@ -260,10 +285,15 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
 
                 spent = await points_service.spend_text(user["id"])
                 if not spent["ok"]:
-                    await websocket.send_json({
-                        "type": "error",
-                        "data": {"error": "insufficient_points", "points": str(spent["points"])},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "data": {
+                                "error": "insufficient_points",
+                                "points": str(spent["points"]),
+                            },
+                        }
+                    )
                     continue
 
                 row = await db.fetchrow(
@@ -272,25 +302,31 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
                     VALUES ($1, $2, 'text')
                     RETURNING id, created_at
                     """,
-                    user["id"], message,
+                    user["id"],
+                    message,
                 )
 
-                await manager.broadcast("global", {
-                    "type": "chat",
-                    "data": {
-                        "id": row["id"],
-                        "username": user["username"],
-                        "display_name": user["display_name"] or user["full_name"],
-                        "message": message,
-                        "message_type": "text",
-                        "created_at": row["created_at"].isoformat(),
+                await manager.broadcast(
+                    "global",
+                    {
+                        "type": "chat",
+                        "data": {
+                            "id": row["id"],
+                            "username": user["username"],
+                            "display_name": user["display_name"] or user["full_name"],
+                            "message": message,
+                            "message_type": "text",
+                            "created_at": row["created_at"].isoformat(),
+                        },
                     },
-                })
+                )
 
-                await websocket.send_json({
-                    "type": "balance",
-                    "data": {"points": str(spent["points"])},
-                })
+                await websocket.send_json(
+                    {
+                        "type": "balance",
+                        "data": {"points": str(spent["points"])},
+                    }
+                )
 
             elif msg_type in ("studio", "server_message"):
                 # Studiyaga (efirga) matnli zayavka — points sarflanadi,
@@ -303,10 +339,12 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
                     user["id"], "studio", points_service.COST["studio"]
                 )
                 if not spent["ok"]:
-                    await websocket.send_json({
-                        "type": "limit_exceeded",
-                        "data": {"event": "studio", "points": str(spent["points"])},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "limit_exceeded",
+                            "data": {"event": "studio", "points": str(spent["points"])},
+                        }
+                    )
                     continue
 
                 _lang = data.get("lang") if data.get("lang") in ("ru", "lt", "en") else None
@@ -318,19 +356,23 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
                     VALUES ($1, $2, 'studio')
                     RETURNING id, created_at
                     """,
-                    user["id"], message,
+                    user["id"],
+                    message,
                 )
-                await manager.broadcast("global", {
-                    "type": "chat",
-                    "data": {
-                        "id": row["id"],
-                        "username": user["username"],
-                        "display_name": user["display_name"] or user["full_name"],
-                        "message": message,
-                        "message_type": "studio",
-                        "created_at": row["created_at"].isoformat(),
+                await manager.broadcast(
+                    "global",
+                    {
+                        "type": "chat",
+                        "data": {
+                            "id": row["id"],
+                            "username": user["username"],
+                            "display_name": user["display_name"] or user["full_name"],
+                            "message": message,
+                            "message_type": "studio",
+                            "created_at": row["created_at"].isoformat(),
+                        },
                     },
-                })
+                )
 
                 # (b) ИИ/moderator uchun belgi
                 await db.execute(
@@ -338,19 +380,29 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
                     INSERT INTO messages (user_id, city, text, status, is_for_studio, lang)
                     VALUES ($1, $2, $3, 'pending', true, $4)
                     """,
-                    user["id"], "global", message, _lang,
+                    user["id"],
+                    "global",
+                    message,
+                    _lang,
                 )
 
                 # (c) Telegram Community guruhiga bot orqali yuborish
-                author = user["display_name"] or user["full_name"] or user["username"] or f"id{user['telegram_id']}"
+                author = (
+                    user["display_name"]
+                    or user["full_name"]
+                    or user["username"]
+                    or f"id{user['telegram_id']}"
+                )
                 asyncio.create_task(
                     membership.send_to_community(f"📻 Эфирга хабар\n👤 {author}:\n{message}")
                 )
 
-                await websocket.send_json({
-                    "type": "studio_ack",
-                    "data": {"points": str(spent["points"])},
-                })
+                await websocket.send_json(
+                    {
+                        "type": "studio_ack",
+                        "data": {"points": str(spent["points"])},
+                    }
+                )
 
             elif msg_type == "ping":
                 await websocket.send_json({"type": "pong"})

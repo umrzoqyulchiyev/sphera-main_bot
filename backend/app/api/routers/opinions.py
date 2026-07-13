@@ -8,13 +8,12 @@ import logging
 import os
 import uuid
 from decimal import Decimal
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from app.core.database import db
 from app.core.config import settings
+from app.core.database import db
 from app.core.dependencies import get_current_user
 from app.services import points as points_service
 
@@ -28,18 +27,18 @@ _ALLOWED_AUDIO = {".webm", ".ogg", ".mp3", ".m4a", ".wav", ".oga"}
 
 
 class OpinionSaveRequest(BaseModel):
-    kind: str            # "text" | "voice"
-    text: Optional[str] = None
-    tg_file_id: Optional[str] = None
+    kind: str  # "text" | "voice"
+    text: str | None = None
+    tg_file_id: str | None = None
     tg_message_id: int
     cost: float = 0.001
 
 
 class OpinionResponse(BaseModel):
     ok: bool
-    opinion_id: Optional[int] = None
-    points: Optional[str] = None
-    error: Optional[str] = None
+    opinion_id: int | None = None
+    points: str | None = None
+    error: str | None = None
 
 
 @router.post("/save", response_model=OpinionResponse)
@@ -93,9 +92,7 @@ async def current_topic(user: dict = Depends(get_current_user)):
     )
     if not row:
         return {"topic": None}
-    count = await db.fetchval(
-        "SELECT count(*) FROM opinions WHERE topic_id = $1", row["id"]
-    )
+    count = await db.fetchval("SELECT count(*) FROM opinions WHERE topic_id = $1", row["id"])
     return {
         "topic": {
             "id": row["id"],
@@ -159,7 +156,10 @@ async def save_voice_opinion(
         VALUES ($1, $2, 'voice', $3, $4)
         RETURNING id
         """,
-        user["id"], topic_id, fname, COST_VOICE,
+        user["id"],
+        topic_id,
+        fname,
+        COST_VOICE,
     )
     log.info("[opinions] voice #%s user=%s topic=%s", row["id"], user["id"], topic_id)
     return {"ok": True, "opinion_id": row["id"], "points": str(spent["points"])}

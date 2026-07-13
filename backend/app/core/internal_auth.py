@@ -4,8 +4,7 @@ radio-host va boshqa ichki servislar X-Internal-Key header orqali autentifikatsi
 Bu /radio/segment, /radio/status POST kabi endpointlarni tashqi hujumdan himoyalaydi.
 """
 
-import os
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
 

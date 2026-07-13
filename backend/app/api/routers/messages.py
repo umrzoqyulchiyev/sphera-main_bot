@@ -1,21 +1,21 @@
+import asyncio
 import os
 import uuid
-import asyncio
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core.database import db
+from app.core.dependencies import get_current_user
 from app.core.models import (
-    TextMessageRequest,
     MessageResponse,
     PsychotypeOut,
+    TextMessageRequest,
 )
-from app.core.dependencies import get_current_user
 from app.core.state import VALID_CITIES
-from app.services import whisper_stt, psychotype, points
 from app.core.ws_manager import manager
+from app.services import points, psychotype, whisper_stt
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -70,13 +70,16 @@ async def _award_and_notify(user: dict, event_type: str, amount: int, city: str)
     return result
 
 
-async def _process_voice_background(path: str, user_id: int, city: str, lang: str | None, to_studio: bool):
+async def _process_voice_background(
+    path: str, user_id: int, city: str, lang: str | None, to_studio: bool
+):
     """Фон: для студии — STT + психотип (для ИИ/модератора).
 
     TZ v2.0: аудиофайл СОХРАНЯЕТСЯ (audio_file_path), чтобы голос можно было
     прослушать в чате (как в Telegram). Для чата STT не нужен.
     """
     import logging
+
     log = logging.getLogger("messages.voice_bg")
 
     if not to_studio:
@@ -96,7 +99,11 @@ async def _process_voice_background(path: str, user_id: int, city: str, lang: st
                 INSERT INTO messages (user_id, city, text, audio_path, status, is_for_studio, lang)
                 VALUES ($1, $2, $3, $4, 'pending', true, $5)
                 """,
-                user_id, city, transcript.strip(), os.path.basename(path), lang,
+                user_id,
+                city,
+                transcript.strip(),
+                os.path.basename(path),
+                lang,
             )
             analysis = await psychotype.analyze(transcript)
             await _save_psychotype(user_id, analysis)
@@ -108,7 +115,7 @@ async def _process_voice_background(path: str, user_id: int, city: str, lang: st
 async def voice_message(
     city: str = Form(...),
     audio_file: UploadFile = File(...),
-    destination: str = Form("studio"),   # "chat" | "studio"
+    destination: str = Form("studio"),  # "chat" | "studio"
     lang: str = Form(None),
     user: dict = Depends(get_current_user),
 ):
@@ -152,27 +159,37 @@ async def voice_message(
         INSERT INTO chat_messages (user_id, city, message, message_type, audio_file_path)
         VALUES ($1, $2, $3, $4, $5)
         """,
-        user["id"], city, label, mtype, filename,
+        user["id"],
+        city,
+        label,
+        mtype,
+        filename,
     )
-    await manager.broadcast(city, {
-        "type": "chat",
-        "data": {
-            "username": username,
-            "voice_url": voice_url,
-            "message": label,
-            "kind": mtype,
-            "message_type": mtype,
-            "created_at": datetime.utcnow().isoformat(),
+    await manager.broadcast(
+        city,
+        {
+            "type": "chat",
+            "data": {
+                "username": username,
+                "voice_url": voice_url,
+                "message": label,
+                "kind": mtype,
+                "message_type": mtype,
+                "created_at": datetime.utcnow().isoformat(),
+            },
         },
-    })
+    )
 
     _lang = lang if lang in ("ru", "lt", "en") else None
     # STT в фоне + авто-удаление; в студию — попадает в очередь модератора/ИИ
     asyncio.create_task(_process_voice_background(path, user["id"], city, _lang, to_studio))
 
     return MessageResponse(
-        transcript=None, psychotype=None, ai_reply=None,
-        voice_url=voice_url, points=str(spent["points"]),
+        transcript=None,
+        psychotype=None,
+        ai_reply=None,
+        voice_url=voice_url,
+        points=str(spent["points"]),
     )
 
 
@@ -224,7 +241,10 @@ async def text_message(
     pt = await _save_psychotype(user["id"], analysis)
 
     return MessageResponse(
-        transcript=None, psychotype=pt, ai_reply=None, points=str(spent["points"]),
+        transcript=None,
+        psychotype=pt,
+        ai_reply=None,
+        points=str(spent["points"]),
     )
 
 

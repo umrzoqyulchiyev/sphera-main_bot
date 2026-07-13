@@ -6,7 +6,7 @@ Mantiq (boshliq bayoni bo'yicha):
   3. 2 ta AI personaj (Aleksey va Maya) o'rtasida 8-15 daqiqalik dialog yaratamiz.
   4. Dialoga musiqaviy segment taklif ham qo'shamiz (ko'pchilik tanlagan).
   5. Natijani `broadcast_drafts` jadvaliga `pending` holatda saqlaymiz.
-  6. Moderator (boshliq) tasdiqlasa → TTS → Icecast efirga.
+  6. Moderator (boshliq) tasdiqlasa → TTS → MediaMTX efirga.
 
 AI personajlar:
   - Aleksey — mantiqli, faktlarga asoslangan, biroz jiddiy
@@ -14,8 +14,6 @@ AI personajlar:
 """
 
 import logging
-import os
-from typing import Optional
 
 from app.core.database import db
 from app.services import gemini
@@ -26,9 +24,9 @@ log = logging.getLogger("opinion_aggregator")
 MIN_OPINIONS = 3
 MAX_OPINIONS = 200  # Gemini kontekst chegarasi uchun
 
-# AI personajlar (boshliq "daylim imya") 
-PERSONA_A = "Aleksey"   # mantiqli, jiddiy
-PERSONA_B = "Maya"      # his-tuyg'uli, ijodiy
+# AI personajlar (boshliq "daylim imya")
+PERSONA_A = "Aleksey"  # mantiqli, jiddiy
+PERSONA_B = "Maya"  # his-tuyg'uli, ijodiy
 
 POSITIONS_PROMPT = """Ты — AI-аналитик мнений для радиоэфира INTRA GROUP.
 
@@ -108,23 +106,23 @@ def _fallback_positions(topic_title: str, count: int) -> dict:
     return {
         "position_1": {
             "summary": f"Большинство участников поддерживают тему «{topic_title}» "
-                       f"и выражают позитивное отношение.",
+            f"и выражают позитивное отношение.",
             "percent": 60,
-            "key_phrases": ["поддерживаю", "согласен"]
+            "key_phrases": ["поддерживаю", "согласен"],
         },
         "position_2": {
             "summary": "Часть участников предлагают рассмотреть альтернативный "
-                       "подход или уточнить детали.",
+            "подход или уточнить детали.",
             "percent": 30,
-            "key_phrases": ["но стоит учесть", "с другой стороны"]
+            "key_phrases": ["но стоит учесть", "с другой стороны"],
         },
         "position_3": {
             "summary": "Небольшая часть участников придерживается иного мнения "
-                       "или задаёт уточняющие вопросы.",
+            "или задаёт уточняющие вопросы.",
             "percent": 10,
-            "key_phrases": ["не согласен", "вопрос"]
+            "key_phrases": ["не согласен", "вопрос"],
         },
-        "music_suggestion": f"Слушатели хотят слышать музыку под настроение темы «{topic_title}»."
+        "music_suggestion": f"Слушатели хотят слышать музыку под настроение темы «{topic_title}».",
     }
 
 
@@ -149,15 +147,14 @@ def _fallback_dialog(topic_title: str, positions: dict) -> str:
     )
 
 
-async def aggregate_opinions(topic_id: int) -> Optional[dict]:
+async def aggregate_opinions(topic_id: int) -> dict | None:
     """Mavzu bo'yicha fikrlarni yig'ib, 3 pozitsiya va dialog yaratadi.
 
     Qaytaradi: broadcast_drafts yozuvi yoki None (fikr yetarli emas).
     """
     # Mavzuni olamiz
     topic = await db.fetchrow(
-        "SELECT id, title, description, status FROM topics WHERE id = $1",
-        topic_id
+        "SELECT id, title, description, status FROM topics WHERE id = $1", topic_id
     )
     if not topic:
         log.warning("aggregate_opinions: topic %d topilmadi", topic_id)
@@ -174,17 +171,18 @@ async def aggregate_opinions(topic_id: int) -> Optional[dict]:
         ORDER BY o.created_at ASC
         LIMIT $2
         """,
-        topic_id, MAX_OPINIONS
+        topic_id,
+        MAX_OPINIONS,
     )
     pool = [dict(r) for r in opinions]
 
     if len(pool) < MIN_OPINIONS:
-        log.info("aggregate_opinions: topic %d — fikr kam (%d < %d)",
-                 topic_id, len(pool), MIN_OPINIONS)
+        log.info(
+            "aggregate_opinions: topic %d — fikr kam (%d < %d)", topic_id, len(pool), MIN_OPINIONS
+        )
         return None
 
-    log.info("[agregator] topic=%d '%s': %d ta fikr yig'ildi",
-             topic_id, topic["title"], len(pool))
+    log.info("[agregator] topic=%d '%s': %d ta fikr yig'ildi", topic_id, topic["title"], len(pool))
 
     opinions_block = _format_opinions(pool)
 
@@ -202,10 +200,12 @@ async def aggregate_opinions(topic_id: int) -> Optional[dict]:
         positions = await gemini.generate_json(positions_prompt)
         if all(f"position_{i}" in positions for i in (1, 2, 3)):
             ai_ok = True
-            log.info("[agregator] 3 pozitsiya aniqlandi: %d%% | %d%% | %d%%",
-                     positions["position_1"].get("percent", 0),
-                     positions["position_2"].get("percent", 0),
-                     positions["position_3"].get("percent", 0))
+            log.info(
+                "[agregator] 3 pozitsiya aniqlandi: %d%% | %d%% | %d%%",
+                positions["position_1"].get("percent", 0),
+                positions["position_2"].get("percent", 0),
+                positions["position_3"].get("percent", 0),
+            )
     except Exception as exc:
         log.warning("[agregator] Gemini pozitsiya xato: %s", exc)
 
@@ -250,6 +250,7 @@ async def aggregate_opinions(topic_id: int) -> Optional[dict]:
     }
 
     import json
+
     row = await db.fetchrow(
         """
         INSERT INTO broadcast_drafts
@@ -266,22 +267,23 @@ async def aggregate_opinions(topic_id: int) -> Optional[dict]:
     # Fikrlarni "ishlatilgan" deb belgilaymiz
     ids = [op["id"] for op in pool]
     if ids:
-        await db.execute(
-            "UPDATE opinions SET status = 'aggregated' WHERE id = ANY($1::int[])",
-            ids
-        )
+        await db.execute("UPDATE opinions SET status = 'aggregated' WHERE id = ANY($1::int[])", ids)
 
-    log.info("[agregator] Broadcast draft #%d saqlandi: '%s' (%d fikr)",
-             row["id"], topic["title"], len(pool))
+    log.info(
+        "[agregator] Broadcast draft #%d saqlandi: '%s' (%d fikr)",
+        row["id"],
+        topic["title"],
+        len(pool),
+    )
     return dict(row)
 
 
-async def get_draft_dialog(draft_id: int) -> Optional[dict]:
+async def get_draft_dialog(draft_id: int) -> dict | None:
     """Draft'dan faqat dialog matnini oladi (META qismini olib tashlab)."""
     row = await db.fetchrow(
         "SELECT id, city, main_topic, source_count, script, status, created_at "
         "FROM broadcast_drafts WHERE id = $1",
-        draft_id
+        draft_id,
     )
     if not row:
         return None
@@ -292,12 +294,13 @@ async def get_draft_dialog(draft_id: int) -> Optional[dict]:
         end = script.find("]\n\n")
         if end != -1:
             import json
+
             try:
                 meta_str = script[6:end]
                 d["meta"] = json.loads(meta_str)
             except Exception:
                 d["meta"] = {}
-            d["dialog"] = script[end+3:]
+            d["dialog"] = script[end + 3 :]
         else:
             d["dialog"] = script
             d["meta"] = {}

@@ -1,14 +1,14 @@
-"""Uzluksiz Icecast oqimi — PERSISTENT FFmpeg (radiovышka rejimi).
+"""Uzluksiz MediaMTX oqimi — PERSISTENT FFmpeg (radiovышka rejimi).
 
 Eski muammo (size=0, uzilish):
-  Har segment/filler uchun YANGI ffmpeg ishga tushardi va Icecast mount'ga
+  Har segment/filler uchun YANGI ffmpeg ishga tushardi va mount'ga
   qayta-qayta ulanardi → "source already connected", uzilishlar, size=0.
 
 Yangi yechim (radiovышка):
   Har til (ru/lt/en) uchun BITTA doimiy ffmpeg jarayoni:
-    ffmpeg -re -f mp3 -i pipe:0  →  icecast://.../live_{lang}
+    ffmpeg -re -f mp3 -i pipe:0  →  rtmp://.../live_{lang}  (MediaMTX RTMP ingest)
   Mount BIR MARTA ulanadi va UZILMAYDI. Python writer pipe'ga uzluksiz
-  bir xil formatdagi (44100/stereo/128k) MP3 bayt yozadi:
+  bir xil formatdagi (44100/stereo/128k) audio bayt yozadi:
     - navbatда segment bo'lsa → segmentni shu formatga transcode qilib yozadi
     - navbat bo'sh bo'lsa → oldindan tayyorlangan jimlik bo'lagini yozadi
   -re va pipe backpressure tufayli yozish real-vaqtда sekinlashadi (mount tirik).
@@ -16,17 +16,17 @@ Yangi yechim (radiovышка):
 Jonli efir (mikrofon) uchun pause()/resume() — ru mount'ни vaqtincha bo'shatadi.
 """
 
-import os
 import asyncio
 import logging
+import os
 import subprocess
 
 log = logging.getLogger("continuous")
 
-USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
-ICECAST_HOST = os.getenv("ICECAST_HOST", "localhost")
-ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
-ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
+USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
+MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "localhost")
+MEDIAMTX_RTMP_PORT = int(os.getenv("MEDIAMTX_RTMP_PORT", "1935"))
+MEDIAMTX_PUBLISH_PASS = os.getenv("MEDIAMTX_PUBLISH_PASS", "MediaMTXPass2025!")
 AUDIO_DIR = os.getenv("AUDIO_DIR", "/app/audio")
 
 LANGS = ("ru", "lt", "en")
@@ -35,8 +35,8 @@ LANGS = ("ru", "lt", "en")
 SAMPLE_RATE = 44100
 CHANNELS = 2
 BITRATE = "128k"
-SILENCE_CHUNK_SEC = 2.0      # bo'sh paytda yoziladigan jimlik bo'lagi uzunligi
-PIPE_BLOCK = 16384           # pipe'ga blok-blok yozish (pauza'ni tez sezish uchun)
+SILENCE_CHUNK_SEC = 2.0  # bo'sh paytda yoziladigan jimlik bo'lagi uzunligi
+PIPE_BLOCK = 16384  # pipe'ga blok-blok yozish (pauza'ni tez sezish uchun)
 
 _queues: dict[str, asyncio.Queue] = {}
 _workers: dict[str, asyncio.Task] = {}
@@ -62,18 +62,22 @@ def is_paused(lang: str) -> bool:
 
 def _ffmpeg_bin() -> str:
     from shutil import which
+
     sys_ff = which("ffmpeg")
     if sys_ff:
         return sys_ff
     try:
         import imageio_ffmpeg
+
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
         return "ffmpeg"
 
 
-def _icecast_url(lang: str) -> str:
-    return f"icecast://source:{ICECAST_PASS}@{ICECAST_HOST}:{ICECAST_PORT}/live_{lang}"
+def _rtmp_url(lang: str) -> str:
+    return (
+        f"rtmp://publisher:{MEDIAMTX_PUBLISH_PASS}@{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}/live_{lang}"
+    )
 
 
 def enqueue(lang: str, mp3_path: str) -> bool:
@@ -96,12 +100,31 @@ def enqueue_multilang(paths: dict[str, str]) -> None:
 async def _gen_silence() -> bytes:
     """Bir marta ~2s jimlik MP3 (yagona format) generatsiya qiladi."""
     cmd = [
-        _ffmpeg_bin(), "-hide_banner", "-loglevel", "error",
-        "-f", "lavfi", "-i", f"anullsrc=r={SAMPLE_RATE}:cl=stereo",
-        "-t", str(SILENCE_CHUNK_SEC),
-        "-c:a", "libmp3lame", "-b:a", BITRATE, "-ar", str(SAMPLE_RATE), "-ac", str(CHANNELS),
-        "-write_xing", "0", "-id3v2_version", "0",
-        "-f", "mp3", "pipe:1",
+        _ffmpeg_bin(),
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        f"anullsrc=r={SAMPLE_RATE}:cl=stereo",
+        "-t",
+        str(SILENCE_CHUNK_SEC),
+        "-c:a",
+        "libmp3lame",
+        "-b:a",
+        BITRATE,
+        "-ar",
+        str(SAMPLE_RATE),
+        "-ac",
+        str(CHANNELS),
+        "-write_xing",
+        "0",
+        "-id3v2_version",
+        "0",
+        "-f",
+        "mp3",
+        "pipe:1",
     ]
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
@@ -116,11 +139,27 @@ async def _transcode_uniform(mp3_path: str) -> bytes:
     Shu tufayli persistent ffmpeg pipe'da format sakramaydi → dekoder buzilmaydi.
     """
     cmd = [
-        _ffmpeg_bin(), "-hide_banner", "-loglevel", "error",
-        "-i", mp3_path,
-        "-c:a", "libmp3lame", "-b:a", BITRATE, "-ar", str(SAMPLE_RATE), "-ac", str(CHANNELS),
-        "-write_xing", "0", "-id3v2_version", "0",
-        "-f", "mp3", "pipe:1",
+        _ffmpeg_bin(),
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        mp3_path,
+        "-c:a",
+        "libmp3lame",
+        "-b:a",
+        BITRATE,
+        "-ar",
+        str(SAMPLE_RATE),
+        "-ac",
+        str(CHANNELS),
+        "-write_xing",
+        "0",
+        "-id3v2_version",
+        "0",
+        "-f",
+        "mp3",
+        "pipe:1",
     ]
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
@@ -130,12 +169,28 @@ async def _transcode_uniform(mp3_path: str) -> bytes:
 
 
 def _spawn_ffmpeg(lang: str) -> subprocess.Popen:
-    """Til uchun DOIMIY ffmpeg: pipe:0 (mp3) → Icecast mount. Bir marta ulanadi."""
+    """Til uchun DOIMIY ffmpeg: pipe:0 (mp3) → MediaMTX RTMP mount. Bir marta ulanadi."""
     cmd = [
-        _ffmpeg_bin(), "-hide_banner", "-loglevel", "error",
-        "-re", "-f", "mp3", "-i", "pipe:0",
-        "-c:a", "libmp3lame", "-b:a", BITRATE, "-ar", str(SAMPLE_RATE), "-ac", str(CHANNELS),
-        "-content_type", "audio/mpeg", "-f", "mp3", _icecast_url(lang),
+        _ffmpeg_bin(),
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-re",
+        "-f",
+        "mp3",
+        "-i",
+        "pipe:0",
+        "-c:a",
+        "aac",
+        "-b:a",
+        BITRATE,
+        "-ar",
+        str(SAMPLE_RATE),
+        "-ac",
+        str(CHANNELS),
+        "-f",
+        "flv",
+        _rtmp_url(lang),
     ]
     return subprocess.Popen(
         cmd,
@@ -176,7 +231,7 @@ async def _write_blocks(lang: str, data: bytes) -> bool:
     for i in range(0, len(mv), PIPE_BLOCK):
         if _paused.get(lang, False):
             return False
-        block = mv[i:i + PIPE_BLOCK]
+        block = mv[i : i + PIPE_BLOCK]
         try:
             await asyncio.to_thread(proc.stdin.write, block)
             await asyncio.to_thread(proc.stdin.flush)
@@ -203,7 +258,9 @@ async def _worker(lang: str) -> None:
             proc = _procs.get(lang)
             if proc is None or proc.poll() is not None:
                 if proc is not None and proc.poll() is not None:
-                    log.warning("[continuous] %s ffmpeg o'ldi (rc=%s), qayta ochamiz", lang, proc.poll())
+                    log.warning(
+                        "[continuous] %s ffmpeg o'ldi (rc=%s), qayta ochamiz", lang, proc.poll()
+                    )
                 _close_proc(lang)
                 _procs[lang] = _spawn_ffmpeg(lang)
                 await asyncio.sleep(0.2)
@@ -245,7 +302,7 @@ def is_running() -> bool:
 async def start() -> None:
     """Barcha tillar uchun persistent oqim worker'larini ishga tushiradi."""
     global _started, _silence_mp3
-    if _started or not USE_ICECAST:
+    if _started or not USE_MEDIAMTX:
         return
 
     _silence_mp3 = await _gen_silence()

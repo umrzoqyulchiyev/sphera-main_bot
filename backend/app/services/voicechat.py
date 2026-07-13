@@ -11,15 +11,14 @@ Sozlamalar bo'sh bo'lsa (TG_SESSION_STRING yo'q) — servis xato bermaydi, jim
 """
 
 import logging
-from typing import Optional
 
 from app.core.config import settings
 
 log = logging.getLogger("voicechat")
 
 # Lazy importlar — pyrogram/pytgcalls o'rnatilmagan bo'lsa ham backend ishlaydi
-_client = None          # pyrogram.Client
-_pytgcalls = None        # pytgcalls.PyTgCalls
+_client = None  # pyrogram.Client
+_pytgcalls = None  # pytgcalls.PyTgCalls
 _started = False
 _in_call = False
 
@@ -84,7 +83,7 @@ async def stop() -> None:
     _started = False
 
 
-async def join_call(audio_url: Optional[str] = None) -> dict:
+async def join_call(audio_url: str | None = None) -> dict:
     """Voice Chat'ga ulanadi va (ixtiyoriy) audio stream qiladi.
 
     audio_url: Icecast yoki fayl URL. Bo'sh bo'lsa — jim ulanadi (faqat tinglash).
@@ -102,6 +101,7 @@ async def join_call(audio_url: Optional[str] = None) -> dict:
             await _pytgcalls.play(_group_id(), MediaStream(audio_url))
         else:
             import os
+
             silence = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "silence.mp3")
             silence = os.path.abspath(silence)
             if os.path.exists(silence):
@@ -139,6 +139,7 @@ async def play_audio(audio_url: str) -> dict:
         return {"ok": False, "reason": "not_configured"}
     try:
         from pytgcalls.types import MediaStream
+
         await _pytgcalls.play(_group_id(), MediaStream(audio_url))
         return {"ok": True}
     except Exception as exc:  # noqa: BLE001
@@ -147,6 +148,7 @@ async def play_audio(audio_url: str) -> dict:
 
 
 # ── Mikrofon boshqaruvi (modarator) ──
+
 
 async def set_participant_muted(user_telegram_id: int, muted: bool) -> dict:
     """Ishtirokchini mute/unmute qiladi (Voice Chat mikrofon boshqaruvi).
@@ -157,8 +159,8 @@ async def set_participant_muted(user_telegram_id: int, muted: bool) -> dict:
     if not _started or _client is None:
         return {"ok": False, "reason": "not_configured"}
     try:
-        from pyrogram.raw.functions.phone import EditGroupCallParticipant
         from pyrogram.raw.functions.channels import GetFullChannel
+        from pyrogram.raw.functions.phone import EditGroupCallParticipant
 
         # Guruh call peer'ini olish
         chat = await _client.resolve_peer(_group_id())
@@ -169,11 +171,13 @@ async def set_participant_muted(user_telegram_id: int, muted: bool) -> dict:
             return {"ok": False, "reason": "no_active_call"}
 
         participant = await _client.resolve_peer(user_telegram_id)
-        await _client.invoke(EditGroupCallParticipant(
-            call=call,
-            participant=participant,
-            muted=muted,
-        ))
+        await _client.invoke(
+            EditGroupCallParticipant(
+                call=call,
+                participant=participant,
+                muted=muted,
+            )
+        )
         log.info("[voicechat] user=%s muted=%s", user_telegram_id, muted)
         return {"ok": True, "muted": muted}
     except Exception as exc:  # noqa: BLE001

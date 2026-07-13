@@ -5,9 +5,9 @@
 TTS_FALLBACK_EDGE=true — переключается на edge-tts (работоспособность сохраняется).
 """
 
-import os
 import asyncio
 import logging
+import os
 
 log = logging.getLogger("tts")
 
@@ -34,6 +34,7 @@ EDGE_VOICES = {
 async def _eleven_synth(text: str, out_path: str, voice_id: str) -> str:
     """Синтез через ElevenLabs HTTP API. Бросает исключение при ошибке."""
     import httpx
+
     if not voice_id:
         raise RuntimeError("ElevenLabs voice_id not configured")
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -58,6 +59,7 @@ async def _eleven_synth(text: str, out_path: str, voice_id: str) -> str:
 async def _edge_synth(text: str, out_path: str, lang: str) -> str:
     """Синтез через edge-tts (фолбэк)."""
     import edge_tts  # lazy
+
     voice = EDGE_VOICES.get(lang, EDGE_VOICES["ru"])
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(out_path)
@@ -94,6 +96,7 @@ async def synthesize_multilang(scripts: dict[str, str], out_dir: str) -> dict[st
         {"ru": path, "lt": path, "en": path} — только успешно сгенерированные.
     """
     import uuid
+
     os.makedirs(out_dir, exist_ok=True)
     results: dict[str, str] = {}
 

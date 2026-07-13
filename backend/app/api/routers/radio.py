@@ -1,7 +1,6 @@
-import os
 import asyncio
+import os
 
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -11,83 +10,33 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 
+from app.core.constants import ROLE_LEVELS
 from app.core.database import db
+from app.core.dependencies import decode_token, require_role
+from app.core.internal_auth import require_internal_key
 from app.core.models import (
+    OkResponse,
     RadioStatus,
     RadioStatusUpdate,
-    SegmentRegister,
     SegmentOut,
-    OkResponse,
+    SegmentRegister,
 )
-from app.core.dependencies import require_role, decode_token
-from app.core.internal_auth import require_internal_key
-from app.core.state import get_state, VALID_CITIES, AUDIO_DIR
-from app.core.constants import ROLE_LEVELS
+from app.core.state import AUDIO_DIR, VALID_CITIES, get_state
 from app.core.ws_manager import manager
 from app.services import broadcast
 
 router = APIRouter(prefix="/radio", tags=["radio"])
 
-ICECAST_HOST = os.getenv("ICECAST_HOST", "localhost")
-ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
 BROADCAST_LANGS = ("ru", "lt", "en")
-
-
-@router.get("/live/{lang}")
-async def live_proxy(lang: str):
-    """Icecast oqimini backend orqali proxy qiladi (telefon localhost'ни ko'rmaydi).
-
-    Frontend `<origin>/radio/live/{lang}` ни tinglaydi → backend Icecast
-    `/live_{lang}` mountини uzatadi. Tunnel orqali ham ishlaydi.
-    """
-    if lang not in BROADCAST_LANGS:
-        raise HTTPException(status_code=404, detail="Unknown stream language")
-
-    upstream = f"http://{ICECAST_HOST}:{ICECAST_PORT}/live_{lang}"
-
-    async def _pump():
-        # Mount qisqa vaqtга uzilsa (filler bo'laklar orasida) — qayta ulanamiz.
-        # Shu tariqa tinglovchi uchun oqim uzluksiz bo'ladi.
-        timeout = httpx.Timeout(connect=5.0, read=None, write=5.0, pool=5.0)
-        for _attempt in range(1000):
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    async with client.stream(
-                        "GET", upstream, headers={"Icy-MetaData": "0"}
-                    ) as resp:
-                        if resp.status_code != 200:
-                            await asyncio.sleep(0.5)
-                            continue
-                        async for chunk in resp.aiter_bytes(4096):
-                            yield chunk
-            except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError):
-                await asyncio.sleep(0.5)
-                continue
-            except Exception:
-                return
-
-    return StreamingResponse(
-        _pump(),
-        media_type="audio/mpeg",
-        headers={
-            "Cache-Control": "no-cache, no-store",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",       # nginx/cloudflare buferingini o'chiradi
-            "X-Content-Type-Options": "nosniff",
-            "Access-Control-Allow-Origin": "*",
-            "Transfer-Encoding": "chunked",
-            "icy-br": "128",
-            "icy-name": f"Radio AI {lang.upper()}",
-        },
-    )
 
 
 @router.post("/enqueue", dependencies=[Depends(require_internal_key)])
 async def enqueue_segment(payload: dict):
     """AI host tayyor mp3 ni continuous worker navbatiga qo'shadi."""
     from app.services.continuous import enqueue
+
     lang = payload.get("lang", "ru")
     mp3_path = payload.get("mp3_path", "")
     if not mp3_path or not os.path.isfile(mp3_path):
@@ -109,16 +58,19 @@ async def clear_broadcast(city: str = Query(default="global")):
 async def radio_status(city: str = Query(...)):
     # "global" yoki VALID_CITIES da yo'q bo'lsa — umumiy holat qaytaramiz
     if city not in VALID_CITIES:
-        import os as _os
-        from app.core.state import USE_ICECAST
-        _icecast_pub = _os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
-        _stream = f"{_icecast_pub}/live_ru" if (_icecast_pub and USE_ICECAST) else None
+        from app.core.state import MEDIAMTX_PUBLIC_URL, USE_MEDIAMTX
+
+        _stream = (
+            f"{MEDIAMTX_PUBLIC_URL}/live_ru/whep"
+            if (MEDIAMTX_PUBLIC_URL and USE_MEDIAMTX)
+            else None
+        )
         return RadioStatus(
             is_live=True,
             broadcaster_type="ai",
             broadcaster_name="AI Host",
             listeners_count=0,
-            use_icecast=USE_ICECAST,
+            use_webrtc=USE_MEDIAMTX,
             stream_url=_stream,
         )
     st = get_state(city)
@@ -286,7 +238,7 @@ async def live_stop(
 
 @router.websocket("/{city}/broadcast/ws")
 async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...)):
-    """Doverenniy mikrofon audiosini Icecast'ga uzatadi (PDF: jonli efir).
+    """Doverenniy mikrofon audiosini MediaMTX'ga uzatadi (jonli efir).
 
     Audio: webm/opus binary chunklar. Faqat doverenniy/admin.
     """
@@ -312,21 +264,25 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
 
     await websocket.accept()
 
-    # Dev rejim: Icecast yo'q — jonli efir mavjud emas (Requirement 6.5)
+    # Dev rejim: MediaMTX yo'q — jonli efir mavjud emas (Requirement 6.5)
     if not broadcast.is_available():
-        await websocket.send_json({
-            "type": "broadcast_unavailable",
-            "reason": "icecast_disabled",
-        })
+        await websocket.send_json(
+            {
+                "type": "broadcast_unavailable",
+                "reason": "mediamtx_disabled",
+            }
+        )
         await websocket.close(code=1000)
         return
 
     # Bitta shaharда bitta broadcaster (Requirement 5.5)
     if broadcast.is_busy(city):
-        await websocket.send_json({
-            "type": "broadcast_busy",
-            "reason": "city_already_live",
-        })
+        await websocket.send_json(
+            {
+                "type": "broadcast_busy",
+                "reason": "city_already_live",
+            }
+        )
         await websocket.close(code=1000)
         return
 
@@ -334,6 +290,7 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
 
     # Continuous worker'ni pauza qilamiz — mount'ni bo'shatamiz (RU jonli efir uchun)
     from app.services import continuous
+
     continuous.pause("ru")
     # Worker joriy filler bo'lagini tugatib mount'ni bo'shatishi uchun qisqa kutish
     await asyncio.sleep(1.0)
@@ -350,10 +307,13 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
     st.is_live = True
     st.broadcaster_type = "doverenniy"
     st.broadcaster_name = name
-    await manager.broadcast(city, {
-        "type": "radio_status",
-        "data": st.to_dict(listeners_count=manager.listeners_count(city)),
-    })
+    await manager.broadcast(
+        city,
+        {
+            "type": "radio_status",
+            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+        },
+    )
     await websocket.send_json({"type": "broadcast_started"})
 
     try:
@@ -374,10 +334,13 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
         # AI hostга qaytaramiz
         st.broadcaster_type = "ai"
         st.broadcaster_name = "AI Host"
-        await manager.broadcast(city, {
-            "type": "radio_status",
-            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
-        })
+        await manager.broadcast(
+            city,
+            {
+                "type": "radio_status",
+                "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+            },
+        )
 
 
 # ──────────────────────────────────────────────────────────
@@ -402,6 +365,7 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     name = user["full_name"] or user["username"] or "Doverenniy"
 
     from app.services import continuous
+
     continuous.pause("ru")
     await asyncio.sleep(1.0)
 
@@ -416,15 +380,20 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     st.is_live = True
     st.broadcaster_type = "doverenniy"
     st.broadcaster_name = name
-    await manager.broadcast(city, {
-        "type": "radio_status",
-        "data": st.to_dict(listeners_count=manager.listeners_count(city)),
-    })
+    await manager.broadcast(
+        city,
+        {
+            "type": "radio_status",
+            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+        },
+    )
     return {"status": "started"}
 
 
 @router.post("/{city}/broadcast/chunk")
-async def broadcast_http_chunk(city: str, request: Request, user: dict = Depends(require_role("doverenniy"))):
+async def broadcast_http_chunk(
+    city: str, request: Request, user: dict = Depends(require_role("doverenniy"))
+):
     """[doverenniy+] Navbatdagi audio chunk'ni yuboradi (HTTP chunk fallback)."""
     if _http_broadcast_owner.get(city) != user["id"]:
         raise HTTPException(status_code=403, detail="No active broadcast session for this user")
@@ -446,14 +415,18 @@ async def broadcast_http_stop(city: str, user: dict = Depends(require_role("dove
     broadcast.close_session(city)
 
     from app.services import continuous
+
     continuous.resume("ru")
 
     st = get_state(city)
     st.is_live = False
     st.broadcaster_type = "ai"
     st.broadcaster_name = "AI Host"
-    await manager.broadcast(city, {
-        "type": "radio_status",
-        "data": st.to_dict(listeners_count=manager.listeners_count(city)),
-    })
+    await manager.broadcast(
+        city,
+        {
+            "type": "radio_status",
+            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+        },
+    )
     return {"ok": True}

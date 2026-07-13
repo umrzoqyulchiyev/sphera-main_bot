@@ -5,25 +5,24 @@ Vazifa: efir hech qachon jim qolmasin. Davriy ravishda:
   2. Gemini bilan jonli radio efir matni yaratadi (xabarlar bo'lsa — ularga
      javob, bo'lmasa — umumiy qiziqarli segment).
   3. Matnni 3 tilga (ru/lt/en) tayyorlaydi va TTS qiladi.
-  4. Har til uchun mp3'ni continuous navbatiga qo'shadi → Icecast efiriga chiqadi.
+  4. Har til uchun mp3'ni continuous navbatiga qo'shadi → MediaMTX efiriga chiqadi.
 
-USE_ICECAST=false bo'lsa ishlamaydi (efir yo'q).
+USE_MEDIAMTX=false bo'lsa ishlamaydi (efir yo'q).
 """
 
-import os
-import uuid
 import asyncio
 import logging
+import os
+import uuid
 
 from app.core.database import db
-from app.services import gemini, tts
-from app.services import continuous
+from app.services import continuous, gemini, tts
 
 log = logging.getLogger("ai_host")
 
-USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
+USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
 AUDIO_DIR = os.getenv("AUDIO_DIR", "/tmp/sphera_audio")
-HOST_INTERVAL = int(os.getenv("AI_HOST_INTERVAL", "60"))   # segmentlar orasidagi pauza
+HOST_INTERVAL = int(os.getenv("AI_HOST_INTERVAL", "60"))  # segmentlar orasidagi pauza
 MAX_MSGS = 5
 
 _started = False
@@ -100,7 +99,9 @@ async def _make_script(pool: list[dict]) -> tuple[str, bool]:
         parts = ["Здравствуйте, дорогие слушатели Radio AI! У нас обращения в эфире."]
         for m in pool:
             author = m.get("username") or m.get("full_name") or "слушатель"
-            parts.append(f"{author} пишет: {(m.get('text') or '').strip()}. Спасибо, мы вас услышали!")
+            parts.append(
+                f"{author} пишет: {(m.get('text') or '').strip()}. Спасибо, мы вас услышали!"
+            )
         parts.append("Присылайте свои обращения, оставайтесь на волне Radio AI!")
         return " ".join(parts), False
     return (
@@ -115,8 +116,12 @@ async def _generate_and_enqueue() -> None:
     os.makedirs(AUDIO_DIR, exist_ok=True)
     pool = await _fetch_recent_messages()
     script_ru, ai_ok = await _make_script(pool)
-    log.info("[ai_host] segment matni tayyor (%d so'z, %d zayavka, gemini=%s)",
-             len(script_ru.split()), len(pool), ai_ok)
+    log.info(
+        "[ai_host] segment matni tayyor (%d so'z, %d zayavka, gemini=%s)",
+        len(script_ru.split()),
+        len(pool),
+        ai_ok,
+    )
 
     # 3 tilga matn. Gemini ishlagandagina tarjima qilamiz (kvota tejash —
     # Gemini yo'q/kvota tugagan bo'lsa, RU matnni 3 tilда ham ishlatamiz).
@@ -161,7 +166,7 @@ async def _loop() -> None:
 
 async def start() -> None:
     global _started, _task
-    if _started or not USE_ICECAST:
+    if _started or not USE_MEDIAMTX:
         return
     _task = asyncio.create_task(_loop())
     _started = True

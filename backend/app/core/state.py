@@ -1,15 +1,13 @@
 import os
 import time
-from typing import Optional
 
 from app.core.config import settings
 
-RADIO_PUBLIC_URL = settings.radio_public_url
 AUDIO_DIR = settings.audio_dir
-USE_ICECAST = settings.use_icecast
+USE_MEDIAMTX = settings.use_mediamtx
 
-# Icecast tunnel URL (agar alohida tunnel ochilgan bo'lsa — telefon to'g'ridan ulanadi)
-ICECAST_PUBLIC_URL = os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
+# MediaMTX'ning public URL'i (WHEP endpoint) — browser ICE orqali to'g'ridan ulanadi
+MEDIAMTX_PUBLIC_URL = os.getenv("MEDIAMTX_PUBLIC_URL", settings.mediamtx_public_url).rstrip("/")
 
 # Amaldagi shaharlar (bazadan yuklanadi, dinamik kengayadi)
 VALID_CITIES: set[str] = set()
@@ -38,18 +36,17 @@ class CityRadioState:
     def __init__(self, city: str) -> None:
         self.city = city
         self.is_live: bool = False
-        self.broadcaster_type: Optional[str] = None
-        self.broadcaster_name: Optional[str] = None
+        self.broadcaster_type: str | None = None
+        self.broadcaster_name: str | None = None
         # Playlist: [{id, filename, script, created_at, duration_sec}]
         self.segments: list[dict] = []
 
     def stream_url(self, lang: str = None) -> str:
-        if USE_ICECAST:
+        if USE_MEDIAMTX:
             lng = lang if lang in ("ru", "lt", "en") else "ru"
             # Har safar env'dan o'qiymiz (runtime'da o'zgarishi mumkin)
-            icecast_pub = os.getenv("ICECAST_PUBLIC_URL", "").rstrip("/")
-            base = icecast_pub or RADIO_PUBLIC_URL
-            return f"{base}/live_{lng}"
+            base = os.getenv("MEDIAMTX_PUBLIC_URL", "").rstrip("/") or MEDIAMTX_PUBLIC_URL
+            return f"{base}/live_{lng}/whep"
         if self.segments:
             return f"/radio/audio/{self.city}/{self.segments[-1]['filename']}"
         return None
@@ -80,7 +77,7 @@ class CityRadioState:
             "broadcaster_name": self.broadcaster_name,
             "listeners_count": listeners_count,
             "stream_url": self.stream_url(),
-            "use_icecast": USE_ICECAST,
+            "use_webrtc": USE_MEDIAMTX,
             "current_segment": self.segments[-1] if self.segments else None,
         }
 

@@ -1,7 +1,7 @@
 [Unit]
 Description=Sphera Radio Backend (FastAPI)
-After=network.target sphera-icecast.service
-Wants=sphera-icecast.service
+After=network.target sphera-mediamtx.service
+Wants=sphera-mediamtx.service
 
 [Service]
 Type=simple

@@ -14,23 +14,23 @@ role maydoni:
 
 # ====== Level nomlari (TZ §1) ======
 LEVELS: dict[int, str] = {
-    1: "Слушатель",       # faqat tinglash
-    2: "Активный",        # points bor → chat + studiya
-    3: "Доверенный",      # admin verifikatsiya → efirga chiqish
+    1: "Слушатель",  # faqat tinglash
+    2: "Активный",  # points bor → chat + studiya
+    3: "Доверенный",  # admin verifikatsiya → efirga chiqish
 }
 
 # Role → level xaritasi (nechta huquq)
 ROLE_LEVELS: dict[str, int] = {
-    "listener":   1,
-    "aktivniy":   2,
+    "listener": 1,
+    "aktivniy": 2,
     "doverenniy": 3,
-    "admin":      99,   # hammaga ruxsat
+    "admin": 99,  # hammaga ruxsat
 }
 
 # ====== Level avtomatik ko'tarilish chegaralari ======
 # Level 1→2: AKTIVNIY_MIN_POINTS dan ko'p point bo'lsa avtomatik
 # Level 2→3: FAQAT admin beradi (doverenniy = trusted user)
-AKTIVNIY_MIN_POINTS = 0.0001   # birinchi xabar yuborganda level 2 bo'ladi (points sarflaydi)
+AKTIVNIY_MIN_POINTS = 0.0001  # birinchi xabar yuborganda level 2 bo'ladi (points sarflaydi)
 # (aslida: points > 0 bo'lsa aktivniy, admin bersa doverenniy)
 
 
@@ -52,8 +52,8 @@ def level_for_points(points_val) -> int:
 SUPPORTED_LANGUAGES = {"ru", "en", "lt"}
 
 # ====== Point narxlari (kasr) ======
-COST_TEXT_MESSAGE  = 0.001    # 1 ta matn xabar studiyaga
-COST_VOICE_MESSAGE = 0.005    # 1 ta ovozli xabar
+COST_TEXT_MESSAGE = 0.001  # 1 ta matn xabar studiyaga
+COST_VOICE_MESSAGE = 0.005  # 1 ta ovozli xabar
 
 # ====== Boshlang'ich point (ro'yxatdan o'tganda) ======
 # TZ: birinchi odam uchun 0 bo'lishi kerak
@@ -61,8 +61,8 @@ INITIAL_POINTS = 0.0
 
 # ====== Cost xaritasi (messages router uchun) ======
 COST: dict[str, float] = {
-    "chat":         0.001,   # chatga matn
-    "chat_voice":   0.005,   # chatga ovoz
-    "studio":       0.001,   # studiyaga matn
-    "studio_voice": 0.005,   # studiyaga ovoz
+    "chat": 0.001,  # chatga matn
+    "chat_voice": 0.005,  # chatga ovoz
+    "studio": 0.001,  # studiyaga matn
+    "studio_voice": 0.005,  # studiyaga ovoz
 }

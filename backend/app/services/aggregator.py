@@ -18,9 +18,9 @@ from app.services import gemini
 log = logging.getLogger("aggregator")
 
 # Trigger sozlamalari
-MIN_MESSAGES = 5          # shuncha yangi xabar to'planса agregatsiya
-CHECK_INTERVAL = 120      # yoki har 120 sekundда tekshiramiz
-MAX_POOL = 30             # bir martada nechta xabar olinadi
+MIN_MESSAGES = 5  # shuncha yangi xabar to'planса agregatsiya
+CHECK_INTERVAL = 120  # yoki har 120 sekundда tekshiramiz
+MAX_POOL = 30  # bir martada nechta xabar olinadi
 
 AGGREGATE_PROMPT = """Ты — редактор радиоэфира Radio AI.
 Ниже — заявки слушателей «в студию» (могут быть на русском, литовском или английском):
@@ -54,7 +54,8 @@ async def _fetch_studio_pool(city: str) -> list[dict]:
         ORDER BY m.created_at ASC
         LIMIT $2
         """,
-        city, MAX_POOL,
+        city,
+        MAX_POOL,
     )
     return [dict(r) for r in rows]
 
@@ -118,10 +119,14 @@ async def aggregate_studio(city: str) -> dict | None:
         VALUES ($1, $2, $3, $4, 'pending')
         RETURNING id, city, main_topic, source_count, script, status, created_at
         """,
-        city, main_topic, len(pool), script,
+        city,
+        main_topic,
+        len(pool),
+        script,
     )
-    log.info("[%s] studio draft #%s yaratildi (%d zayavka): %s",
-             city, row["id"], len(pool), main_topic)
+    log.info(
+        "[%s] studio draft #%s yaratildi (%d zayavka): %s", city, row["id"], len(pool), main_topic
+    )
     return dict(row)
 
 
@@ -137,8 +142,10 @@ async def aggregation_loop(cities_provider):
     Yangi draft yaratilса, moderatorlarga WebSocket orqali xabar beriladi.
     """
     from app.core.ws_manager import manager
-    log.info("Aggregation loop ishga tushdi (interval=%ds, min_msgs=%d)",
-             CHECK_INTERVAL, MIN_MESSAGES)
+
+    log.info(
+        "Aggregation loop ishga tushdi (interval=%ds, min_msgs=%d)", CHECK_INTERVAL, MIN_MESSAGES
+    )
     while True:
         try:
             cities = cities_provider()
@@ -146,14 +153,17 @@ async def aggregation_loop(cities_provider):
                 try:
                     draft = await aggregate_once(city)
                     if draft:
-                        await manager.broadcast(city, {
-                            "type": "new_draft",
-                            "data": {
-                                "id": draft["id"],
-                                "main_topic": draft["main_topic"],
-                                "source_count": draft["source_count"],
+                        await manager.broadcast(
+                            city,
+                            {
+                                "type": "new_draft",
+                                "data": {
+                                    "id": draft["id"],
+                                    "main_topic": draft["main_topic"],
+                                    "source_count": draft["source_count"],
+                                },
                             },
-                        })
+                        )
                 except Exception as exc:  # noqa: BLE001
                     log.error("aggregate_once(%s) failed: %s", city, exc)
         except Exception as exc:  # noqa: BLE001

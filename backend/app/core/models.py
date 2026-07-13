@@ -5,7 +5,7 @@ Yangi TZ: til tanlash, kasr points, level tizimi, transfer/request.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -13,14 +13,14 @@ from pydantic import BaseModel, Field
 # ============ Auth ============
 class TelegramAuthRequest(BaseModel):
     telegram_id: int
-    username: Optional[str] = None
-    full_name: Optional[str] = None
+    username: str | None = None
+    full_name: str | None = None
 
 
 class AuthResponse(BaseModel):
     token: str
     is_new_user: bool = False
-    language: Optional[str] = None  # tanlangan til (None = hali tanlamagan)
+    language: str | None = None  # tanlangan til (None = hali tanlamagan)
     level: int = 1
     points: Decimal = Decimal("0.0000")
 
@@ -33,22 +33,22 @@ class SelectLanguageRequest(BaseModel):
 class UserProfileOut(BaseModel):
     id: int
     telegram_id: int
-    username: Optional[str] = None
-    display_name: Optional[str] = None
+    username: str | None = None
+    display_name: str | None = None
     language: str = "ru"
     level: int = 1
     level_name: str = "Слушатель"
     points: Decimal = Decimal("0.0000")
     role: str = "listener"
     # TZ §4: Psixologik profil (AI analitika)
-    focus_of_attention: Optional[str] = None   # vnutrenniy | vneshniy
-    emotional_tone: Optional[str] = None        # optimist | melanxolik | ratsional
-    key_topic: Optional[str] = None
+    focus_of_attention: str | None = None  # vnutrenniy | vneshniy
+    emotional_tone: str | None = None  # optimist | melanxolik | ratsional
+    key_topic: str | None = None
 
 
 class UpdateProfileRequest(BaseModel):
-    display_name: Optional[str] = None
-    username: Optional[str] = None
+    display_name: str | None = None
+    username: str | None = None
 
 
 # ============ Points ============
@@ -65,6 +65,7 @@ class PointsTransferRequest(BaseModel):
 
 class PointsRequestCreate(BaseModel):
     """Boshqa foydalanuvchidan point so'rash."""
+
     from_user_id: int  # kimdan so'ralyapti — aslida telegram_id (profilda ko'rsatiladigan ID)
     amount: Decimal = Field(gt=0)
     message: str = ""
@@ -73,7 +74,7 @@ class PointsRequestCreate(BaseModel):
 class PointsRequestOut(BaseModel):
     id: int
     from_user_id: int
-    from_display_name: Optional[str] = None
+    from_display_name: str | None = None
     to_user_id: int
     amount: Decimal
     status: str
@@ -120,37 +121,39 @@ class ChatMessageRequest(BaseModel):
 
 class ChatMessageOut(BaseModel):
     id: int
-    username: Optional[str] = None
-    display_name: Optional[str] = None
+    username: str | None = None
+    display_name: str | None = None
     message: str
     message_type: str = "text"
-    voice_url: Optional[str] = None
+    voice_url: str | None = None
     created_at: datetime
 
 
 # ============ Radio / Broadcast ============
 class RadioStatus(BaseModel):
     is_live: bool
-    broadcaster_type: Optional[str] = None
-    broadcaster_name: Optional[str] = None
+    broadcaster_type: str | None = None
+    broadcaster_name: str | None = None
     listeners_count: int = 0
-    stream_url: Optional[str] = None
-    use_icecast: bool = False
-    current_segment: Optional[Any] = None
+    stream_url: str | None = None
+    use_webrtc: bool = False
+    current_segment: Any | None = None
 
 
 class RadioStatusUpdate(BaseModel):
     """radio-host yoki internal service efir holatini yangilaydi."""
+
     city: str
     is_live: bool = True
-    broadcaster_type: Optional[str] = None   # ai | doverenniy
-    broadcaster_name: Optional[str] = None
-    script: Optional[str] = None
+    broadcaster_type: str | None = None  # ai | doverenniy
+    broadcaster_name: str | None = None
+    script: str | None = None
     duration_sec: int = 0
 
 
 class SegmentRegister(BaseModel):
     """radio-host yangi AI ovoz segmentini ro'yxatga oladi."""
+
     city: str
     filename: str
     script: str = ""
@@ -186,7 +189,7 @@ class AdminNewsCreate(BaseModel):
 # ============ Generic ============
 class OkResponse(BaseModel):
     ok: bool = True
-    detail: Optional[Any] = None
+    detail: Any | None = None
 
 
 # ============ Stats ============
@@ -211,10 +214,10 @@ class FavoriteOut(BaseModel):
     item_type: str
     item_id: int
     title: str
-    content: Optional[str] = None
-    broadcaster: Optional[str] = None
-    duration: Optional[int] = None
-    audio_url: Optional[str] = None
+    content: str | None = None
+    broadcaster: str | None = None
+    duration: int | None = None
+    audio_url: str | None = None
     created_at: datetime
 
 
@@ -222,17 +225,17 @@ class FavoriteAddRequest(BaseModel):
     item_type: str  # broadcast | message | segment
     item_id: int
     title: str
-    content: Optional[str] = None
-    broadcaster: Optional[str] = None
-    duration: Optional[int] = None
-    audio_url: Optional[str] = None
+    content: str | None = None
+    broadcaster: str | None = None
+    duration: int | None = None
+    audio_url: str | None = None
 
 
 # ============ Messages (studio + voice — TZ §3) ============
 class TextMessageRequest(BaseModel):
     city: str
     text: str
-    lang: Optional[str] = None   # ru | en | lt
+    lang: str | None = None  # ru | en | lt
 
 
 class PsychotypeOut(BaseModel):
@@ -243,9 +246,9 @@ class PsychotypeOut(BaseModel):
 
 
 class MessageResponse(BaseModel):
-    transcript: Optional[str] = None
-    psychotype: Optional[PsychotypeOut] = None
-    ai_reply: Optional[str] = None
-    voice_url: Optional[str] = None
-    file_url: Optional[str] = None
-    points: Optional[Any] = None
+    transcript: str | None = None
+    psychotype: PsychotypeOut | None = None
+    ai_reply: str | None = None
+    voice_url: str | None = None
+    file_url: str | None = None
+    points: Any | None = None

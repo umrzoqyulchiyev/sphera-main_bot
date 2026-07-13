@@ -4,11 +4,11 @@
 #  Foydalanish:  bash start.sh
 #
 #  Bu skript avtomatik:
-#    1. PostgreSQL / Redis / Icecast tekshiradi
+#    1. PostgreSQL / Redis / MediaMTX tekshiradi
 #    2. HTTPS tunnel ochadi va URL oladi
 #    3. .env va frontend/.env ni yangi URL bilan yangilaydi
 #    4. Frontend'ni build qiladi
-#    5. Backend'ni ishga tushiradi (Icecast worker bilan)
+#    5. Backend'ni ishga tushiradi (MediaMTX worker bilan)
 #    6. Telegram bot'ni ishga tushiradi
 #    7. AI Radio Host'ni ishga tushiradi
 # ============================================================
@@ -43,11 +43,11 @@ else
     exit 1
 fi
 
-# ── 3. Icecast2 ────────────────────────────────────────────
-if curl -s --max-time 3 http://localhost:8000/status.xsl >/dev/null 2>&1; then
-    echo "[3/7] Icecast2 ✓"
+# ── 3. MediaMTX ────────────────────────────────────────────
+if curl -s --max-time 3 http://localhost:8889/ >/dev/null 2>&1; then
+    echo "[3/7] MediaMTX ✓"
 else
-    echo "[3/7] ⚠️  Icecast2 javob bermayapti (efir ishlamasligi mumkin)"
+    echo "[3/7] ⚠️  MediaMTX javob bermayapti (efir ishlamasligi mumkin)"
 fi
 
 # ── 4. HTTPS Tunnel ────────────────────────────────────────

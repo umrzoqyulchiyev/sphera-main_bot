@@ -4,12 +4,11 @@ Redis-based (agar mavjud), aks holda in-memory TTL dict.
 Brute-force va DoS himoyasi.
 """
 
-import time
 import logging
+import time
 from collections import defaultdict
-from typing import Optional
 
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 
 from app.core import redis as redis_client
 
@@ -39,7 +38,6 @@ def _cleanup_local():
 
 async def _check_redis(key: str, max_requests: int, window_seconds: int) -> tuple[bool, int]:
     """Redis ZSET bilan sliding window."""
-    import redis.asyncio as aioredis
     now = time.time()
     pipe = redis_client._redis.pipeline()
     pipe.zremrangebyscore(key, 0, now - window_seconds)
@@ -82,6 +80,7 @@ def rate_limit(max_requests: int = 30, window_seconds: int = 60, key_prefix: str
 
     Usage: @router.post("/auth/telegram", dependencies=[Depends(rate_limit(10, 60))])
     """
+
     async def _limiter(request: Request):
         # IP + endpoint
         client_ip = request.client.host if request.client else "unknown"

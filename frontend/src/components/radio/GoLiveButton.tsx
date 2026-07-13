@@ -51,7 +51,7 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
         return;
       }
       if (data.status === 'unavailable') {
-        onToast('🔇 Icecast required');
+        onToast('🔇 MediaMTX required');
         return;
       }
 

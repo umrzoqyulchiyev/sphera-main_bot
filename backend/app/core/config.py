@@ -4,9 +4,7 @@ Barcha env variablelar bu yerda validatsiya qilinadi.
 Import: `from app.core.config import settings`
 """
 
-import os
 from functools import lru_cache
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -24,7 +22,9 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="INSECURE_DEV_KEY_CHANGE_IN_PRODUCTION", min_length=24)
     algorithm: str = "HS256"
     token_expire_days: int = 30
-    internal_api_key: str = Field(default="", description="Key for internal service-to-service calls")
+    internal_api_key: str = Field(
+        default="", description="Key for internal service-to-service calls"
+    )
     allowed_origins: str = "*"
 
     # ── Database ──
@@ -49,12 +49,12 @@ class Settings(BaseSettings):
     # ── Telegram MTProto (userbot — Voice Chat boshqaruvi uchun) ──
     tg_api_id: int = 0
     tg_api_hash: str = ""
-    tg_session_string: str = ""        # Pyrogram userbot session
-    voice_chat_group_id: str = ""      # Voice Chat ochilgan guruh ID
+    tg_session_string: str = ""  # Pyrogram userbot session
+    voice_chat_group_id: str = ""  # Voice Chat ochilgan guruh ID
 
     # ── Telegram Payments (point sotib olish) ──
-    payment_provider_token: str = ""   # BotFather → Payments
-    payment_currency: str = "XTR"      # XTR = Telegram Stars, yoki USD/EUR (provider bilan)
+    payment_provider_token: str = ""  # BotFather → Payments
+    payment_currency: str = "XTR"  # XTR = Telegram Stars, yoki USD/EUR (provider bilan)
 
     # ── AI ──
     gemini_key: str = ""
@@ -72,11 +72,12 @@ class Settings(BaseSettings):
     eleven_voice_lt: str = ""
     eleven_voice_en: str = ""
 
-    # ── Icecast ──
-    use_icecast: bool = False
-    icecast_host: str = "localhost"
-    icecast_port: int = 8000
-    icecast_pass: str = "IcecastPass2025!"
+    # ── MediaMTX (RTMP ingest / WebRTC delivery) ──
+    use_mediamtx: bool = False
+    mediamtx_host: str = "localhost"
+    mediamtx_rtmp_port: int = 1935
+    mediamtx_publish_pass: str = "MediaMTXPass2025!"
+    mediamtx_public_url: str = "http://localhost:8889"
 
     # ── Storage ──
     audio_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.audio"
@@ -84,9 +85,8 @@ class Settings(BaseSettings):
     max_upload_mb: int = 20
 
     # ── Radio ──
-    radio_public_url: str = "http://localhost:8000"
     miniapp_dir: str = ""
-    api_url: str = ""   # To'liq URL (voice/file URL lar uchun)
+    api_url: str = ""  # To'liq URL (voice/file URL lar uchun)
 
     # ── Points cost-model ──
     cost_chat: int = 1

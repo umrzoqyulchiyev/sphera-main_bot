@@ -10,9 +10,10 @@ Barcha yangi endpointlarni test qiladi:
 - Health
 """
 
-import pytest
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from app.core.database import db
 from app.core.dependencies import create_access_token
@@ -22,6 +23,7 @@ pytestmark = pytest.mark.asyncio
 
 
 # ══════════════ HEALTH ══════════════
+
 
 async def test_health(client):
     resp = await client.get("/health")
@@ -45,16 +47,20 @@ async def test_api_root(client):
 
 # ══════════════ AUTH ══════════════
 
+
 async def test_auth_telegram_new_user(client, patch_db):
     """Yangi foydalanuvchi — is_new_user=True."""
     new_user = make_user()
     db.fetchrow = AsyncMock(side_effect=[None, new_user])
 
-    resp = await client.post("/auth/telegram", json={
-        "telegram_id": 111111,
-        "username": "testuser",
-        "full_name": "Test User",
-    })
+    resp = await client.post(
+        "/auth/telegram",
+        json={
+            "telegram_id": 111111,
+            "username": "testuser",
+            "full_name": "Test User",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "token" in data
@@ -67,10 +73,13 @@ async def test_auth_telegram_existing_user(client, patch_db):
     existing = make_user(level=2, points=Decimal("3.5000"))
     db.fetchrow = AsyncMock(side_effect=[existing, existing])
 
-    resp = await client.post("/auth/telegram", json={
-        "telegram_id": 111111,
-        "username": "testuser",
-    })
+    resp = await client.post(
+        "/auth/telegram",
+        json={
+            "telegram_id": 111111,
+            "username": "testuser",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["is_new_user"] is False
@@ -108,6 +117,7 @@ async def test_select_language_invalid(client, patch_db):
 
 
 # ══════════════ PROFILE ══════════════
+
 
 async def test_get_me(client, patch_db):
     """Profil olish."""
@@ -162,6 +172,7 @@ async def test_update_profile_empty_name(client, patch_db):
 
 # ══════════════ POINTS ══════════════
 
+
 async def test_get_points(client, patch_db):
     """Balans olish."""
     user = make_user(points=Decimal("3.1415"))
@@ -177,16 +188,30 @@ async def test_get_points(client, patch_db):
 
 async def test_get_packages(client, patch_db):
     """Point paketlari."""
-    db.fetch = AsyncMock(return_value=[
-        {"id": 1, "points_amount": Decimal("100"), "price_eur": Decimal("1.00"), "label": "100 points"},
-        {"id": 2, "points_amount": Decimal("500"), "price_eur": Decimal("4.00"), "label": "500 points"},
-    ])
+    db.fetch = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "points_amount": Decimal("100"),
+                "price_eur": Decimal("1.00"),
+                "label": "100 points",
+            },
+            {
+                "id": 2,
+                "points_amount": Decimal("500"),
+                "price_eur": Decimal("4.00"),
+                "label": "500 points",
+            },
+        ]
+    )
     user = make_user()
     db.fetchrow = AsyncMock(return_value=user)
     db.execute = AsyncMock()
 
     token = create_access_token(111111)
-    resp = await client.get("/users/me/points/packages", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/users/me/points/packages", headers={"Authorization": f"Bearer {token}"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 2
@@ -210,12 +235,22 @@ async def test_transfer_to_self(client, patch_db):
 
 # ══════════════ NEWS ══════════════
 
+
 async def test_get_news_ru(client, patch_db):
     """Rus tilidagi yangiliklar."""
     from datetime import datetime
-    db.fetch = AsyncMock(return_value=[
-        {"id": 1, "title": "Новость", "body": "Текст", "image_url": "", "created_at": datetime.now()},
-    ])
+
+    db.fetch = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "title": "Новость",
+                "body": "Текст",
+                "image_url": "",
+                "created_at": datetime.now(),
+            },
+        ]
+    )
 
     resp = await client.get("/news/ru")
     assert resp.status_code == 200
@@ -232,16 +267,20 @@ async def test_get_news_invalid_lang(client):
 
 # ══════════════ CHAT ══════════════
 
+
 async def test_chat_send(client, patch_db):
     """Chat xabar yuborish (point sarflanadi)."""
     from datetime import datetime
+
     user = make_user(points=Decimal("5.0000"))
     # fetchrow calls: 1) get_current_user, 2) spend (UPDATE RETURNING), 3) INSERT RETURNING
-    db.fetchrow = AsyncMock(side_effect=[
-        user,  # get_current_user
-        {"points": Decimal("4.9990")},  # spend
-        {"id": 1, "created_at": datetime.now()},  # INSERT
-    ])
+    db.fetchrow = AsyncMock(
+        side_effect=[
+            user,  # get_current_user
+            {"points": Decimal("4.9990")},  # spend
+            {"id": 1, "created_at": datetime.now()},  # INSERT
+        ]
+    )
     db.execute = AsyncMock()
 
     token = create_access_token(111111)
@@ -277,6 +316,7 @@ async def test_chat_history(client, patch_db):
 
 
 # ══════════════ ADMIN ══════════════
+
 
 async def test_admin_set_level(client, patch_db):
     """Admin level o'zgartiradi."""
@@ -328,20 +368,25 @@ async def test_admin_not_admin(client, patch_db):
 
 # ══════════════ TOKEN ══════════════
 
+
 def test_create_and_decode_token():
     from app.core.dependencies import create_access_token, decode_token
+
     token = create_access_token(999)
     assert decode_token(token) == 999
 
 
 def test_decode_invalid_token():
-    from app.core.dependencies import decode_token
     from fastapi import HTTPException
+
+    from app.core.dependencies import decode_token
+
     with pytest.raises(HTTPException):
         decode_token("garbage.token.here")
 
 
 # ══════════════ POINTS SERVICE (unit) ══════════════
+
 
 async def test_points_spend_text(patch_db):
     """spend_text atomik ishlashi."""
@@ -349,6 +394,7 @@ async def test_points_spend_text(patch_db):
     db.execute = AsyncMock()
 
     from app.services.points import spend_text
+
     result = await spend_text(user_id=1)
     assert result["ok"] is True
     assert result["points"] == Decimal("4.9990")
@@ -360,6 +406,7 @@ async def test_points_spend_insufficient(patch_db):
     db.fetchval = AsyncMock(return_value=Decimal("0.0005"))
 
     from app.services.points import spend_text
+
     result = await spend_text(user_id=1)
     assert result["ok"] is False
     assert "insufficient" in result.get("reason", "")
@@ -371,6 +418,7 @@ async def test_points_transfer(patch_db):
     db.execute = AsyncMock()
 
     from app.services.points import transfer
+
     result = await transfer(from_user_id=1, to_user_id=2, amount=Decimal("1.0"))
     assert result["ok"] is True
 
@@ -378,6 +426,7 @@ async def test_points_transfer(patch_db):
 async def test_points_transfer_to_self(patch_db):
     """O'ziga transfer — fail."""
     from app.services.points import transfer
+
     result = await transfer(from_user_id=1, to_user_id=1, amount=Decimal("1.0"))
     assert result["ok"] is False
     assert result["reason"] == "cannot_transfer_to_self"

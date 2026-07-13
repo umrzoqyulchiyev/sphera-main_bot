@@ -5,11 +5,29 @@ import type { AudioSegment, Language } from '../types';
 interface UseAudioPlayerOptions {
   city: string;
   language: Language;
-  useIcecast: boolean;
+  useWebrtc: boolean;
   streamUrl?: string | null;
 }
 
-export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAudioPlayerOptions) {
+function waitForIceGatheringComplete(pc: RTCPeerConnection): Promise<void> {
+  if (pc.iceGatheringState === 'complete') return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (pc.iceGatheringState === 'complete') {
+        pc.removeEventListener('icegatheringstatechange', check);
+        resolve();
+      }
+    };
+    pc.addEventListener('icegatheringstatechange', check);
+    // Ba'zi tarmoqlarda ICE gathering sekin — cheksiz kutmaymiz.
+    setTimeout(() => {
+      pc.removeEventListener('icegatheringstatechange', check);
+      resolve();
+    }, 3000);
+  });
+}
+
+export function useAudioPlayer({ city, language, useWebrtc, streamUrl }: UseAudioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,11 +44,9 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
   streamUrlRef.current = streamUrl;
   languageRef.current = language;
 
-  const buildStreamUrl = useCallback(() => {
-    const base = getStreamUrl(languageRef.current, streamUrlRef.current);
-    // ?t= cache bypass (har ulanishда yangi)
-    return `${base}${base.includes('?') ? '&' : '?'}t=${Date.now()}`;
-  }, []);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const whepLocationRef = useRef<string | null>(null);
+  const connectWebrtcRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
@@ -39,7 +55,98 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
     }
   };
 
-  // Audio element bir marta yaratiladi (playlist/icecast bir xil element)
+  // WHEP session'ni yopadi (PeerConnection + serverdagi resurs, best-effort).
+  const disconnectWebrtc = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    const pc = pcRef.current;
+    if (pc) {
+      pc.onconnectionstatechange = null;
+      pc.close();
+      pcRef.current = null;
+    }
+    const location = whepLocationRef.current;
+    whepLocationRef.current = null;
+    if (location) {
+      fetch(location, { method: 'DELETE' }).catch(() => {});
+    }
+    if (audioRef.current) audioRef.current.srcObject = null;
+  }, []);
+
+  const scheduleReconnect = useCallback((connect: () => void) => {
+    if (!wantPlayingRef.current) return;
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = setTimeout(() => {
+      if (!wantPlayingRef.current) return;
+      connect();
+    }, 2000);
+  }, []);
+
+  const connectWebrtc = useCallback(async () => {
+    const audio = audioRef.current;
+    const whepUrl = getStreamUrl(languageRef.current, streamUrlRef.current);
+    if (!audio || !whepUrl) {
+      clearLoadingTimeout();
+      setIsLoading(false);
+      return;
+    }
+
+    disconnectWebrtc();
+
+    const pc = new RTCPeerConnection();
+    pcRef.current = pc;
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+
+    pc.ontrack = (event) => {
+      if (audioRef.current) audioRef.current.srcObject = event.streams[0];
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') {
+        clearLoadingTimeout();
+        setIsLoading(false);
+        setIsPlaying(true);
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        setIsPlaying(false);
+        if (wantPlayingRef.current) {
+          scheduleReconnect(() => { connectWebrtcRef.current().catch(() => {}); });
+        }
+      }
+    };
+
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await waitForIceGatheringComplete(pc);
+
+      const resp = await fetch(whepUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription?.sdp || '',
+      });
+      if (!resp.ok) throw new Error(`WHEP POST failed: ${resp.status}`);
+
+      whepLocationRef.current = resp.headers.get('Location');
+      const answerSdp = await resp.text();
+      await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+      await audio.play();
+    } catch (e) {
+      console.error('connectWebrtc error:', e);
+      disconnectWebrtc();
+      clearLoadingTimeout();
+      setIsLoading(false);
+      scheduleReconnect(() => { connectWebrtcRef.current().catch(() => {}); });
+    }
+  }, [disconnectWebrtc, scheduleReconnect]);
+
+  useEffect(() => {
+    connectWebrtcRef.current = connectWebrtc;
+  }, [connectWebrtc]);
+
+  // Audio element bir marta yaratiladi (playlist/webrtc bir xil element)
   useEffect(() => {
     const audio = new Audio();
     audio.volume = volume / 100;
@@ -48,16 +155,11 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
     audio.setAttribute('playsinline', 'true');
     audioRef.current = audio;
 
-    const onPlaying = () => {
-      clearLoadingTimeout();
-      setIsLoading(false);
-      setIsPlaying(true);
-    };
     const onPause = () => {
       setIsPlaying(false);
     };
     const onCanPlay = () => {
-      // Brauzer tayyor — agar foydalanuvchi xohlagan bo'lsa, play qilamiz
+      // Playlist rejimida brauzer tayyor bo'lganda play qilamiz
       if (wantPlayingRef.current && audio.paused) {
         audio.play().catch(() => {
           clearLoadingTimeout();
@@ -65,57 +167,37 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
         });
       }
     };
-    const onError = () => {
-      console.warn('audio error');
-      clearLoadingTimeout();
-      setIsLoading(false);
-      setIsPlaying(false);
-      if (useIcecast && wantPlayingRef.current) {
-        // Qayta urinish
-        if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = setTimeout(() => {
-          if (!wantPlayingRef.current) return;
-          audio.src = buildStreamUrl();
-          audio.load();
-          audio.play().catch(() => {});
-        }, 2000);
-      }
-    };
 
-    audio.addEventListener('playing', onPlaying);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('canplay', onCanPlay);
-    audio.addEventListener('error', onError);
-    audio.addEventListener('stalled', onError);
 
     return () => {
       audio.pause();
       audio.src = '';
+      audio.srcObject = null;
       clearLoadingTimeout();
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('canplay', onCanPlay);
-      audio.removeEventListener('error', onError);
-      audio.removeEventListener('stalled', onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // bir marta yaratiladi
 
-  // Playlist yuklash (non-Icecast)
+  // Unmount bo'lganda WebRTC ulanishini yopamiz
   useEffect(() => {
-    if (!useIcecast) {
+    return () => disconnectWebrtc();
+  }, [disconnectWebrtc]);
+
+  // Playlist yuklash (non-WebRTC)
+  useEffect(() => {
+    if (!useWebrtc) {
       getPlaylist(city).then(setPlaylist).catch(console.error);
     }
-  }, [city, useIcecast]);
+  }, [city, useWebrtc]);
 
   // Til o'zgarganda — agar playing bo'lsa, yangi til oqimiga o'tamiz
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !useIcecast || !wantPlayingRef.current) return;
-    audio.src = buildStreamUrl();
-    audio.load();
-    audio.play().catch(() => {});
+    if (!useWebrtc || !wantPlayingRef.current) return;
+    connectWebrtc().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -126,19 +208,20 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
 
   // Foreground qaytganда tiklash
   useEffect(() => {
-    if (!useIcecast) return;
+    if (!useWebrtc) return;
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && wantPlayingRef.current && audioRef.current?.paused) {
-        const a = audioRef.current;
-        a.src = buildStreamUrl();
-        a.load();
-        a.play().catch(() => {});
+      if (
+        document.visibilityState === 'visible' &&
+        wantPlayingRef.current &&
+        pcRef.current?.connectionState !== 'connected'
+      ) {
+        connectWebrtc().catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useIcecast]);
+  }, [useWebrtc]);
 
   const playNextSegment = useCallback(() => {
     if (playlist.length === 0) return;
@@ -161,9 +244,11 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
     if (isPlaying || isLoading) {
       wantPlayingRef.current = false;
       clearLoadingTimeout();
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      audio.pause();
-      if (useIcecast) audio.src = '';
+      if (useWebrtc) {
+        disconnectWebrtc();
+      } else {
+        audio.pause();
+      }
       setIsLoading(false);
       setIsPlaying(false);
       return;
@@ -179,7 +264,7 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
       if (ctx.state === 'suspended') await ctx.resume();
     } catch (_) { /* baribir davom etamiz */ }
 
-    // Volume ishonchli 
+    // Volume ishonchli
     audio.muted = false;
     audio.volume = volume / 100;
 
@@ -194,11 +279,8 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
     }, 12000);
 
     try {
-      if (useIcecast) {
-        audio.src = buildStreamUrl();
-        audio.load();
-        await audio.play();
-        // 'playing' event setIsPlaying chaqiradi
+      if (useWebrtc) {
+        await connectWebrtc();
       } else {
         if (!audio.src && playlist.length > 0) {
           playNextSegment();
@@ -212,7 +294,7 @@ export function useAudioPlayer({ city, language, useIcecast, streamUrl }: UseAud
       setIsLoading(false);
       wantPlayingRef.current = false;
     }
-  }, [isPlaying, isLoading, useIcecast, buildStreamUrl, playlist, playNextSegment]);
+  }, [isPlaying, isLoading, useWebrtc, connectWebrtc, disconnectWebrtc, volume, playlist, playNextSegment]);
 
   const addSegment = useCallback((segment: AudioSegment) => {
     setPlaylist((prev) => [...prev, segment]);

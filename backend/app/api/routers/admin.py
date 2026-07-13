@@ -6,13 +6,13 @@
 """
 
 import logging
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.models import AdminSetLevelRequest, AdminAddPointsRequest, OkResponse
 from app.core.dependencies import require_admin
+from app.core.models import AdminAddPointsRequest, AdminSetLevelRequest, OkResponse
 from app.services import points as points_service
 
 log = logging.getLogger("admin")
@@ -41,12 +41,20 @@ async def set_user_level(
 
     result = await db.execute(
         "UPDATE users SET level = $1, role = $2 WHERE id = $3",
-        payload.level, role, payload.user_id,
+        payload.level,
+        role,
+        payload.user_id,
     )
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="User not found")
 
-    log.info("Admin %d set level=%d role=%s for user=%d", admin["id"], payload.level, role, payload.user_id)
+    log.info(
+        "Admin %d set level=%d role=%s for user=%d",
+        admin["id"],
+        payload.level,
+        role,
+        payload.user_id,
+    )
     return OkResponse(detail={"user_id": payload.user_id, "level": payload.level, "role": role})
 
 
@@ -79,9 +87,6 @@ async def list_users(admin: dict = Depends(require_admin)):
 # ============================================================
 # Efir mavzulari (topics) — admin boshqaradi
 # ============================================================
-from pydantic import BaseModel
-
-
 class TopicCreateRequest(BaseModel):
     title: str
     description: str = ""
@@ -103,7 +108,9 @@ async def create_topic(payload: TopicCreateRequest, admin: dict = Depends(requir
         VALUES ($1, $2, 'active', $3)
         RETURNING id, title, description, status, created_at
         """,
-        title, payload.description.strip(), admin["id"],
+        title,
+        payload.description.strip(),
+        admin["id"],
     )
     log.info("Admin %d yangi mavzu yaratdi: %s", admin["id"], title)
     return dict(row)
@@ -129,9 +136,7 @@ async def list_topics(admin: dict = Depends(require_admin)):
 @router.post("/topics/{topic_id}/close", response_model=OkResponse)
 async def close_topic(topic_id: int, admin: dict = Depends(require_admin)):
     """[admin] Mavzuni yopadi (fikr yig'ish to'xtaydi)."""
-    result = await db.execute(
-        "UPDATE topics SET status = 'closed' WHERE id = $1", topic_id
-    )
+    result = await db.execute("UPDATE topics SET status = 'closed' WHERE id = $1", topic_id)
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="Topic not found")
     return OkResponse(detail={"topic_id": topic_id, "status": "closed"})
@@ -161,6 +166,7 @@ async def topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
 # Fikrlar → 3 pozitsiya → 2 personaj dialog → efir
 # ============================================================
 
+
 @router.post("/topics/{topic_id}/aggregate")
 async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
     """[admin] Mavzu bo'yicha fikrlarni yig'ib, 3 pozitsiya va dialog yaratadi.
@@ -170,19 +176,20 @@ async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_
       → broadcast_drafts da 'pending' → tasdiqlansa efirga chiqadi.
     """
     from app.services.opinion_aggregator import aggregate_opinions
+
     draft = await aggregate_opinions(topic_id)
     if draft is None:
         # Fikr soni yetarli emas yoki mavzu topilmadi
         topic = await db.fetchrow(
             "SELECT id, (SELECT COUNT(*) FROM opinions WHERE topic_id=$1 AND kind='text') cnt FROM topics WHERE id=$1",
-            topic_id
+            topic_id,
         )
         if not topic:
             raise HTTPException(status_code=404, detail="Topic not found")
         raise HTTPException(
             status_code=400,
             detail=f"Fikr yetarli emas (hozir: {topic['cnt']}, kerak: 3+). "
-                   "Avval foydalanuvchilar fikr yuborgach agregatsiya qiling."
+            "Avval foydalanuvchilar fikr yuborgach agregatsiya qiling.",
         )
     return {
         "ok": True,
@@ -213,6 +220,7 @@ async def list_drafts(admin: dict = Depends(require_admin)):
 async def get_draft(draft_id: int, admin: dict = Depends(require_admin)):
     """[admin] Draft to'liq (dialog matni + META)."""
     from app.services.opinion_aggregator import get_draft_dialog
+
     draft = await get_draft_dialog(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -221,11 +229,12 @@ async def get_draft(draft_id: int, admin: dict = Depends(require_admin)):
 
 @router.post("/drafts/{draft_id}/approve")
 async def approve_draft(draft_id: int, admin: dict = Depends(require_admin)):
-    """[admin] Dilaogni tasdiqlaydi va Icecast efirga yuboradi.
+    """[admin] Dilaogni tasdiqlaydi va MediaMTX efirga yuboradi.
 
     Zanjir: draft.script (dialog) → TTS (3 til) → continuous navbatiga → efir.
     """
     from app.services.opinion_aggregator import get_draft_dialog
+
     draft = await get_draft_dialog(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -233,12 +242,11 @@ async def approve_draft(draft_id: int, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=400, detail=f"Draft already {draft['status']}")
 
     # Statusni yangilaymiz
-    await db.execute(
-        "UPDATE broadcast_drafts SET status = 'approved' WHERE id = $1", draft_id
-    )
+    await db.execute("UPDATE broadcast_drafts SET status = 'approved' WHERE id = $1", draft_id)
 
     # TTS va efirga yuborish (fon vazifasi — bloklamasin)
     import asyncio
+
     asyncio.create_task(_broadcast_dialog(draft))
 
     return {
@@ -260,9 +268,11 @@ async def reject_draft(draft_id: int, admin: dict = Depends(require_admin)):
 
 
 async def _broadcast_dialog(draft: dict) -> None:
-    """Dialog matnini TTS qilib Icecast'ga yuboradi (fon vazifasi)."""
-    import os, uuid
-    from app.services import tts, continuous
+    """Dialog matnini TTS qilib MediaMTX'ga yuboradi (fon vazifasi)."""
+    import os
+    import uuid
+
+    from app.services import continuous, tts
 
     dialog_text = draft.get("dialog", draft.get("script", ""))
     if not dialog_text:
@@ -272,8 +282,11 @@ async def _broadcast_dialog(draft: dict) -> None:
     audio_dir = os.getenv("AUDIO_DIR", "/mnt/d/KIro_projectsbot/sphera-main/.audio")
     os.makedirs(audio_dir, exist_ok=True)
 
-    log.info("[broadcast_dialog] draft #%s TTS boshlandi (%d so'z)",
-             draft.get("id"), len(dialog_text.split()))
+    log.info(
+        "[broadcast_dialog] draft #%s TTS boshlandi (%d so'z)",
+        draft.get("id"),
+        len(dialog_text.split()),
+    )
 
     # Har 3 tilda TTS + navbatga
     for lang in ("ru", "lt", "en"):
@@ -282,7 +295,7 @@ async def _broadcast_dialog(draft: dict) -> None:
             await tts.synthesize(dialog_text, out, lang)
             if os.path.isfile(out) and os.path.getsize(out) > 800:
                 continuous.enqueue(lang, out)
-                log.info("[broadcast_dialog] %s → Icecast navbatiga (%s)", lang, out)
+                log.info("[broadcast_dialog] %s → MediaMTX navbatiga (%s)", lang, out)
             else:
                 log.warning("[broadcast_dialog] %s TTS bo'sh chiqdi", lang)
         except Exception as exc:

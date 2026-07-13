@@ -9,7 +9,7 @@ VENV="$ROOT/.venv/bin"
 LOGS="$ROOT/.logs"
 mkdir -p "$LOGS"
 
-# ── Umumiy env (DB + Icecast + Telegram) ──
+# ── Umumiy env (DB + MediaMTX + Telegram) ──
 export DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres DB_NAME=radio_db
 export REDIS_URL=redis://localhost:6379/0
 export SECRET_KEY=devsecretkey1234567890devsecret
@@ -22,8 +22,8 @@ export ADMIN_IDS=7993413019
 export DISABLE_GROUP_CHECK=true
 export GEMINI_KEY=AIzaSyBQvjFvGyIJjkJPlr2IJilVHkKnOOo-pJ0
 export GEMINI_MODEL=gemini-2.5-flash
-export USE_ICECAST=true ICECAST_HOST=localhost ICECAST_PORT=8000
-export ICECAST_PASS='IcecastPass2025!' ICECAST_ADMIN_PASS='IcecastAdmin2025!'
+export USE_MEDIAMTX=true MEDIAMTX_HOST=localhost MEDIAMTX_RTMP_PORT=1935
+export MEDIAMTX_PUBLISH_PASS='MediaMTXPass2025!' MEDIAMTX_PUBLIC_URL=http://localhost:8889
 export INTERNAL_API_URL=http://localhost:8001 API_URL=http://localhost:8001
 
 stop_all() {
@@ -32,7 +32,7 @@ stop_all() {
     pkill -f "bot/bot.py" 2>/dev/null
     pkill -f "cloudflared tunnel" 2>/dev/null
     pkill -f "anullsrc" 2>/dev/null
-    echo "To'xtatildi (icecast/postgres/redis tizim xizmatlari qoldi)."
+    echo "To'xtatildi (mediamtx/postgres/redis tizim xizmatlari qoldi)."
 }
 
 if [ "$1" = "stop" ]; then
@@ -44,14 +44,13 @@ fi
 stop_all
 sleep 2
 
-# ── 1. Icecast (agar ishlamayotgan bo'lsa) ──
-if ! pgrep -f "icecast2" >/dev/null; then
-    echo "[1] Icecast ishga tushmoqda..."
-    mkdir -p /tmp/icecast_logs
-    setsid icecast2 -c "$ROOT/infra/icecast/icecast.local.xml" >> "$LOGS/icecast.log" 2>&1 < /dev/null &
+# ── 1. MediaMTX (agar ishlamayotgan bo'lsa) ──
+if ! pgrep -f "mediamtx" >/dev/null; then
+    echo "[1] MediaMTX ishga tushmoqda..."
+    setsid mediamtx "$ROOT/infra/mediamtx/mediamtx.yml" >> "$LOGS/mediamtx.log" 2>&1 < /dev/null &
     sleep 2
 else
-    echo "[1] Icecast allaqachon ishlayapti."
+    echo "[1] MediaMTX allaqachon ishlayapti."
 fi
 
 # ── 2. Backend ──

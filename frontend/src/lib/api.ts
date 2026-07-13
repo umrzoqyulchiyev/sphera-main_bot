@@ -136,12 +136,12 @@ export async function getRadioStatus(city?: string): Promise<RadioStatus> {
     const resp = await fetch(`${API_URL}/radio/status?city=${c}`);
     if (resp.ok) return resp.json();
   } catch (_) {}
-  // fallback — Icecast yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
+  // fallback — WebRTC yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
   return {
     is_live: true,
     broadcaster_type: 'ai',
     broadcaster_name: 'AI Host',
-    use_icecast: true,
+    use_webrtc: true,
     stream_url: null,
     listeners_count: 0,
   };
@@ -151,10 +151,10 @@ export async function getPlaylist(_city?: string): Promise<AudioSegment[]> {
   return [];
 }
 
-export function getStreamUrl(lang: string, _streamUrlFromStatus?: string | null): string {
-  // Har doim same-origin proxy — CORS muammosi yo'q,
-  // Telegram WebView ham bemalol ulanadi.
-  return `${API_URL}/radio/live/${lang}`;
+export function getStreamUrl(_lang: string, streamUrlFromStatus?: string | null): string {
+  // MediaMTX WHEP endpoint publik (VPS'da UDP ochiq) — browser to'g'ridan ulanadi,
+  // backend /radio/status orqali beradi (same-origin proksi endi kerak emas).
+  return streamUrlFromStatus || '';
 }
 
 // ============ Chat ============

@@ -38,9 +38,9 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   const audioPlayer = useAudioPlayer({
     city,
     language: lang,
-    // USE_ICECAST=true (server sozlamasi), radioStatus yuklanguncha ham true
-    useIcecast: radioStatus?.use_icecast ?? true,
-    // Icecast tunnel URL — mavjud bo'lsa to'g'ridan-to'g'ri Icecast'ga ulanadi
+    // USE_MEDIAMTX=true (server sozlamasi), radioStatus yuklanguncha ham true
+    useWebrtc: radioStatus?.use_webrtc ?? true,
+    // MediaMTX WHEP publik URL — browser to'g'ridan-to'g'ri shu manzilga ulanadi
     streamUrl: radioStatus?.stream_url,
   });
 

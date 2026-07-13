@@ -13,7 +13,7 @@ Endpointlar:
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -34,23 +34,23 @@ SLOT_COST_PER_HOUR = Decimal("200")
 
 
 class SlotCreateRequest(BaseModel):
-    host_user_id: int           # kimga berilayapti
-    title: str                  # "Kechki efir: Sport haqida"
+    host_user_id: int  # kimga berilayapti
+    title: str  # "Kechki efir: Sport haqida"
     description: str = ""
-    scheduled_at: datetime      # efir boshlanadigan vaqt (UTC)
-    duration_min: int = 60      # daqiqalarda
+    scheduled_at: datetime  # efir boshlanadigan vaqt (UTC)
+    duration_min: int = 60  # daqiqalarda
 
 
 class SlotStatusRequest(BaseModel):
-    status: str   # scheduled | live | done | cancelled
+    status: str  # scheduled | live | done | cancelled
 
 
 def _fmt_slot(r: dict) -> dict:
     """Slot'ni JSON-friendly formatga o'tkazadi + countdown qo'shadi."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sched = r["scheduled_at"]
     if sched.tzinfo is None:
-        sched = sched.replace(tzinfo=timezone.utc)
+        sched = sched.replace(tzinfo=UTC)
 
     diff = sched - now
     total_sec = int(diff.total_seconds())
@@ -59,8 +59,8 @@ def _fmt_slot(r: dict) -> dict:
     return {
         **r,
         "scheduled_at": sched.isoformat(),
-        "countdown_sec": countdown,         # frontend countdown timer uchun
-        "is_soon": 0 < countdown < 3600,    # 1 soatdan kam qolgan
+        "countdown_sec": countdown,  # frontend countdown timer uchun
+        "is_soon": 0 < countdown < 3600,  # 1 soatdan kam qolgan
         "is_live_now": r["status"] == "live",
     }
 
@@ -68,6 +68,7 @@ def _fmt_slot(r: dict) -> dict:
 # ──────────────────────────────────────────────────────────
 # Public — hamma ko'radi
 # ──────────────────────────────────────────────────────────
+
 
 @router.get("/upcoming")
 async def get_upcoming_slots(user: dict = Depends(get_current_user)):
@@ -145,6 +146,7 @@ async def get_slot(slot_id: int, user: dict = Depends(get_current_user)):
 # Admin — slot boshqarish
 # ──────────────────────────────────────────────────────────
 
+
 @router.post("/", response_model=OkResponse)
 async def create_slot(
     payload: SlotCreateRequest,
@@ -163,13 +165,12 @@ async def create_slot(
     if not host:
         raise HTTPException(status_code=404, detail="Host user not found")
     if host["level"] < 3 and host["role"] not in ("doverenniy", "admin"):
-        raise HTTPException(
-            status_code=400,
-            detail="Host must be level 3 (doverenniy) or admin"
-        )
+        raise HTTPException(status_code=400, detail="Host must be level 3 (doverenniy) or admin")
 
     # TZ §3/§9: ведущий слот учун поинт билан tо'lайди — yaratishда darhol yechiladi
-    cost_points = (SLOT_COST_PER_HOUR * Decimal(payload.duration_min) / Decimal(60)).quantize(Decimal("0.0001"))
+    cost_points = (SLOT_COST_PER_HOUR * Decimal(payload.duration_min) / Decimal(60)).quantize(
+        Decimal("0.0001")
+    )
     spent = await points_service.spend(payload.host_user_id, "slot_booking", cost_points)
     if not spent["ok"]:
         raise HTTPException(
@@ -190,27 +191,38 @@ async def create_slot(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, title, scheduled_at
         """,
-        payload.host_user_id, title, payload.description.strip(),
-        payload.scheduled_at, payload.duration_min, admin["id"], cost_points,
+        payload.host_user_id,
+        title,
+        payload.description.strip(),
+        payload.scheduled_at,
+        payload.duration_min,
+        admin["id"],
+        cost_points,
     )
 
     # Share URL'ni yangilaymiz
     share_url = f"https://t.me/{bot_username}?start=slot_{row['id']}"
     await db.execute(
         "UPDATE broadcast_slots SET share_url = $1 WHERE id = $2",
-        share_url, row["id"],
+        share_url,
+        row["id"],
     )
 
     log.info(
         "Slot created: id=%d title=%s host=%s scheduled=%s",
-        row["id"], title, host["username"], payload.scheduled_at,
+        row["id"],
+        title,
+        host["username"],
+        payload.scheduled_at,
     )
-    return OkResponse(detail={
-        "slot_id": row["id"],
-        "title": row["title"],
-        "share_url": share_url,
-        "scheduled_at": row["scheduled_at"].isoformat(),
-    })
+    return OkResponse(
+        detail={
+            "slot_id": row["id"],
+            "title": row["title"],
+            "share_url": share_url,
+            "scheduled_at": row["scheduled_at"].isoformat(),
+        }
+    )
 
 
 @router.put("/{slot_id}/status", response_model=OkResponse)
@@ -226,7 +238,8 @@ async def update_slot_status(
 
     result = await db.execute(
         "UPDATE broadcast_slots SET status = $1 WHERE id = $2",
-        payload.status, slot_id,
+        payload.status,
+        slot_id,
     )
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="Slot not found")
@@ -238,9 +251,7 @@ async def update_slot_status(
 @router.delete("/{slot_id}", response_model=OkResponse)
 async def delete_slot(slot_id: int, admin: dict = Depends(require_admin)):
     """[admin] Slotni o'chirish (faqat scheduled holat)."""
-    slot = await db.fetchrow(
-        "SELECT status FROM broadcast_slots WHERE id = $1", slot_id
-    )
+    slot = await db.fetchrow("SELECT status FROM broadcast_slots WHERE id = $1", slot_id)
     if not slot:
         raise HTTPException(status_code=404, detail="Slot not found")
     if slot["status"] == "live":

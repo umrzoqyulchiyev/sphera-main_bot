@@ -92,7 +92,7 @@
   "voice_label": "balso žinutė",
   "admin_panel": "Administratoriaus skydelis",
 
-  "broadcast_unavailable": "Tiesioginis eteris galimas tik serveryje (Icecast)",
+  "broadcast_unavailable": "Tiesioginis eteris galimas tik serveryje (MediaMTX)",
   "broadcast_busy": "Eteris jau užimtas kito vedėjo",
   "broadcast_started": "Jūs tiesioginiame eteryje!",
   "broadcast_error": "Eteris nutrauktas",

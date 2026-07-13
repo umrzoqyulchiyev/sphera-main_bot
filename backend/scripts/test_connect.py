@@ -1,4 +1,4 @@
-Pyrogram Telegram serverga ulana oladimi va kod yubora oladimi.
+"""Pyrogram Telegram serverga ulana oladimi va kod yubora oladimi.
 
 Bu skript faqat ULANISH va KOD YUBORISH bosqichini tekshiradi (interaktiv emas).
 """

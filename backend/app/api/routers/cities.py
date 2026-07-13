@@ -2,12 +2,12 @@ import re
 import unicodedata
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.core.database import db
-from app.core.models import CityOut, GeoSearchResult, EnsureCityRequest
-from app.core.ws_manager import manager
+from app.core.models import CityOut, EnsureCityRequest, GeoSearchResult
 from app.core.state import add_valid_city
+from app.core.ws_manager import manager
 
 router = APIRouter(prefix="/cities", tags=["cities"])
 
@@ -171,7 +171,7 @@ async def geo_search(q: str):
                     lng = float(item["lon"])
                     slug = _make_slug(name)
                     if not slug or slug == "city":
-                        slug = f"geo-{round(lat,3)}-{round(lng,3)}".replace(".", "")
+                        slug = f"geo-{round(lat, 3)}-{round(lng, 3)}".replace(".", "")
                     if slug in seen:
                         continue
                     seen.add(slug)
@@ -195,7 +195,7 @@ async def ensure_city(payload: EnsureCityRequest):
     """Qidiruvdan tanlangan shaharni bazaga qo'shadi (agar yo'q bo'lsa)."""
     slug = _make_slug(payload.name)
     if not slug or slug == "city":
-        slug = f"geo-{round(payload.lat,3)}-{round(payload.lng,3)}".replace(".", "")
+        slug = f"geo-{round(payload.lat, 3)}-{round(payload.lng, 3)}".replace(".", "")
 
     existing = await db.fetchrow("SELECT * FROM cities WHERE slug = $1", slug)
     if existing is None:

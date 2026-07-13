@@ -1,12 +1,12 @@
 """Test configuration — INTRA GROUP v3.0."""
 
-import os
 import asyncio
+import os
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 # Env BEFORE imports
 os.environ["SECRET_KEY"] = "test_secret_key_32chars_long_enough_ok!"
@@ -48,10 +48,12 @@ def patch_db():
 @pytest.fixture(autouse=True)
 def patch_redis():
     """Mock Redis."""
-    with patch("app.core.redis.connect", new_callable=AsyncMock), \
-         patch("app.core.redis.disconnect", new_callable=AsyncMock), \
-         patch("app.core.redis.is_available", return_value=False), \
-         patch("app.core.redis.is_token_blacklisted", new_callable=AsyncMock, return_value=False):
+    with (
+        patch("app.core.redis.connect", new_callable=AsyncMock),
+        patch("app.core.redis.disconnect", new_callable=AsyncMock),
+        patch("app.core.redis.is_available", return_value=False),
+        patch("app.core.redis.is_token_blacklisted", new_callable=AsyncMock, return_value=False),
+    ):
         yield
 
 
@@ -59,6 +61,7 @@ def patch_redis():
 async def client(patch_db, patch_redis):
     """Test HTTP client."""
     from app.main import app
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

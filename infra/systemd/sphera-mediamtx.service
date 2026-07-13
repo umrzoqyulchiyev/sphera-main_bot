@@ -1,0 +1,14 @@
+[Unit]
+Description=Sphera MediaMTX Streaming Server (RTMP ingest / WebRTC delivery)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/mnt/d/KIro_projectsbot/sphera-main/infra/systemd/sphera-mediamtx.sh
+Restart=always
+RestartSec=3
+StandardOutput=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/mediamtx.log
+StandardError=append:/mnt/d/KIro_projectsbot/sphera-main/.logs/mediamtx.log
+
+[Install]
+WantedBy=default.target

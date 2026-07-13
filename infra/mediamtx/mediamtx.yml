@@ -1,0 +1,45 @@
+# MediaMTX konfiguratsiyasi — Icecast o'rniga (RTMP ingest, WebRTC/WHEP delivery).
+# Docker Compose ham, lokal binary (`mediamtx mediamtx.yml`) ham shu faylni ishlatadi.
+
+logLevel: info
+
+# ---------- RTMP ingest (ffmpeg push: continuous.py / broadcast.py) ----------
+rtmp: yes
+rtmpAddress: :1935
+
+# Manba autentifikatsiyasi — Icecast'dagi source-password'ga o'xshash.
+# Parolni .env dagi MEDIAMTX_PUBLISH_PASS bilan mos tuting.
+authMethod: internal
+authInternalUsers:
+  - user: publisher
+    pass: ${MEDIAMTX_PUBLISH_PASS}
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: read
+
+# ---------- WebRTC/WHEP delivery (tinglovchilar to'g'ridan ulanadi) ----------
+webrtc: yes
+webrtcAddress: :8889
+# ICE media uchun bitta qat'iy UDP port — Docker'da faqat shu portni forward qilish kifoya.
+webrtcICEUDPMuxAddress: :8189
+# VPS'ning public IP'i (docker-compose orqali MTX_WEBRTCICEHOSTNAT1TO1IPS bilan beriladi),
+# aks holda ICE nomzodlari konteynerning ichki IP'ini e'lon qiladi va browser ulana olmaydi.
+webrtcICEHostNAT1To1IPs: []
+# Mini-app domeni hali beqaror (Cloudflare Quick Tunnel) — doimiy domen bo'lgach toraytiring.
+webrtcAllowOrigin: "*"
+
+# HLS/RTSP kerak emas — o'chiramiz.
+hls: no
+rtsp: no
+srt: no
+
+# Aniq mountpoint'lar shart emas — Icecast'dagi kabi istalgan path'ga push qilsa bo'ladi
+# (masalan /live_ru, /live_lt, /live_en, yoki broadcast.py'dagi /{city}).
+paths:
+  all_others:

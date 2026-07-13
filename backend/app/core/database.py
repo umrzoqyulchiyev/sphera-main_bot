@@ -27,6 +27,7 @@ class Database:
         if settings.database_url:
             # postgresql://user:pass@host:port/db formatdan parse qilamiz
             import urllib.parse as urlparse
+
             u = urlparse.urlparse(settings.database_url)
             connect_kwargs = {
                 "host": u.hostname,
@@ -57,7 +58,8 @@ class Database:
                 self.pool = await asyncpg.create_pool(**connect_kwargs)
                 log.info(
                     "Database connected (pool: %d-%d)",
-                    settings.db_pool_min, settings.db_pool_max,
+                    settings.db_pool_min,
+                    settings.db_pool_max,
                 )
                 return
             except (asyncpg.PostgresError, OSError, ConnectionRefusedError) as exc:
@@ -66,7 +68,10 @@ class Database:
                     raise
                 log.warning(
                     "Database connection attempt %d/%d failed: %s. Retrying in %.1fs...",
-                    attempt, max_retries, exc, retry_delay,
+                    attempt,
+                    max_retries,
+                    exc,
+                    retry_delay,
                 )
                 await asyncio.sleep(retry_delay)
                 retry_delay *= 1.5  # Exponential backoff

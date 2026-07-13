@@ -92,7 +92,7 @@
   "voice_label": "voice message",
   "admin_panel": "Admin Panel",
 
-  "broadcast_unavailable": "Live broadcast is only available on server (Icecast)",
+  "broadcast_unavailable": "Live broadcast is only available on server (MediaMTX)",
   "broadcast_busy": "Broadcast is already taken by another host",
   "broadcast_started": "You are live!",
   "broadcast_error": "Broadcast interrupted",

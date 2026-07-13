@@ -9,15 +9,18 @@ Flow:
 import logging
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.constants import INITIAL_POINTS, SUPPORTED_LANGUAGES
 from app.core.database import db
-from app.core.models import (
-    TelegramAuthRequest, AuthResponse, SelectLanguageRequest, OkResponse,
-)
 from app.core.dependencies import create_access_token, get_current_user
+from app.core.models import (
+    AuthResponse,
+    OkResponse,
+    SelectLanguageRequest,
+    TelegramAuthRequest,
+)
 from app.core.rate_limit import rate_limit
-from app.core.constants import SUPPORTED_LANGUAGES, INITIAL_POINTS
 
 log = logging.getLogger("auth")
 
@@ -31,9 +34,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 )
 async def auth_telegram(payload: TelegramAuthRequest):
     """Telegram orqali kirish. Yangi foydalanuvchi bo'lsa is_new_user=True."""
-    row = await db.fetchrow(
-        "SELECT * FROM users WHERE telegram_id = $1", payload.telegram_id
-    )
+    row = await db.fetchrow("SELECT * FROM users WHERE telegram_id = $1", payload.telegram_id)
 
     is_new = False
     if row is None:
@@ -87,6 +88,7 @@ async def select_language(
 
     await db.execute(
         "UPDATE users SET language = $1 WHERE id = $2",
-        payload.language, user["id"],
+        payload.language,
+        user["id"],
     )
     return OkResponse(detail={"language": payload.language})

@@ -92,7 +92,7 @@
   "voice_label": "голосовое",
   "admin_panel": "Админ-панель",
 
-  "broadcast_unavailable": "Прямой эфир доступен только на сервере (Icecast)",
+  "broadcast_unavailable": "Прямой эфир доступен только на сервере (MediaMTX)",
   "broadcast_busy": "Эфир уже занят другим ведущим",
   "broadcast_started": "Вы в прямом эфире!",
   "broadcast_error": "Эфир прерван",

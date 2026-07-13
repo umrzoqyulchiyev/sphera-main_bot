@@ -23,7 +23,7 @@
 
 INTRA GROUP — bu Telegram Mini App sifatida ishlaydigan jonli radio platformasi. Asosiy g'oya:
 
-- **AI Radio Host**: Google Gemini AI efir matni yozadi → gTTS/Edge TTS ovozga aylantiradi → FFmpeg orqali Icecast serveriga uzatadi
+- **AI Radio Host**: Google Gemini AI efir matni yozadi → gTTS/Edge TTS ovozga aylantiradi → FFmpeg orqali MediaMTX serveriga (RTMP) uzatadi
 - **Jonli efir**: Ruxsatli foydalanuvchilar mikrofon bilan WebSocket orqali to'g'ridan-to'g'ri efirga chiqadi
 - **Real-time chat**: Barcha tinglovchilar WebSocket orqali jonli chat qiladi
 - **Gamifikatsiya**: Xabar yuborish uchun point sarflanadi, faol foydalanuvchilar reyting yig'adi
@@ -40,19 +40,18 @@ Cloudflare Tunnel (HTTPS)
 FastAPI Backend (port 8001)
     ├── REST API          → Auth, Users, Chat, Radio, News, Messages
     ├── WebSocket         → /chat/ws  (real-time chat)
-    ├── WebSocket         → /radio/{city}/broadcast/ws  (jonli efir)
-    ├── Radio Proxy       → /radio/live/{lang}  → Icecast
+    ├── WebSocket         → /radio/{city}/broadcast/ws  (jonli efir, mikrofon → RTMP)
     ├── Static Files      → frontend/dist  (React SPA)
-    └── Continuous Worker → /live_ru, /live_lt, /live_en  (uzluksiz oqim)
-        ↓
-Icecast2 Server (port 8000)
-    ├── /live_ru    → RU efir
-    ├── /live_lt    → LT efir
-    └── /live_en    → EN efir
-        ↓
+    └── Continuous Worker → RTMP push /live_ru, /live_lt, /live_en  (uzluksiz oqim)
+        ↓ (RTMP, ingest)
+MediaMTX Server (RTMP :1935 / WebRTC :8889)
+    ├── /live_ru    → RU efir (WHEP)
+    ├── /live_lt    → LT efir (WHEP)
+    └── /live_en    → EN efir (WHEP)
+        ↓ (WebRTC, publik VPS IP — brauzer to'g'ridan ulanadi)
 React Frontend (Telegram Mini App)
     ├── EfirScreen    → Radio pleyer + chat + GO LIVE tugmasi
-    ├── AudioPlayer   → Icecast stream (/radio/live/ru via proxy)
+    ├── AudioPlayer   → WebRTC/WHEP stream (MediaMTX'ga to'g'ridan ulanadi)
     └── ChatMessages  → Ovozli va matnli xabarlar
 ```
 
@@ -65,7 +64,7 @@ React Frontend (Telegram Mini App)
 | **Backend** | Python 3.12, FastAPI 0.111, asyncpg, pydantic-settings |
 | **Database** | PostgreSQL 16 |
 | **Cache/Pub-Sub** | Redis 7 |
-| **Streaming** | Icecast2, FFmpeg |
+| **Streaming** | MediaMTX (RTMP ingest / WebRTC delivery), FFmpeg |
 | **AI** | Google Gemini 2.5 Flash |
 | **TTS** | Microsoft Edge TTS (fallback: gTTS) |
 | **Frontend** | React 18, TypeScript, Vite, TailwindCSS |
@@ -101,7 +100,7 @@ sphera-main/
 │   │   │   ├── middleware.py       # HTTP so'rov logging
 │   │   │   └── internal_auth.py    # Service-to-service auth
 │   │   ├── services/
-│   │   │   ├── broadcast.py        # Mikrofon → FFmpeg → Icecast sessiya
+│   │   │   ├── broadcast.py        # Mikrofon → FFmpeg → MediaMTX sessiya
 │   │   │   ├── continuous.py       # Uzluksiz oqim worker (ru/lt/en)
 │   │   │   ├── points.py           # Point sarflash logikasi
 │   │   │   ├── aggregator.py       # Xabarlarni AI uchun to'plash
@@ -112,7 +111,7 @@ sphera-main/
 │   │   │   ├── tts.py              # TTS abstraktsiya
 │   │   │   └── whisper_stt.py      # Ovozni matnga aylantirish
 │   │   ├── host/
-│   │   │   └── main.py             # AI Radio Host (Gemini → TTS → Icecast)
+│   │   │   └── main.py             # AI Radio Host (Gemini → TTS → MediaMTX)
 │   │   ├── db/
 │   │   │   └── schema.sql          # PostgreSQL sxema
 │   │   └── main.py                 # FastAPI app, lifespan, router mounting
@@ -138,7 +137,7 @@ sphera-main/
 │   │   │   ├── profile/        # Foydalanuvchi profili
 │   │   │   └── ui/             # Umumiy UI (Toast, Modal)
 │   │   ├── hooks/
-│   │   │   ├── useAudioPlayer.ts   # Icecast stream / playlist player
+│   │   │   ├── useAudioPlayer.ts   # WebRTC/WHEP stream / playlist player
 │   │   │   ├── useWebSocket.ts     # Chat WebSocket
 │   │   │   └── useTranslation.ts   # i18n
 │   │   ├── lib/
@@ -157,9 +156,8 @@ sphera-main/
 │   └── Dockerfile              # Bot Docker image
 │
 ├── infra/
-│   ├── icecast/
-│   │   ├── icecast.xml         # Icecast2 production konfiguratsiya
-│   │   └── icecast.local.xml   # Lokal dev konfiguratsiya
+│   ├── mediamtx/
+│   │   └── mediamtx.yml        # MediaMTX konfiguratsiya (RTMP + WebRTC/WHEP)
 │   └── scripts/
 │       ├── run-dev.sh          # Lokal dev muhitni ishga tushirish
 │       └── stop-dev.sh         # Dev muhitni to'xtatish
@@ -169,10 +167,10 @@ sphera-main/
 │
 ├── .env                        # Asosiy muhit o'zgaruvchilari (git'da yo'q)
 ├── .env.example                # .env namunasi (git'da bor)
-├── docker-compose.yml          # Docker Compose (postgres, redis, icecast, backend, bot)
+├── docker-compose.yml          # Docker Compose (postgres, redis, mediamtx, backend, bot)
 ├── Makefile                    # Qulay buyruqlar (dev, build, test, logs)
 ├── start_backend.sh            # Lokal backend ishga tushirish skripti
-└── test_icecast.sh             # Icecast efir test signali
+└── scripts/test_mediamtx.sh    # MediaMTX efir test signali
 ```
 
 ---
@@ -185,7 +183,7 @@ sphera-main/
 - Node.js 18+
 - PostgreSQL 16
 - Redis 7
-- Icecast2
+- MediaMTX
 - FFmpeg
 - Cloudflare Tunnel (`bin/cloudflared`)
 
@@ -218,21 +216,24 @@ sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 sudo -u postgres psql -d radio_db -f backend/app/db/schema.sql
 ```
 
-### 3. Icecast2
+### 3. MediaMTX
 
 ```bash
-# O'rnatish (Ubuntu/Debian)
-sudo apt install icecast2
+# O'rnatish — https://github.com/bluenviron/mediamtx dan binary yuklab oling
+# (yoki Docker: bluenviron/mediamtx image, docker-compose.yml'da bor)
 
-# Konfiguratsiya tekshirish
-sudo cat /etc/icecast2/icecast.xml
-# source-password va admin-password ni .env ga yozing
+# Konfiguratsiya: infra/mediamtx/mediamtx.yml
+# MEDIAMTX_PUBLISH_PASS ni .env ga yozing (RTMP publish paroli)
+mediamtx infra/mediamtx/mediamtx.yml
+
+# Production: WebRTC UDP talab qiladi — Cloudflare Tunnel emas,
+# VPS'ning doimiy public IP/domeni kerak (MEDIAMTX_PUBLIC_URL).
 ```
 
 ### 4. Barcha xizmatlarni ishga tushirish
 
 ```bash
-# Terminal 1 — Backend (Icecast worker + Radio proxy)
+# Terminal 1 — Backend (MediaMTX worker + Radio status)
 bash start_backend.sh
 
 # Terminal 2 — Telegram Bot
@@ -272,19 +273,19 @@ cd frontend && npm run build && cd ..
 |--------|------|--------|
 | FastAPI Backend | 8001 | `http://localhost:8001` |
 | API Docs (dev) | 8001 | `http://localhost:8001/docs` |
-| Icecast2 | 8000 | `http://localhost:8000` |
-| Icecast Admin | 8000 | `http://localhost:8000/admin/` |
+| MediaMTX RTMP (ingest) | 1935 | `rtmp://localhost:1935` |
+| MediaMTX WebRTC/WHEP | 8889 | `http://localhost:8889` |
 | PostgreSQL | 5432 | `localhost:5432/radio_db` |
 | Redis | 6379 | `redis://localhost:6379/0` |
 | Cloudflare Tunnel | — | `https://*.trycloudflare.com` |
 
-### Icecast Mountlar
+### MediaMTX Mountlar (WHEP)
 
 | Mount | Til | URL |
 |-------|-----|-----|
-| `/live_ru` | Rus | `http://localhost:8000/live_ru` |
-| `/live_lt` | Litva | `http://localhost:8000/live_lt` |
-| `/live_en` | Ingliz | `http://localhost:8000/live_en` |
+| `/live_ru` | Rus | `http://localhost:8889/live_ru/whep` |
+| `/live_lt` | Litva | `http://localhost:8889/live_lt/whep` |
+| `/live_en` | Ingliz | `http://localhost:8889/live_en/whep` |
 
 ---
 
@@ -316,11 +317,10 @@ cd frontend && npm run build && cd ..
 ### Radio
 | Method | Endpoint | Tavsif |
 |--------|----------|--------|
-| GET | `/radio/live/{lang}` | Icecast oqim proxy (ru/lt/en) |
-| GET | `/radio/status?city=...` | Efir holati |
+| GET | `/radio/status?city=...` | Efir holati (MediaMTX WHEP URL bilan — brauzer to'g'ridan ulanadi) |
 | POST | `/radio/enqueue` | AI audio navbatga qo'shish (internal) |
 | POST | `/radio/broadcast/clear` | Qolgan sessiyani tozalash |
-| WS | `/radio/{city}/broadcast/ws?token=...` | Mikrofon → Icecast WebSocket |
+| WS | `/radio/{city}/broadcast/ws?token=...` | Mikrofon → MediaMTX (RTMP) WebSocket |
 
 ### Health
 | Method | Endpoint | Tavsif |
@@ -348,8 +348,9 @@ Asosiy o'zgaruvchilar:
 | `MINI_APP_URL` | Mini App HTTPS URL (tunnel) | `https://abc.trycloudflare.com` |
 | `DB_PASS` | PostgreSQL paroli | `postgres` |
 | `SECRET_KEY` | JWT imzolash kaliti (≥32 belgi) | `randomsecret32chars` |
-| `USE_ICECAST` | Icecast yoqish/o'chirish | `true` |
-| `ICECAST_PASS` | Icecast source paroli | `IcecastPass2025!` |
+| `USE_MEDIAMTX` | MediaMTX yoqish/o'chirish | `true` |
+| `MEDIAMTX_PUBLISH_PASS` | MediaMTX RTMP publish paroli | `MediaMTXPass2025!` |
+| `MEDIAMTX_PUBLIC_URL` | MediaMTX WHEP publik URL (VPS) | `https://media.example.com:8889` |
 | `AI_AUTO_BROADCAST` | AI host avtomatik efir | `true` |
 
 ---
@@ -375,14 +376,14 @@ UPDATE users SET role='doverenniy' WHERE telegram_id = 123456789;
 ### ✅ Amalga oshirilgan
 
 - [x] Telegram Mini App orqali kirish (Telegram auth, JWT)
-- [x] Jonli radio efiri — Icecast2 + FFmpeg
+- [x] Jonli radio efiri — MediaMTX (RTMP ingest + WebRTC delivery) + FFmpeg
 - [x] 3 til oqimi: RU, LT, EN (`/live_ru`, `/live_lt`, `/live_en`)
 - [x] Uzluksiz oqim (continuous worker — mount uzilmaydi)
-- [x] Backend proxy `/radio/live/{lang}` — tunnel orqali ham ishlaydi
+- [x] Brauzer MediaMTX WHEP endpoint'iga to'g'ridan ulanadi (WebRTC, ~1s latency)
 - [x] AI Radio Host (Gemini AI + gTTS/Edge TTS)
 - [x] Real-time chat (WebSocket)
 - [x] Ovozli xabarlar → MP3 konvert (FFmpeg, barcha platformalarda ishlaydi)
-- [x] Mikrofon bilan jonli efirga chiqish (WebSocket → FFmpeg → Icecast)
+- [x] Mikrofon bilan jonli efirga chiqish (WebSocket → FFmpeg → MediaMTX)
 - [x] Point tizimi (xabar sarflaydi, transfer, level)
 - [x] Ko'p tilli interfeys (RU/EN/LT)
 - [x] Admin panel
@@ -434,7 +435,7 @@ cd backend
 curl -X POST "http://localhost:8001/radio/broadcast/clear?city=global"
 ```
 
-**Icecast mount tekshirish:**
+**MediaMTX mount tekshirish:**
 ```bash
-curl -u "admin:IcecastAdmin2025!" http://localhost:8000/admin/listmounts
+curl http://localhost:8889/live_ru/whep -X POST -H "Content-Type: application/sdp" --data-binary @offer.sdp
 ```

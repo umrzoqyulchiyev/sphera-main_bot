@@ -6,8 +6,8 @@ Har bir HTTP so'rovni logga yozadi:
 - WebSocket va health endpointlarni o'tkazib yuboradi (noise kamaytirish)
 """
 
-import time
 import logging
+import time
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -42,17 +42,29 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         if status >= 500:
             log.error(
                 "%s %s → %d (%.1fms) [%s]",
-                request.method, request.url.path, status, duration_ms, client_ip,
+                request.method,
+                request.url.path,
+                status,
+                duration_ms,
+                client_ip,
             )
         elif status >= 400:
             log.warning(
                 "%s %s → %d (%.1fms) [%s]",
-                request.method, request.url.path, status, duration_ms, client_ip,
+                request.method,
+                request.url.path,
+                status,
+                duration_ms,
+                client_ip,
             )
         else:
             log.info(
                 "%s %s → %d (%.1fms) [%s]",
-                request.method, request.url.path, status, duration_ms, client_ip,
+                request.method,
+                request.url.path,
+                status,
+                duration_ms,
+                client_ip,
             )
 
         # Response headerga timing qo'shamiz (debugging uchun)

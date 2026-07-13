@@ -10,19 +10,27 @@ Profil sahifasi:
 """
 
 import logging
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
-from app.core.database import db
-from app.core.models import (
-    UserProfileOut, UpdateProfileRequest, OkResponse,
-    PointsBalanceOut, PointsTransferRequest, PointsTransactionOut,
-    PointsRequestCreate, PointsRequestOut, PointsRequestDecision,
-    PointPackageOut, PurchaseRequest,
-)
-from app.core.dependencies import get_current_user
 from app.core.constants import LEVELS
+from app.core.database import db
+from app.core.dependencies import get_current_user
+from app.core.internal_auth import require_internal_key
+from app.core.models import (
+    OkResponse,
+    PointPackageOut,
+    PointsBalanceOut,
+    PointsRequestCreate,
+    PointsRequestDecision,
+    PointsRequestOut,
+    PointsTransactionOut,
+    PointsTransferRequest,
+    PurchaseRequest,
+    UpdateProfileRequest,
+    UserProfileOut,
+)
 from app.services import points as points_service
 
 log = logging.getLogger("users")
@@ -36,10 +44,10 @@ def _level_name(level: int) -> str:
 
 # TZ §1: Rol nomi (role maydoni bo'yicha)
 ROLE_DISPLAY: dict[str, str] = {
-    "listener":   "Слушатель",
-    "aktivniy":   "Активный",
+    "listener": "Слушатель",
+    "aktivniy": "Активный",
     "doverenniy": "Доверенный",
-    "admin":      "Администратор",
+    "admin": "Администратор",
 }
 
 
@@ -226,18 +234,16 @@ async def purchase_points(
     if not result["ok"]:
         raise HTTPException(status_code=500, detail="Purchase failed")
 
-    return OkResponse(detail={"points": str(result["points"]), "purchased": str(pkg["points_amount"])})
+    return OkResponse(
+        detail={"points": str(result["points"]), "purchased": str(pkg["points_amount"])}
+    )
 
 
 # ============ Telegram Payments (haqiqiy pul) — internal ============
-from app.core.internal_auth import require_internal_key
-from pydantic import BaseModel
-
-
 class CreditPurchaseRequest(BaseModel):
     telegram_id: int
     package_id: int
-    charge_id: str          # Telegram to'lov ID (idempotentlik uchun)
+    charge_id: str  # Telegram to'lov ID (idempotentlik uchun)
 
 
 @router.post("/credit-purchase", dependencies=[Depends(require_internal_key)])
@@ -258,9 +264,7 @@ async def credit_purchase(payload: CreditPurchaseRequest):
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    pkg = await db.fetchrow(
-        "SELECT * FROM point_packages WHERE id = $1", payload.package_id
-    )
+    pkg = await db.fetchrow("SELECT * FROM point_packages WHERE id = $1", payload.package_id)
     if pkg is None:
         raise HTTPException(status_code=404, detail="Package not found")
 

@@ -7,16 +7,16 @@
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 
-from app.core.config import settings
-from app.core.database import db
-from app.core.constants import ROLE_LEVELS
 from app.core import redis as redis_client
+from app.core.config import settings
+from app.core.constants import ROLE_LEVELS
+from app.core.database import db
 
 log = logging.getLogger("auth")
 
@@ -30,11 +30,11 @@ security = HTTPBearer(auto_error=True)
 
 def create_access_token(telegram_id: int) -> str:
     """JWT access token yaratadi."""
-    expire = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(telegram_id),
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -71,15 +71,14 @@ async def get_current_user(
 
     # Guruhga bog'liqlik: 600s cache bilan a'zolik tekshiruvi
     from app.services import membership
+
     if not await membership.is_member_cached(telegram_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Group membership required",
         )
 
-    row = await db.fetchrow(
-        "SELECT * FROM users WHERE telegram_id = $1", telegram_id
-    )
+    row = await db.fetchrow("SELECT * FROM users WHERE telegram_id = $1", telegram_id)
     if row is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,18 +87,17 @@ async def get_current_user(
 
     # last_seen yangilash (har requestda emas, har 60s da)
     user = dict(row)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     last_seen = user.get("last_seen")
-    if not last_seen or (now - last_seen.replace(tzinfo=timezone.utc)).seconds > 60:
-        await db.execute(
-            "UPDATE users SET last_seen = NOW() WHERE id = $1", user["id"]
-        )
+    if not last_seen or (now - last_seen.replace(tzinfo=UTC)).seconds > 60:
+        await db.execute("UPDATE users SET last_seen = NOW() WHERE id = $1", user["id"])
 
     return user
 
 
 def require_role(min_role: str):
     """Minimum rol talabi (dependency factory)."""
+
     async def checker(user: dict = Depends(get_current_user)) -> dict:
         user_level = ROLE_LEVELS.get(user["role"], 0)
         needed = ROLE_LEVELS.get(min_role, 0)
@@ -109,6 +107,7 @@ def require_role(min_role: str):
                 detail=f"Requires role '{min_role}' or higher",
             )
         return user
+
     return checker
 
 

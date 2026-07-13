@@ -7,7 +7,6 @@ Multi instance: Redis pub/sub orqali barcha instancelarga yetkazadi.
 import asyncio
 import json
 import logging
-from typing import Any
 
 from fastapi import WebSocket
 
@@ -35,7 +34,6 @@ class ConnectionManager:
         if not redis_client.is_available():
             return
         try:
-            import redis.asyncio as aioredis
             self._subscriber_task = asyncio.create_task(
                 self._subscribe_loop(), name="ws_subscriber"
             )
@@ -46,7 +44,6 @@ class ConnectionManager:
     async def _subscribe_loop(self) -> None:
         """Redis channellarni tinglaydi va local broadcast qiladi."""
         try:
-            import redis.asyncio as aioredis
             pubsub = redis_client._redis.pubsub()
             await pubsub.psubscribe(f"{_CHANNEL_PREFIX}*")
             async for message in pubsub.listen():

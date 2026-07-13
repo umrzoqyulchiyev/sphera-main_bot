@@ -15,16 +15,16 @@ Point narxlari (xabar yuborishda sarflanadi):
 import logging
 from decimal import Decimal
 
-from app.core.database import db
 from app.core.constants import COST_TEXT_MESSAGE, COST_VOICE_MESSAGE, level_for_points
+from app.core.database import db
 
 log = logging.getLogger("points")
 
 # COST xaritasi — messages router import qiladi
 COST: dict[str, Decimal] = {
-    "chat":         Decimal("0.001"),
-    "chat_voice":   Decimal("0.005"),
-    "studio":       Decimal("0.001"),
+    "chat": Decimal("0.001"),
+    "chat_voice": Decimal("0.005"),
+    "studio": Decimal("0.001"),
     "studio_voice": Decimal("0.005"),
 }
 
@@ -60,7 +60,8 @@ async def recompute_level(user_id: int) -> int:
             END
         WHERE id = $1
         """,
-        user_id, new_level,
+        user_id,
+        new_level,
     )
     row = await db.fetchrow("SELECT level FROM users WHERE id = $1", user_id)
     return row["level"] if row else new_level
@@ -81,7 +82,8 @@ async def spend(user_id: int, event_type: str, cost: Decimal) -> dict:
         WHERE id = $1 AND points >= $2
         RETURNING points
         """,
-        user_id, cost,
+        user_id,
+        cost,
     )
     if row is None:
         bal = await get_balance(user_id)
@@ -92,7 +94,10 @@ async def spend(user_id: int, event_type: str, cost: Decimal) -> dict:
         INSERT INTO points_transactions (user_id, amount, event_type, description)
         VALUES ($1, $2, $3, $4)
         """,
-        user_id, -cost, event_type, f"Spent {cost} for {event_type}",
+        user_id,
+        -cost,
+        event_type,
+        f"Spent {cost} for {event_type}",
     )
     # Points sarflangach level tekshirish (0 ga tushsa listener bo'ladi)
     await recompute_level(user_id)
@@ -112,14 +117,17 @@ async def award(user_id: int, event_type: str, amount: int) -> dict:
     return await add_points_admin(user_id, Decimal(str(amount)))
 
 
-async def add_points(user_id: int, amount: Decimal, event_type: str = "gift", description: str = "Admin gift") -> dict:
+async def add_points(
+    user_id: int, amount: Decimal, event_type: str = "gift", description: str = "Admin gift"
+) -> dict:
     """Foydalanuvchiga point qo'shish (admin yoki tizim tomonidan).
 
     Faqat bir marta transaction yozadi, level qayta hisoblanadi.
     """
     row = await db.fetchrow(
         "UPDATE users SET points = points + $2 WHERE id = $1 RETURNING points",
-        user_id, amount,
+        user_id,
+        amount,
     )
     if row is None:
         return {"ok": False, "reason": "user_not_found"}
@@ -129,7 +137,10 @@ async def add_points(user_id: int, amount: Decimal, event_type: str = "gift", de
         INSERT INTO points_transactions (user_id, amount, event_type, description)
         VALUES ($1, $2, $3, $4)
         """,
-        user_id, amount, event_type, description,
+        user_id,
+        amount,
+        event_type,
+        description,
     )
     new_level = await recompute_level(user_id)
     return {"ok": True, "points": row["points"], "level": new_level}
@@ -153,14 +164,16 @@ async def transfer(from_user_id: int, to_user_id: int, amount: Decimal) -> dict:
         WHERE id = $1 AND points >= $2
         RETURNING points
         """,
-        from_user_id, amount,
+        from_user_id,
+        amount,
     )
     if row is None:
         return {"ok": False, "reason": "insufficient_points"}
 
     await db.execute(
         "UPDATE users SET points = points + $2 WHERE id = $1",
-        to_user_id, amount,
+        to_user_id,
+        amount,
     )
 
     # Tarix
@@ -169,14 +182,20 @@ async def transfer(from_user_id: int, to_user_id: int, amount: Decimal) -> dict:
         INSERT INTO points_transactions (user_id, amount, event_type, description, related_user_id)
         VALUES ($1, $2, 'transfer_out', $3, $4)
         """,
-        from_user_id, -amount, f"Transfer to user #{to_user_id}", to_user_id,
+        from_user_id,
+        -amount,
+        f"Transfer to user #{to_user_id}",
+        to_user_id,
     )
     await db.execute(
         """
         INSERT INTO points_transactions (user_id, amount, event_type, description, related_user_id)
         VALUES ($1, $2, 'transfer_in', $3, $4)
         """,
-        to_user_id, amount, f"Received from user #{from_user_id}", from_user_id,
+        to_user_id,
+        amount,
+        f"Received from user #{from_user_id}",
+        from_user_id,
     )
 
     await recompute_level(from_user_id)
@@ -185,7 +204,9 @@ async def transfer(from_user_id: int, to_user_id: int, amount: Decimal) -> dict:
     return {"ok": True, "points": row["points"]}
 
 
-async def create_request(from_user_id: int, to_user_id: int, amount: Decimal, message: str = "") -> dict:
+async def create_request(
+    from_user_id: int, to_user_id: int, amount: Decimal, message: str = ""
+) -> dict:
     """Point so'rovi yaratish."""
     if amount <= 0:
         return {"ok": False, "reason": "invalid_amount"}
@@ -196,7 +217,10 @@ async def create_request(from_user_id: int, to_user_id: int, amount: Decimal, me
         VALUES ($1, $2, $3, $4)
         RETURNING id
         """,
-        from_user_id, to_user_id, amount, message,
+        from_user_id,
+        to_user_id,
+        amount,
+        message,
     )
     return {"ok": True, "request_id": row["id"]}
 

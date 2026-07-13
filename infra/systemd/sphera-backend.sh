@@ -15,16 +15,15 @@ export ADMIN_IDS=7993413019
 export DISABLE_GROUP_CHECK=true
 export GEMINI_KEY=AIzaSyBQvjFvGyIJjkJPlr2IJilVHkKnOOo-pJ0
 export GEMINI_MODEL=gemini-2.5-flash
-export USE_ICECAST=true ICECAST_HOST=localhost ICECAST_PORT=8000
-export ICECAST_PASS='IcecastPass2025!' ICECAST_ADMIN_PASS='IcecastAdmin2025!'
+export USE_MEDIAMTX=true MEDIAMTX_HOST=localhost MEDIAMTX_RTMP_PORT=1935
+export MEDIAMTX_PUBLISH_PASS='MediaMTXPass2025!'
 export TTS_PROVIDER=edge TTS_FALLBACK_EDGE=true
 export AI_HOST_INTERVAL=60
 
-# Icecast tunnel URL — har safar fayl dan o'qiymiz (reboot'dan keyin avtomatik yangilanadi)
-ICECAST_URL_FILE="$ROOT/.logs/icecast_tunnel_url.txt"
-if [ -f "$ICECAST_URL_FILE" ]; then
-  export ICECAST_PUBLIC_URL=$(cat "$ICECAST_URL_FILE")
-fi
+# MediaMTX'ning WebRTC/WHEP publik manzili — WebRTC to'g'ridan-to'g'ri UDP talab
+# qiladi, shuning uchun (Icecast'dagidek) Cloudflare tunnel orqali emas, VPS'ning
+# doimiy public domeni/IP'i orqali beriladi.
+export MEDIAMTX_PUBLIC_URL='https://your-vps-domain:8889'
 
 cd "$ROOT/backend"
 exec "$VENV/uvicorn" app.main:app --host 0.0.0.0 --port 8001

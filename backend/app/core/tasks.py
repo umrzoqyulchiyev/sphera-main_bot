@@ -5,7 +5,7 @@ asyncio.create_task o'rniga — xatolar log'lanadi, retry mavjud.
 
 import asyncio
 import logging
-from typing import Callable, Coroutine, Any
+from collections.abc import Coroutine
 
 log = logging.getLogger("tasks")
 
@@ -24,6 +24,7 @@ def create_background_task(
         name: task nomi (monitoring uchun)
         on_error: "log" — faqat log, "restart" — qayta ishga tushirish
     """
+
     async def _wrapper():
         try:
             await coro

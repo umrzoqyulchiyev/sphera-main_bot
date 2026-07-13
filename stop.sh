@@ -12,5 +12,5 @@ pkill -f "cloudflared tunnel"    2>/dev/null && echo "  Tunnel ✓"       || tru
 
 echo "Hammasi to'xtatildi."
 echo ""
-echo "Eslatma: PostgreSQL, Redis, Icecast2 alohida xizmatlar — ular to'xtatilmadi."
-echo "Ularni to'xtatish uchun: sudo service postgresql stop / redis-server stop / icecast2 stop"
+echo "Eslatma: PostgreSQL, Redis, MediaMTX alohida xizmatlar — ular to'xtatilmadi."
+echo "Ularni to'xtatish uchun: sudo service postgresql stop / redis-server stop / systemctl --user stop sphera-mediamtx"

@@ -1,7 +1,7 @@
-import os
-import json
-import re
 import asyncio
+import json
+import os
+import re
 
 GEMINI_KEY = os.getenv("GEMINI_KEY", "")
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
@@ -15,6 +15,7 @@ def _ensure_configured():
     global _configured, _genai
     if _genai is None:
         import google.generativeai as genai  # lazy
+
         _genai = genai
     if not _configured and GEMINI_KEY:
         _genai.configure(api_key=GEMINI_KEY)

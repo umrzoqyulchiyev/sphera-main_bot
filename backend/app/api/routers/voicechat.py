@@ -10,9 +10,9 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.core.database import db
-from app.core.dependencies import require_admin, get_current_user
 from app.core.constants import ROLE_LEVELS
+from app.core.database import db
+from app.core.dependencies import get_current_user, require_admin
 from app.services import voicechat
 
 log = logging.getLogger("voicechat.router")
@@ -41,7 +41,9 @@ async def voice_status(user: dict = Depends(get_current_user)):
 async def voice_join(payload: AudioUrlRequest, _: dict = Depends(require_admin)):
     """[admin] Userbot'ni Voice Chat'ga ulaydi (ixtiyoriy audio bilan)."""
     if not voicechat.is_configured():
-        raise HTTPException(status_code=503, detail="Voice Chat not configured (userbot session missing)")
+        raise HTTPException(
+            status_code=503, detail="Voice Chat not configured (userbot session missing)"
+        )
     res = await voicechat.join_call(payload.audio_url)
     if not res["ok"]:
         raise HTTPException(status_code=502, detail=res.get("reason", "join failed"))

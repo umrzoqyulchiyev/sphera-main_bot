@@ -1,5 +1,5 @@
-import os
 import asyncio
+import os
 import subprocess
 
 _model = None
@@ -12,6 +12,7 @@ def _get_ffmpeg() -> str | None:
     if _ffmpeg is None:
         try:
             import imageio_ffmpeg
+
             _ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
         except Exception:
             _ffmpeg = ""
@@ -23,6 +24,7 @@ def _get_model():
     global _model
     if _model is None:
         from faster_whisper import WhisperModel  # lazy
+
         size = os.getenv("WHISPER_MODEL", "small")
         _model = WhisperModel(size, device="cpu", compute_type="int8")
     return _model
@@ -35,8 +37,17 @@ def _to_wav(src_path: str) -> str:
         return src_path  # PyAV o'zi dekod qiladi
     wav_path = src_path + ".wav"
     cmd = [
-        ffmpeg, "-y", "-i", src_path,
-        "-ar", "16000", "-ac", "1", "-f", "wav", wav_path,
+        ffmpeg,
+        "-y",
+        "-i",
+        src_path,
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        "-f",
+        "wav",
+        wav_path,
     ]
     proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     if proc.returncode == 0 and os.path.isfile(wav_path):

@@ -8,10 +8,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.database import db
-from app.core.models import NewsOut, OkResponse, AdminNewsCreate
-from app.core.dependencies import get_current_user, require_admin
 from app.core.constants import SUPPORTED_LANGUAGES
+from app.core.database import db
+from app.core.dependencies import require_admin
+from app.core.models import AdminNewsCreate, NewsOut, OkResponse
 
 log = logging.getLogger("news")
 
@@ -51,7 +51,10 @@ async def create_news(payload: AdminNewsCreate):
         INSERT INTO news (language, title, body, image_url)
         VALUES ($1, $2, $3, $4)
         """,
-        payload.language, payload.title, payload.body, payload.image_url,
+        payload.language,
+        payload.title,
+        payload.body,
+        payload.image_url,
     )
     return OkResponse(detail={"message": "News created"})
 

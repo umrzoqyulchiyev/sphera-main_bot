@@ -4,7 +4,6 @@ Graceful degradation: Redis bo'lmasa ham app ishlaydi (in-memory fallback).
 """
 
 import logging
-from typing import Optional
 
 log = logging.getLogger("redis")
 
@@ -17,7 +16,9 @@ async def connect() -> None:
     global _redis, _available
     try:
         import redis.asyncio as aioredis
+
         from app.core.config import settings
+
         _redis = aioredis.from_url(
             settings.redis_url,
             decode_responses=True,
@@ -51,7 +52,7 @@ def is_available() -> bool:
     return _available
 
 
-async def get(key: str) -> Optional[str]:
+async def get(key: str) -> str | None:
     if not _available:
         return None
     try:

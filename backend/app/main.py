@@ -7,22 +7,35 @@ Yangi TZ:
 - Point transfer/request/purchase
 """
 
-import os
-import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
-from app.core.logging_config import setup_logging
-from app.core.database import db
+from app.api.routers import (
+    admin,
+    auth,
+    chat,
+    favorites,
+    messages,
+    music,
+    news,
+    opinions,
+    radio,
+    slots,
+    stats,
+    users,
+    voicechat,
+)
 from app.core import redis as redis_client
+from app.core.config import settings
+from app.core.database import db
+from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
-from app.api.routers import auth, users, chat, admin, news, messages, radio, voicechat, opinions, stats, favorites, music, slots
 
 setup_logging(debug=settings.debug)
 log = logging.getLogger("app")
@@ -42,16 +55,19 @@ async def lifespan(app: FastAPI):
     # 3. Redis (graceful fallback)
     await redis_client.connect()
 
-    # 4. Uzluksiz Icecast oqimi (USE_ICECAST=true bo'lsa) — har til uchun worker
+    # 4. Uzluksiz MediaMTX oqimi (USE_MEDIAMTX=true bo'lsa) — har til uchun worker
     from app.services import continuous
+
     await continuous.start()
 
-    # 5. AI radio host — efirni uzluksiz kontent bilan to'ldiradi (USE_ICECAST=true)
+    # 5. AI radio host — efirni uzluksiz kontent bilan to'ldiradi (USE_MEDIAMTX=true)
     from app.services import ai_host
+
     await ai_host.start()
 
     # 6. Voice Chat userbot (Telegram guruh ovozli chati — Boss talabi)
     from app.services import voicechat
+
     await voicechat.start()
 
     log.info("Application started successfully")
@@ -70,6 +86,7 @@ async def lifespan(app: FastAPI):
 async def _run_migrations() -> None:
     """Schema SQL faylini o'qib, jadvallarni yaratadi (CREATE IF NOT EXISTS)."""
     import os
+
     schema_path = os.path.join(os.path.dirname(__file__), "app", "db", "schema.sql")
     if not os.path.exists(schema_path):
         # Docker ichida to'g'ridan path
@@ -78,7 +95,7 @@ async def _run_migrations() -> None:
         log.warning("Schema file not found, skipping migration")
         return
     try:
-        with open(schema_path, "r") as f:
+        with open(schema_path) as f:
             sql = f.read()
         await db.execute(sql)
         log.info("Database migration completed")
@@ -173,8 +190,17 @@ if settings.miniapp_dir and os.path.isdir(settings.miniapp_dir):
     @app.exception_handler(StarletteHTTPException)
     async def _spa_fallback(request, exc):
         # API yo'llari uchun JSON xato qaytaramiz
-        api_prefixes = ("/auth/", "/users/", "/chat/", "/news/", "/admin/",
-                        "/messages/", "/radio/", "/health", "/api")
+        api_prefixes = (
+            "/auth/",
+            "/users/",
+            "/chat/",
+            "/news/",
+            "/admin/",
+            "/messages/",
+            "/radio/",
+            "/health",
+            "/api",
+        )
         if request.url.path.startswith(api_prefixes):
             return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
         # Frontend SPA uchun index.html
@@ -186,6 +212,7 @@ if settings.miniapp_dir and os.path.isdir(settings.miniapp_dir):
 
     app.mount("/", StaticFiles(directory=settings.miniapp_dir, html=True), name="miniapp")
 else:
+
     @app.get("/")
     async def root():
         return {"service": "INTRA GROUP", "version": "3.0.0", "status": "ok"}

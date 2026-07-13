@@ -27,19 +27,20 @@ log = logging.getLogger("music")
 
 router = APIRouter(prefix="/music", tags=["music"])
 
-COST_NOMINATE = Decimal("0.001")   # nomzod qo'shish
-COST_VOTE     = Decimal("0.001")   # ovoz berish
+COST_NOMINATE = Decimal("0.001")  # nomzod qo'shish
+COST_VOTE = Decimal("0.001")  # ovoz berish
 
 
 class NominationRequest(BaseModel):
     topic_id: int
-    title: str          # "Qo'shiq nomi"
-    artist: str = ""    # "Artist nomi" (ixtiyoriy)
+    title: str  # "Qo'shiq nomi"
+    artist: str = ""  # "Artist nomi" (ixtiyoriy)
 
 
 # ──────────────────────────────────────────────────────────
 # Nomzodlar ro'yxati
 # ──────────────────────────────────────────────────────────
+
 
 @router.get("/nominations/{topic_id}")
 async def get_nominations(topic_id: int, user: dict = Depends(get_current_user)):
@@ -58,7 +59,8 @@ async def get_nominations(topic_id: int, user: dict = Depends(get_current_user))
         ORDER BY mn.vote_count DESC, mn.created_at ASC
         LIMIT 50
         """,
-        topic_id, user["id"],
+        topic_id,
+        user["id"],
     )
     return [dict(r) for r in rows]
 
@@ -86,7 +88,8 @@ async def get_current_nominations(user: dict = Depends(get_current_user)):
         ORDER BY mn.vote_count DESC, mn.created_at ASC
         LIMIT 20
         """,
-        topic["id"], user["id"],
+        topic["id"],
+        user["id"],
     )
     return {
         "topic": dict(topic),
@@ -97,6 +100,7 @@ async def get_current_nominations(user: dict = Depends(get_current_user)):
 # ──────────────────────────────────────────────────────────
 # Nomzod qo'shish
 # ──────────────────────────────────────────────────────────
+
 
 @router.post("/nominations", response_model=OkResponse)
 async def add_nomination(
@@ -109,9 +113,7 @@ async def add_nomination(
         raise HTTPException(status_code=400, detail="Title required")
 
     # Mavzu faolmi?
-    topic = await db.fetchrow(
-        "SELECT id, status FROM topics WHERE id = $1", payload.topic_id
-    )
+    topic = await db.fetchrow("SELECT id, status FROM topics WHERE id = $1", payload.topic_id)
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
     if topic["status"] != "active":
@@ -120,7 +122,8 @@ async def add_nomination(
     # Bir foydalanuvchi bitta mavzuga 3 tadan ko'p nomzod qo'sha olmaydi
     existing = await db.fetchval(
         "SELECT COUNT(*) FROM music_nominations WHERE topic_id=$1 AND user_id=$2",
-        payload.topic_id, user["id"],
+        payload.topic_id,
+        user["id"],
     )
     if existing >= 3:
         raise HTTPException(status_code=400, detail="Maximum 3 nominations per topic")
@@ -139,19 +142,25 @@ async def add_nomination(
         VALUES ($1, $2, $3, $4)
         RETURNING id, title, artist, vote_count
         """,
-        payload.topic_id, user["id"], title, payload.artist.strip(),
+        payload.topic_id,
+        user["id"],
+        title,
+        payload.artist.strip(),
     )
     log.info("Nomination added: user=%d topic=%d title=%s", user["id"], payload.topic_id, title)
-    return OkResponse(detail={
-        "nomination_id": row["id"],
-        "title": row["title"],
-        "points": str(spent["points"]),
-    })
+    return OkResponse(
+        detail={
+            "nomination_id": row["id"],
+            "title": row["title"],
+            "points": str(spent["points"]),
+        }
+    )
 
 
 # ──────────────────────────────────────────────────────────
 # Ovoz berish
 # ──────────────────────────────────────────────────────────
+
 
 @router.post("/vote/{nomination_id}", response_model=OkResponse)
 async def vote_nomination(
@@ -171,7 +180,8 @@ async def vote_nomination(
     # Bir mavzuda bitta ovoz tekshiruvi
     already = await db.fetchval(
         "SELECT id FROM music_votes WHERE user_id=$1 AND topic_id=$2",
-        user["id"], nom["topic_id"],
+        user["id"],
+        nom["topic_id"],
     )
     if already:
         raise HTTPException(status_code=409, detail="Already voted for this topic")
@@ -187,7 +197,9 @@ async def vote_nomination(
     # Ovozni yozish + vote_count oshirish (atomic)
     await db.execute(
         "INSERT INTO music_votes (nomination_id, user_id, topic_id) VALUES ($1,$2,$3)",
-        nomination_id, user["id"], nom["topic_id"],
+        nomination_id,
+        user["id"],
+        nom["topic_id"],
     )
     await db.execute(
         "UPDATE music_nominations SET vote_count = vote_count + 1 WHERE id = $1",
@@ -201,6 +213,7 @@ async def vote_nomination(
 # ──────────────────────────────────────────────────────────
 # G'olib (admin va tinglovchi uchun)
 # ──────────────────────────────────────────────────────────
+
 
 @router.get("/winner/{topic_id}")
 async def get_winner(topic_id: int, user: dict = Depends(get_current_user)):
@@ -225,6 +238,7 @@ async def get_winner(topic_id: int, user: dict = Depends(get_current_user)):
 # ──────────────────────────────────────────────────────────
 # Moderatsiya (faqat admin)
 # ──────────────────────────────────────────────────────────
+
 
 @router.delete("/nominations/{nomination_id}", response_model=OkResponse)
 async def delete_nomination(nomination_id: int, admin: dict = Depends(require_admin)):

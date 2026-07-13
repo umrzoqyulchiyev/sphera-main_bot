@@ -1,11 +1,10 @@
-import os
 import asyncio
 import logging
-import subprocess
+import os
 import uuid
 
-import httpx
 import edge_tts
+import httpx
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,10 +15,7 @@ log = logging.getLogger("radio-host")
 # ---------- Konfiguratsiya ----------
 GEMINI_KEY = os.getenv("GEMINI_KEY", "")
 INTERNAL_API_URL = os.getenv("INTERNAL_API_URL", "http://radio-api:8001")
-ICECAST_HOST = os.getenv("ICECAST_HOST", "icecast")
-ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
-ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
-USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
+USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
 AUDIO_DIR = os.getenv("AUDIO_DIR", "/app/audio")
 
 # YANGI konsepsiya (TZ Шаг 3-4): efir kontenti ИИ-agregatsiya → moderator
@@ -54,8 +50,11 @@ async def fetch_cities(client: httpx.AsyncClient) -> list[dict]:
     except Exception as exc:  # noqa: BLE001
         log.warning("cities fetch failed: %s", exc)
     # Fallback
-    return [{"slug": s, "name_ru": CITY_NAMES_RU.get(s, s)} for s in
-            ["samarkand", "tashkent", "bukhara", "namangan", "andijan"]]
+    return [
+        {"slug": s, "name_ru": CITY_NAMES_RU.get(s, s)}
+        for s in ["samarkand", "tashkent", "bukhara", "namangan", "andijan"]
+    ]
+
 
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
@@ -63,6 +62,7 @@ _genai = None
 if GEMINI_KEY:
     try:
         import google.generativeai as genai
+
         genai.configure(api_key=GEMINI_KEY)
         _genai = genai
     except Exception as exc:  # noqa: BLE001
@@ -128,7 +128,9 @@ async def generate_script(city: str, messages: list[dict]) -> str:
             for m in messages:
                 author = m.get("author", "слушатель")
                 text = (m.get("text") or "").strip()
-                parts.append(f"{author} пишет: «{text}». Спасибо за ваше сообщение, мы вас услышали!")
+                parts.append(
+                    f"{author} пишет: «{text}». Спасибо за ваше сообщение, мы вас услышали!"
+                )
             parts.append("Продолжайте присылать свои обращения, оставайтесь на волне Radio AI!")
             return " ".join(parts)
         return (
@@ -147,10 +149,7 @@ async def generate_script(city: str, messages: list[dict]) -> str:
         return await asyncio.to_thread(_call)
     except Exception as exc:  # noqa: BLE001
         log.error("Gemini generation failed: %s", exc)
-        return (
-            f"Вы слушаете Radio AI, город {city_ru}. "
-            "Оставайтесь на волне, скоро продолжим эфир."
-        )
+        return f"Вы слушаете Radio AI, город {city_ru}. Оставайтесь на волне, скоро продолжим эфир."
 
 
 async def synthesize(text: str, out_path: str) -> None:
@@ -166,35 +165,19 @@ async def synthesize(text: str, out_path: str) -> None:
 
     # gTTS fallback (Google TTS — internetda ishlaydi)
     try:
-        from gtts import gTTS
         import asyncio
+
+        from gtts import gTTS
+
         def _gtts_save():
             tts = gTTS(text, lang="ru")
             tts.save(out_path)
+
         await asyncio.to_thread(_gtts_save)
         log.info("gTTS fallback OK: %s", out_path)
     except Exception as exc2:
         log.error("gTTS also failed: %s", exc2)
         raise
-
-
-def stream_to_icecast(mp3_path: str, city: str) -> int:
-    """FFmpeg orqali mp3 ni Icecast /live_ru mount ga uzatadi."""
-    # Continuous worker /live_ru ishlatadi, shuning uchun shu mountga uzatamiz
-    mount = "/live_ru"
-    icecast_url = (
-        f"icecast://source:{ICECAST_PASS}@{ICECAST_HOST}:{ICECAST_PORT}{mount}"
-    )
-    cmd = [
-        "ffmpeg", "-re", "-i", mp3_path,
-        "-c:a", "libmp3lame", "-b:a", "128k", "-ar", "44100", "-ac", "2",
-        "-content_type", "audio/mpeg", "-f", "mp3", icecast_url,
-    ]
-    log.info("FFmpeg → Icecast %s", mount)
-    proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    if proc.returncode != 0:
-        log.error("FFmpeg error (%s): %s", city, proc.stderr.decode()[-400:])
-    return proc.returncode
 
 
 async def register_segment(
@@ -216,9 +199,7 @@ async def register_segment(
         log.warning("segment register failed for %s: %s", city, exc)
 
 
-async def update_status(
-    client: httpx.AsyncClient, city: str, script: str, duration: int
-) -> None:
+async def update_status(client: httpx.AsyncClient, city: str, script: str, duration: int) -> None:
     try:
         await client.post(
             f"{INTERNAL_API_URL}/radio/status",
@@ -247,7 +228,7 @@ async def process_city(client: httpx.AsyncClient, city: str) -> None:
 
     duration = max(15, int(len(script.split()) / 2.5))
 
-    if USE_ICECAST:
+    if USE_MEDIAMTX:
         # Production: vaqtinchalik faylga TTS, keyin backend API orqali navbatga
         tmp_path = os.path.join(AUDIO_DIR, f"global_{uuid.uuid4().hex}.mp3")
         await synthesize(script, tmp_path)
@@ -278,8 +259,9 @@ async def process_city(client: httpx.AsyncClient, city: str) -> None:
 
 async def main_loop() -> None:
     log.info(
-        "Radio AI Host (USE_ICECAST=%s, AI_AUTO_BROADCAST=%s)",
-        USE_ICECAST, AI_AUTO_BROADCAST,
+        "Radio AI Host (USE_MEDIAMTX=%s, AI_AUTO_BROADCAST=%s)",
+        USE_MEDIAMTX,
+        AI_AUTO_BROADCAST,
     )
     if not AI_AUTO_BROADCAST:
         log.info(

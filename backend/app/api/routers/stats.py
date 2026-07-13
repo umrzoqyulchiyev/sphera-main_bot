@@ -7,11 +7,12 @@ Provides detailed statistics about user activity:
 - Favorites count
 - Level calculation
 """
+
 from fastapi import APIRouter, Depends
 
 from app.core.database import db
-from app.core.models import UserStatsOut
 from app.core.dependencies import get_current_user
+from app.core.models import UserStatsOut
 
 router = APIRouter(prefix="/users", tags=["stats"])
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/users", tags=["stats"])
 @router.get("/stats", response_model=UserStatsOut)
 async def get_user_stats(user: dict = Depends(get_current_user)):
     """Get comprehensive statistics for the current user.
-    
+
     Calculates:
     - Message counts by type (chat, voice, studio, files)
     - Points (earned via rewards, spent via costs, current balance)
@@ -28,11 +29,11 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
     - Level (points // 100 + 1)
     """
     user_id = user["id"]
-    
+
     # Message statistics
     msg_stats = await db.fetchrow(
         """
-        SELECT 
+        SELECT
             COUNT(*) FILTER (WHERE message_type IN ('text', 'chat')) as chat_messages,
             COUNT(*) FILTER (WHERE message_type IN ('voice', 'studio_voice')) as voice_messages,
             COUNT(*) FILTER (WHERE message_type = 'studio') as studio_messages,
@@ -41,9 +42,9 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
         FROM chat_messages
         WHERE user_id = $1
         """,
-        user_id
+        user_id,
     )
-    
+
     # Points statistics
     # Note: points_earned = initial + all rewards
     # points_spent = costs deducted
@@ -56,20 +57,20 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
         FROM points_transactions
         WHERE user_id = $1
         """,
-        user_id
+        user_id,
     )
-    
+
     # Activity metrics
     activity = await db.fetchrow(
         """
-        SELECT 
+        SELECT
             COUNT(DISTINCT DATE(created_at)) as days_active
         FROM chat_messages
         WHERE user_id = $1
         """,
-        user_id
+        user_id,
     )
-    
+
     # Broadcasts (messages that went to studio)
     broadcasts = await db.fetchrow(
         """
@@ -77,13 +78,13 @@ async def get_user_stats(user: dict = Depends(get_current_user)):
         FROM messages
         WHERE user_id = $1 AND is_for_studio = true
         """,
-        user_id
+        user_id,
     )
-    
+
     # Current points and level
     current_points = user["points"]
     level = (current_points // 100) + 1
-    
+
     return UserStatsOut(
         total_messages=msg_stats["total_messages"] or 0,
         chat_messages=msg_stats["chat_messages"] or 0,
