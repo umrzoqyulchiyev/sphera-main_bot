@@ -8,9 +8,10 @@ interface UseAudioPlayerOptions {
   language: Language;
   useHls: boolean;
   streamUrl?: string | null;
+  onError?: (message: string) => void;
 }
 
-export function useAudioPlayer({ city, language, useHls, streamUrl }: UseAudioPlayerOptions) {
+export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: UseAudioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,8 +25,10 @@ export function useAudioPlayer({ city, language, useHls, streamUrl }: UseAudioPl
 
   const streamUrlRef = useRef(streamUrl);
   const languageRef = useRef(language);
+  const onErrorRef = useRef(onError);
   streamUrlRef.current = streamUrl;
   languageRef.current = language;
+  onErrorRef.current = onError;
 
   const hlsRef = useRef<Hls | null>(null);
   const connectHlsRef = useRef<() => void>(() => {});
@@ -64,6 +67,7 @@ export function useAudioPlayer({ city, language, useHls, streamUrl }: UseAudioPl
     if (!audio || !hlsUrl) {
       clearLoadingTimeout();
       setIsLoading(false);
+      if (!hlsUrl) onErrorRef.current?.('Stream URL topilmadi (radio holati yuklanmagan)');
       return;
     }
 
@@ -72,13 +76,18 @@ export function useAudioPlayer({ city, language, useHls, streamUrl }: UseAudioPl
     // Safari/iOS — native HLS qo'llab-quvvatlaydi, hls.js shart emas
     if (audio.canPlayType('application/vnd.apple.mpegurl')) {
       audio.src = hlsUrl;
-      audio.play().catch(() => {});
+      audio.play().catch((err) => {
+        clearLoadingTimeout();
+        setIsLoading(false);
+        onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
+      });
       return;
     }
 
     if (!Hls.isSupported()) {
       clearLoadingTimeout();
       setIsLoading(false);
+      onErrorRef.current?.('Bu brauzer/WebView HLS audio\'ni qo\'llab-quvvatlamaydi (MediaSource yo\'q)');
       return;
     }
 
@@ -88,12 +97,17 @@ export function useAudioPlayer({ city, language, useHls, streamUrl }: UseAudioPl
     hls.attachMedia(audio);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      audio.play().catch(() => {});
+      audio.play().catch((err) => {
+        clearLoadingTimeout();
+        setIsLoading(false);
+        onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
+      });
     });
 
     hls.on(Hls.Events.ERROR, (_event, data) => {
       if (!data.fatal) return;
       setIsPlaying(false);
+      onErrorRef.current?.(`HLS xatosi: ${data.type}/${data.details}`);
       scheduleReconnect();
     });
   }, [disconnectHls, scheduleReconnect]);

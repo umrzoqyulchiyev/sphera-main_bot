@@ -42,6 +42,7 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
     useHls: radioStatus?.use_hls ?? true,
     // MediaMTX HLS publik URL — browser to'g'ridan-to'g'ri shu manzilga ulanadi
     streamUrl: radioStatus?.stream_url,
+    onError: showToast,
   });
 
   const { send: wsSend } = useWebSocket({ city, onMessage: handleWSMessage });
