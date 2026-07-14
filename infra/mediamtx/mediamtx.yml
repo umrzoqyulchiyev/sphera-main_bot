@@ -37,6 +37,8 @@ authInternalUsers:
     permissions:
       - action: read
         path:
+      - action: playback
+        path:
 
 # ---------- HLS delivery (tinglovchilar to'g'ridan ulanadi) ----------
 hls: true
