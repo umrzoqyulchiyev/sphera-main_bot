@@ -49,11 +49,13 @@ hlsAllowOrigins: ["*"]
 # MUHIM: MediaMTX har bir HLS o'qish sessiyasini so'rov IP'iga "pin" qiladi
 # (index.m3u8 sessiya ochadi → keyingi main_stream.m3u8/.ts so'rovlarida IP
 # mos kelishi kerak, aks holda "authentication error" 401). Railway edge
-# konteynerga har safar 100.64.0.0/10 diapazonidan BOSHQA ichki IP orqali
-# ulanadi — shu diapazonni "trusted proxy" deb belgilamasak, MediaMTX asl
-# X-Forwarded-For o'rniga shu beqaror ichki IP'ni ko'radi va har ikkinchi
-# so'rovda sessiyani "topolmay" 401 qaytaradi (tinglovchi ovozni eshitolmaydi).
-hlsTrustedProxies: ["100.64.0.0/10"]
+# konteynerga faqat 100.64.0.0/10'dan emas, balki bir nechta rotatsiyalanuvchi
+# edge-IP'lardan ham ulanadi (aniqlandi: 100.64.x.x va turli 152.233.x.x —
+# so'rovdan so'rovga farq qiladi), shu sabab faqat shu diapazonni ishonchli
+# deb belgilash yetarli emas edi. HLS oqimi baribir hammaga ochiq (auth "any"
+# user'ga read ruxsat beradi) — shu sabab IP-pinning uchun barcha proxy'larga
+# ishonib, X-Forwarded-For'dagi eng chap (asl) IP'ni olamiz.
+hlsTrustedProxies: ["0.0.0.0/0", "::/0"]
 # mpegts — maksimal moslik (lowLatency HTTPS talab qiladi, Railway edge'da
 # TLS allaqachon terminatsiya qilinadi, konteyner ichida sertifikat kerak emas).
 hlsVariant: mpegts
