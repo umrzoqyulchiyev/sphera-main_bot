@@ -42,7 +42,9 @@ services:
       - "1935:1935"   # RTMP ingest (ffmpeg push)
       - "8888:8888"   # HLS delivery (tinglovchilar to'g'ridan ulanadi)
     environment:
-      MEDIAMTX_PUBLISH_PASS: ${MEDIAMTX_PUBLISH_PASS:-MediaMTXPass2025!}
+      # MediaMTX o'z mediamtx.yml ichidagi ${VAR}ni substitutsiya qilmaydi —
+      # parol shu MTX_ prefiksli env orqali beriladi (pozitsion index: 0-user).
+      MTX_AUTHINTERNALUSERS_0_PASS: ${MEDIAMTX_PUBLISH_PASS:-MediaMTXPass2025!}
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
 

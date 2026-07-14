@@ -15,11 +15,16 @@ rtmp: true
 rtmpAddress: :1935
 
 # Manba autentifikatsiyasi — Icecast'dagi source-password'ga o'xshash.
-# Parolni .env dagi MEDIAMTX_PUBLISH_PASS bilan mos tuting.
+# MUHIM: MediaMTX ${VAR} syntaxni mediamtx.yml ICHIDA substitutsiya QILMAYDI,
+# MTX_AUTHINTERNALUSERS_0_PASS kabi positional env-override esa YAML'dagi
+# ro'yxatni emas, MediaMTX'ning ICHKI DEFAULT ro'yxatini (0-user = "any")
+# o'zgartiradi — shu sabab bu yerda literal qiymat ishlatiladi (Icecast
+# eski icecast.xml'da ham xuddi shunday committed edi).
+# Backend'dagi MEDIAMTX_PUBLISH_PASS bilan bir xil qiymat bo'lishi kerak.
 authMethod: internal
 authInternalUsers:
   - user: publisher
-    pass: ${MEDIAMTX_PUBLISH_PASS}
+    pass: MediaMTXPass2025!
     ips: []
     permissions:
       - action: publish

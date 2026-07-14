@@ -47,7 +47,11 @@ sleep 2
 # ── 1. MediaMTX (agar ishlamayotgan bo'lsa) ──
 if ! pgrep -f "mediamtx" >/dev/null; then
     echo "[1] MediaMTX ishga tushmoqda..."
-    setsid mediamtx "$ROOT/infra/mediamtx/mediamtx.yml" >> "$LOGS/mediamtx.log" 2>&1 < /dev/null &
+    # MediaMTX o'z mediamtx.yml ichidagi ${VAR}ni substitutsiya qilmaydi —
+    # parolni shu MTX_ prefiksli env orqali beramiz (yuqoridagi
+    # MEDIAMTX_PUBLISH_PASS bilan bir xil qiymat).
+    MTX_AUTHINTERNALUSERS_0_PASS="$MEDIAMTX_PUBLISH_PASS" \
+        setsid mediamtx "$ROOT/infra/mediamtx/mediamtx.yml" >> "$LOGS/mediamtx.log" 2>&1 < /dev/null &
     sleep 2
 else
     echo "[1] MediaMTX allaqachon ishlayapti."
