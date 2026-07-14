@@ -437,8 +437,9 @@ _http_broadcast_owner: dict[str, int] = {}  # city -> user_id
 async def broadcast_http_start(city: str, user: dict = Depends(require_role("doverenniy"))):
     """[doverenniy+] Mikrofon efirini boshlaydi (HTTP chunk fallback).
 
-    Efir faqat foydalanuvchining hozir vaqti kelgan (bron qilingan) sloti
-    bo'lganda boshlanadi — slot bo'lmasa "no_slot" qaytariladi.
+    Doverenniy uchun efir faqat hozir vaqti kelgan (bron qilingan) sloti
+    bo'lganda boshlanadi — slot bo'lmasa "no_slot" qaytariladi. Admin uchun
+    slot shart emas — vaqt chegarasiz efirga chiqa oladi (barcha huquqlar).
     """
     if city not in VALID_CITIES and city != "global":
         raise HTTPException(status_code=404, detail="City not found")
@@ -448,16 +449,22 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     if broadcast.is_busy(city):
         return {"status": "busy"}
 
-    slot = await _find_active_slot(user["id"])
-    if not slot:
-        return {"status": "no_slot"}
+    is_admin = user["role"] == "admin"
+    slot = None
+    expires_at: datetime | None = None
+    remaining_sec: int | None = None
 
-    expires_at = slot["scheduled_at"] + timedelta(minutes=slot["duration_min"])
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=UTC)
-    remaining_sec = int((expires_at - datetime.now(UTC)).total_seconds())
-    if remaining_sec <= 0:
-        return {"status": "no_slot"}
+    if not is_admin:
+        slot = await _find_active_slot(user["id"])
+        if not slot:
+            return {"status": "no_slot"}
+
+        expires_at = slot["scheduled_at"] + timedelta(minutes=slot["duration_min"])
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        remaining_sec = int((expires_at - datetime.now(UTC)).total_seconds())
+        if remaining_sec <= 0:
+            return {"status": "no_slot"}
 
     name = user["full_name"] or user["username"] or "Doverenniy"
 
@@ -472,10 +479,10 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
         return {"status": "busy"}
 
     _http_broadcast_owner[city] = user["id"]
-    _broadcast_expiry[city] = expires_at
-    _broadcast_slot_id[city] = slot["id"]
-
-    await db.execute("UPDATE broadcast_slots SET status = 'live' WHERE id = $1", slot["id"])
+    if slot is not None and expires_at is not None:
+        _broadcast_expiry[city] = expires_at
+        _broadcast_slot_id[city] = slot["id"]
+        await db.execute("UPDATE broadcast_slots SET status = 'live' WHERE id = $1", slot["id"])
 
     st = get_state(city)
     st.is_live = True
@@ -491,7 +498,7 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     return {
         "status": "started",
         "remaining_sec": remaining_sec,
-        "expires_at": expires_at.isoformat(),
+        "expires_at": expires_at.isoformat() if expires_at else None,
     }
 
 
