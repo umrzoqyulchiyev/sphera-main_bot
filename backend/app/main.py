@@ -70,11 +70,15 @@ async def lifespan(app: FastAPI):
 
     await voicechat.start()
 
+    # 7. Slot muddati tugagan jonli efirlarni avto-to'xtatuvchi watchdog
+    await radio.start_expiry_watchdog()
+
     log.info("Application started successfully")
     yield
 
     # Shutdown
     log.info("Shutting down...")
+    await radio.stop_expiry_watchdog()
     await voicechat.stop()
     await ai_host.stop()
     await continuous.stop()

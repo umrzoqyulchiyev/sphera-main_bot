@@ -10,6 +10,8 @@
   "voice_message": "Voice message",
   "go_live": "🔴 GO LIVE",
   "end_live": "⏹ END BROADCAST",
+  "no_active_slot": "No active broadcast slot right now",
+  "slot_time_over": "Slot time is over — broadcast ended",
   "toast_sent_chat": "✅ Sent to chat!",
   "toast_sent_studio": "🎙 Request sent to studio!",
   "toast_mic_denied": "No microphone access",

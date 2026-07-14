@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+from datetime import UTC, datetime, timedelta
 
 from fastapi import (
     APIRouter,
@@ -27,9 +29,89 @@ from app.core.state import AUDIO_DIR, VALID_CITIES, get_state
 from app.core.ws_manager import manager
 from app.services import broadcast
 
+log = logging.getLogger("radio")
+
 router = APIRouter(prefix="/radio", tags=["radio"])
 
 BROADCAST_LANGS = ("ru", "lt", "en")
+
+# Ведущийning hozir faol sloti bo'yicha efir vaqtini cheklaymiz (Requirement:
+# efir faqat bron qilingan slot vaqtida ishlaydi, tugagach avto-tugaydi).
+_broadcast_expiry: dict[str, datetime] = {}  # city -> slot tugash vaqti (UTC)
+_broadcast_slot_id: dict[str, int] = {}  # city -> slot id
+_watchdog_task: asyncio.Task | None = None
+
+
+async def _find_active_slot(user_id: int) -> dict | None:
+    """Foydalanuvchining hozir vaqti kelgan (faol) sloti, agar bo'lsa."""
+    row = await db.fetchrow(
+        """
+        SELECT id, scheduled_at, duration_min
+        FROM broadcast_slots
+        WHERE host_user_id = $1
+          AND status IN ('scheduled', 'live')
+          AND scheduled_at <= NOW()
+          AND scheduled_at + make_interval(mins => duration_min) > NOW()
+        ORDER BY scheduled_at DESC
+        LIMIT 1
+        """,
+        user_id,
+    )
+    return dict(row) if row else None
+
+
+async def _stop_city_broadcast(city: str) -> None:
+    """Efirni to'xtatadi — foydalanuvchi /stop chaqirganda ham, slot tugaganda ham."""
+    _http_broadcast_owner.pop(city, None)
+    _broadcast_expiry.pop(city, None)
+    slot_id = _broadcast_slot_id.pop(city, None)
+    broadcast.close_session(city)
+
+    from app.services import continuous
+
+    continuous.resume("ru")
+
+    if slot_id is not None:
+        await db.execute("UPDATE broadcast_slots SET status = 'done' WHERE id = $1", slot_id)
+
+    st = get_state(city)
+    st.is_live = False
+    st.broadcaster_type = "ai"
+    st.broadcaster_name = "AI Host"
+    await manager.broadcast(
+        city,
+        {
+            "type": "radio_status",
+            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
+        },
+    )
+
+
+async def _expiry_watchdog_loop() -> None:
+    """Slot vaqti tugagan (lekin klient /stop chaqirmagan) efirlarni avto-tugatadi."""
+    while True:
+        await asyncio.sleep(5)
+        now = datetime.now(UTC)
+        expired = [c for c, exp in _broadcast_expiry.items() if now >= exp]
+        for city in expired:
+            try:
+                await _stop_city_broadcast(city)
+                log.info("Slot muddati tugadi — efir avto-to'xtatildi: %s", city)
+            except Exception:
+                log.exception("expiry watchdog: %s to'xtatib bo'lmadi", city)
+
+
+async def start_expiry_watchdog() -> None:
+    global _watchdog_task
+    if _watchdog_task is None:
+        _watchdog_task = asyncio.create_task(_expiry_watchdog_loop())
+
+
+async def stop_expiry_watchdog() -> None:
+    global _watchdog_task
+    if _watchdog_task is not None:
+        _watchdog_task.cancel()
+        _watchdog_task = None
 
 
 @router.post("/enqueue", dependencies=[Depends(require_internal_key)])
@@ -353,7 +435,11 @@ _http_broadcast_owner: dict[str, int] = {}  # city -> user_id
 
 @router.post("/{city}/broadcast/start")
 async def broadcast_http_start(city: str, user: dict = Depends(require_role("doverenniy"))):
-    """[doverenniy+] Mikrofon efirini boshlaydi (HTTP chunk fallback)."""
+    """[doverenniy+] Mikrofon efirini boshlaydi (HTTP chunk fallback).
+
+    Efir faqat foydalanuvchining hozir vaqti kelgan (bron qilingan) sloti
+    bo'lganda boshlanadi — slot bo'lmasa "no_slot" qaytariladi.
+    """
     if city not in VALID_CITIES and city != "global":
         raise HTTPException(status_code=404, detail="City not found")
 
@@ -361,6 +447,17 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
         return {"status": "unavailable"}
     if broadcast.is_busy(city):
         return {"status": "busy"}
+
+    slot = await _find_active_slot(user["id"])
+    if not slot:
+        return {"status": "no_slot"}
+
+    expires_at = slot["scheduled_at"] + timedelta(minutes=slot["duration_min"])
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    remaining_sec = int((expires_at - datetime.now(UTC)).total_seconds())
+    if remaining_sec <= 0:
+        return {"status": "no_slot"}
 
     name = user["full_name"] or user["username"] or "Doverenniy"
 
@@ -375,6 +472,10 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
         return {"status": "busy"}
 
     _http_broadcast_owner[city] = user["id"]
+    _broadcast_expiry[city] = expires_at
+    _broadcast_slot_id[city] = slot["id"]
+
+    await db.execute("UPDATE broadcast_slots SET status = 'live' WHERE id = $1", slot["id"])
 
     st = get_state(city)
     st.is_live = True
@@ -387,7 +488,11 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
             "data": st.to_dict(listeners_count=manager.listeners_count(city)),
         },
     )
-    return {"status": "started"}
+    return {
+        "status": "started",
+        "remaining_sec": remaining_sec,
+        "expires_at": expires_at.isoformat(),
+    }
 
 
 @router.post("/{city}/broadcast/chunk")
@@ -397,6 +502,11 @@ async def broadcast_http_chunk(
     """[doverenniy+] Navbatdagi audio chunk'ni yuboradi (HTTP chunk fallback)."""
     if _http_broadcast_owner.get(city) != user["id"]:
         raise HTTPException(status_code=403, detail="No active broadcast session for this user")
+
+    expiry = _broadcast_expiry.get(city)
+    if expiry is not None and datetime.now(UTC) >= expiry:
+        await _stop_city_broadcast(city)
+        raise HTTPException(status_code=410, detail="Slot time expired")
 
     chunk = await request.body()
     ok = broadcast.feed(city, chunk)
@@ -411,22 +521,5 @@ async def broadcast_http_stop(city: str, user: dict = Depends(require_role("dove
     if _http_broadcast_owner.get(city) != user["id"]:
         raise HTTPException(status_code=403, detail="No active broadcast session for this user")
 
-    _http_broadcast_owner.pop(city, None)
-    broadcast.close_session(city)
-
-    from app.services import continuous
-
-    continuous.resume("ru")
-
-    st = get_state(city)
-    st.is_live = False
-    st.broadcaster_type = "ai"
-    st.broadcaster_name = "AI Host"
-    await manager.broadcast(
-        city,
-        {
-            "type": "radio_status",
-            "data": st.to_dict(listeners_count=manager.listeners_count(city)),
-        },
-    )
+    await _stop_city_broadcast(city)
     return {"ok": True}

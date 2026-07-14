@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Radio } from 'lucide-react';
 import { API_URL } from '../../lib/config';
 import { authHeaders } from '../../lib/auth';
@@ -9,14 +9,47 @@ interface GoLiveButtonProps {
   onToast: (message: string) => void;
 }
 
+const fmtRemaining = (sec: number) =>
+  `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
+
 export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
   const { t } = useTranslation();
   const [isLive, setIsLive] = useState(false);
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   // Chunk'larni ketma-ket (navbat bilan) yuborish uchun — HTTP orqali tartib buzilmasligi kerak
   const sendChainRef = useRef<Promise<void>>(Promise.resolve());
   const liveRef = useRef(false);
+  const expiresAtRef = useRef<number | null>(null); // Date.now() timestamp (ms)
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopCountdown = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setRemainingSec(null);
+    expiresAtRef.current = null;
+  };
+
+  const startCountdown = (expiresAtIso: string) => {
+    expiresAtRef.current = new Date(expiresAtIso).getTime();
+    const tick = () => {
+      if (!expiresAtRef.current) return;
+      const left = Math.max(0, Math.round((expiresAtRef.current - Date.now()) / 1000));
+      setRemainingSec(left);
+      if (left <= 0) {
+        onToast('⏱ ' + t('slot_time_over'));
+        stopBroadcast();
+      }
+    };
+    tick();
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    countdownTimerRef.current = setInterval(tick, 1000);
+  };
+
+  useEffect(() => stopCountdown, []);
 
   const toggleLive = async () => {
     if (isLive) {
@@ -54,6 +87,10 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
         onToast('🔇 MediaMTX required');
         return;
       }
+      if (data.status === 'no_slot') {
+        onToast('🚫 ' + t('no_active_slot'));
+        return;
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -61,6 +98,7 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
       setIsLive(true);
       onToast('🔴 LIVE!');
       startRecorder(stream);
+      if (data.expires_at) startCountdown(data.expires_at);
     } catch (err: any) {
       console.error('[GoLive] setup error:', err?.name, err?.message);
       onToast(t('toast_mic_denied'));
@@ -107,6 +145,7 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
   const stopBroadcast = async () => {
     liveRef.current = false;
     setIsLive(false);
+    stopCountdown();
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch {}
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
     recorderRef.current = null;
@@ -119,6 +158,9 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
     } catch {}
   };
 
+  // Muddat tugashiga 1 daqiqadan kam qolganda — ogohlantirish rangi
+  const isEndingSoon = remainingSec !== null && remainingSec <= 60;
+
   return (
     <button
       onClick={toggleLive}
@@ -129,12 +171,17 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
       }`}
       style={
         isLive
-          ? { animation: 'liveGlow 1.6s ease-in-out infinite' }
+          ? { animation: isEndingSoon ? 'liveGlow 0.8s ease-in-out infinite' : 'liveGlow 1.6s ease-in-out infinite' }
           : {}
       }
     >
       <Radio className="w-4 h-4" strokeWidth={2} />
       {isLive ? t('end_live') : t('go_live')}
+      {isLive && remainingSec !== null && (
+        <span className="tabular-nums font-black ml-1" style={{ opacity: 0.9 }}>
+          · {fmtRemaining(remainingSec)}
+        </span>
+      )}
     </button>
   );
 }
