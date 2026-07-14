@@ -177,7 +177,7 @@ export function Admin() {
     >
       <div className="max-w-[520px] mx-auto px-3.5 pt-3.5 pb-6 flex flex-col gap-4">
         <header className="flex items-center gap-3 pt-2">
-          <button onClick={() => navigate('/radio')} className="glass w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-[0.95]">
+          <button onClick={() => navigate(-1)} className="glass w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-[0.95]">
             <ArrowLeft className="w-4 h-4 text-[#ededef]" />
           </button>
           <div>
