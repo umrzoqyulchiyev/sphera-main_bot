@@ -48,8 +48,10 @@ class BroadcastSession:
     def start(self) -> None:
         # Jonli efir /live_ru mount'ga uzatiladi (tinglovchilar shu yerni eshitadi)
         mount = "/live_ru"
+        # MediaMTX internal auth RTMP orqali userinfo (user:pass@host) emas,
+        # query-parametr sifatida keladi: ?user=&pass=
         rtmp_url = (
-            f"rtmp://publisher:{MEDIAMTX_PUBLISH_PASS}@{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}"
+            f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
         )
         cmd = [
             _ffmpeg_bin(),
@@ -165,7 +167,7 @@ def push_file(city: str, mp3_path: str) -> int:
         return 0
     mount = f"/{city}"
     rtmp_url = (
-        f"rtmp://publisher:{MEDIAMTX_PUBLISH_PASS}@{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}"
+        f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
     )
     cmd = [
         _ffmpeg_bin(),
@@ -203,7 +205,7 @@ def _push_one(lang: str, mp3_path: str) -> int:
     """Пушит один mp3 в mount /live_{lang} через FFmpeg."""
     mount = mount_for(lang)  # валидация языка
     rtmp_url = (
-        f"rtmp://publisher:{MEDIAMTX_PUBLISH_PASS}@{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}"
+        f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
     )
     cmd = [
         _ffmpeg_bin(),

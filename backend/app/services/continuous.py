@@ -75,8 +75,12 @@ def _ffmpeg_bin() -> str:
 
 
 def _rtmp_url(lang: str) -> str:
+    # MediaMTX internal auth RTMP orqali userinfo (user:pass@host) emas,
+    # query-parametr sifatida keladi: ?user=&pass=
+    # https://mediamtx.org/docs/features/authentication
     return (
-        f"rtmp://publisher:{MEDIAMTX_PUBLISH_PASS}@{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}/live_{lang}"
+        f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}/live_{lang}"
+        f"?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
     )
 
 
