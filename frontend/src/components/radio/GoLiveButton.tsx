@@ -58,12 +58,18 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
     }
 
     try {
-      // Telegram WebApp da mikrofon ruxsati so'rash (WebView'da getUserMedia'dan oldin kerak)
+      // Telegram WebApp da mikrofon ruxsati so'rash (WebView'da getUserMedia'dan oldin kerak).
+      // Ba'zi Android Telegram versiyalarida callback umuman chaqirilmaydi — shu sabab
+      // timeout bilan "race" qilamiz, aks holda funksiya abadiy osilib qoladi (hech qanday
+      // toast ko'rinmaydi, tugma "ishlamayapti"ga o'xshab qoladi).
       const tgApp = (window as any).Telegram?.WebApp;
       if (tgApp?.requestMicrophoneAccess) {
-        const granted: boolean = await new Promise(resolve => {
-          tgApp.requestMicrophoneAccess((ok: boolean) => resolve(ok));
-        });
+        const granted: boolean = await Promise.race([
+          new Promise<boolean>(resolve => {
+            tgApp.requestMicrophoneAccess((ok: boolean) => resolve(ok));
+          }),
+          new Promise<boolean>(resolve => setTimeout(() => resolve(true), 5000)),
+        ]);
         if (!granted) {
           onToast(t('toast_mic_denied'));
           return;

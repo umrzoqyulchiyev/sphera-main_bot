@@ -233,10 +233,17 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
     wantPlayingRef.current = true;
     setIsLoading(true);
 
-    // AudioContext resume — Telegram WebView ba'zan audio context'ni bloklaydi
+    // AudioContext resume — Telegram WebView ba'zan audio context'ni bloklaydi.
+    // Ba'zi Android WebView'larda resume() promise umuman hal bo'lmasligi mumkin —
+    // shu sabab timeout bilan "race" qilamiz, aks holda butun funksiya osilib qoladi.
     try {
       const ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state === 'suspended') {
+        await Promise.race([
+          ctx.resume(),
+          new Promise((resolve) => setTimeout(resolve, 1500)),
+        ]);
+      }
     } catch (_) { /* baribir davom etamiz */ }
 
     // Volume ishonchli
