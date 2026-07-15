@@ -43,6 +43,17 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     }
   };
 
+  // AbortError — play() so'rovi keyingi load()/pause() bilan bekor qilinganda
+  // tashlanadi (masalan tugma tez-tez bosilganda) — haqiqiy xato emas, tost
+  // ko'rsatib foydalanuvchini qo'rqitmaymiz.
+  const reportPlayError = (err: any) => {
+    clearLoadingTimeout();
+    setIsLoading(false);
+    if (err?.name !== 'AbortError') {
+      onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
+    }
+  };
+
   const disconnectHls = useCallback(() => {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
@@ -83,11 +94,7 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     }
     audio.src = url;
     audio.load();
-    audio.play().catch((err) => {
-      clearLoadingTimeout();
-      setIsLoading(false);
-      onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
-    });
+    audio.play().catch(reportPlayError);
   }, [buildIcecastUrl]);
 
   // ── HLS (MediaMTX) ──
@@ -106,11 +113,7 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     // Safari/iOS — native HLS qo'llab-quvvatlaydi, hls.js shart emas
     if (audio.canPlayType('application/vnd.apple.mpegurl')) {
       audio.src = hlsUrl;
-      audio.play().catch((err) => {
-        clearLoadingTimeout();
-        setIsLoading(false);
-        onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
-      });
+      audio.play().catch(reportPlayError);
       return;
     }
 
@@ -127,11 +130,7 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     hls.attachMedia(audio);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      audio.play().catch((err) => {
-        clearLoadingTimeout();
-        setIsLoading(false);
-        onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
-      });
+      audio.play().catch(reportPlayError);
     });
 
     hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -265,8 +264,11 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     const audio = audioRef.current;
     if (!audio) return;
 
-    // STOP
-    if (isPlaying || isLoading) {
+    // STOP — wantPlayingRef bilan (React state'dan farqli, sinxron) tekshiramiz:
+    // tugma tez-tez bosilganda isPlaying/isLoading hali render bo'lmagan bo'lishi
+    // mumkin, shu sabab ikkinchi bosish ham START shoxobchasiga tushib qolib,
+    // ikkinchi audio.load() birinchi play() va'dasini bekor qilardi (AbortError).
+    if (wantPlayingRef.current || isPlaying || isLoading) {
       wantPlayingRef.current = false;
       clearLoadingTimeout();
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
