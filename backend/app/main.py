@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routers import (
     admin,
     auth,
+    casting,
     chat,
     favorites,
     messages,
@@ -91,9 +92,13 @@ async def _run_migrations() -> None:
     """Schema SQL faylini o'qib, jadvallarni yaratadi (CREATE IF NOT EXISTS)."""
     import os
 
-    schema_path = os.path.join(os.path.dirname(__file__), "app", "db", "schema.sql")
+    # __file__ = .../app/main.py — schema.sql shu papkaning "db" ostida
+    # (bu formula lokal ishga tushirishда HAM, Docker'da HAM to'g'ri ishlaydi;
+    # oldingi versiya "app"ni ikki marta qo'shib, faqat Docker'da tasodifan
+    # to'g'ri chiqardi, lokal ishga tushirishда esa har doim migratsiyani
+    # sukut bilan o'tkazib yuborardi).
+    schema_path = os.path.join(os.path.dirname(__file__), "db", "schema.sql")
     if not os.path.exists(schema_path):
-        # Docker ichida to'g'ridan path
         schema_path = "/app/app/db/schema.sql"
     if not os.path.exists(schema_path):
         log.warning("Schema file not found, skipping migration")
@@ -141,6 +146,7 @@ app.include_router(stats.router)
 app.include_router(favorites.router)
 app.include_router(music.router)
 app.include_router(slots.router)
+app.include_router(casting.router)
 
 
 # Global exception handler

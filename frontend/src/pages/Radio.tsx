@@ -7,6 +7,7 @@ import { ProfileScreen } from '../components/profile/ProfileScreen';
 import { StatsScreen } from '../components/stats/StatsScreen';
 import { MusicScreen } from '../components/music/MusicScreen';
 import { SlotsScreen } from '../components/slots/SlotsScreen';
+import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
 import { getMe } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
@@ -85,13 +86,15 @@ export function Radio() {
       case 'anons':
         return <ChatScreen user={user} onPointsUpdate={handlePointsUpdate} />;
       case 'efir':
-        return <EfirScreen user={user} onPointsUpdate={handlePointsUpdate} />;
+        return <EfirScreen user={user} onPointsUpdate={handlePointsUpdate} onNavigate={handleNavigate} />;
       case 'stats':
         return <StatsScreen user={user} />;
       case 'music':
         return <MusicScreen user={user} onPointsUpdate={handlePointsUpdate} />;
       case 'schedule':
         return <SlotsScreen user={user} />;
+      case 'casting':
+        return <CastingScreen />;
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={setUser} />;
       default:

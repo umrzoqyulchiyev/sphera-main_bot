@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, X, Loader, Coffee, Activity, Users } from 'lucide-react';
+import { Send, X, Loader, Coffee, Activity, Users, Sparkles } from 'lucide-react';
 import { ChatMessages } from './ChatMessages';
 import { Visualizer } from './Visualizer';
 import { GoLiveButton } from './GoLiveButton';
@@ -11,14 +11,15 @@ import { getRadioStatus, getChatHistory, sendVoiceMessage, sendChatMessage } fro
 import { authHeaders } from '../../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { User, RadioStatus, ChatMessage } from '../../types';
+import type { User, RadioStatus, ChatMessage, Screen } from '../../types';
 
 interface EfirScreenProps {
   user: User | null;
   onPointsUpdate: (points: number) => void;
+  onNavigate?: (screen: Screen) => void;
 }
 
-export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -383,11 +384,20 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
 
       {/* ── ПОТОК REAL TIME кнопка (иконка для второго экрана) ── */}
       <div className="px-4 pb-2">
-        {/* 🔴 LIVE tugmasi — faqat admin/doverenniy uchun */}
-        {(user?.role === 'admin' || user?.role === 'doverenniy') && (
+        {/* 🔴 LIVE tugmasi — faqat admin/doverenniy uchun, qolganlarga kasting taklifi */}
+        {(user?.role === 'admin' || user?.role === 'doverenniy') ? (
           <div className="mb-2">
             <GoLiveButton city={city} onToast={showToast} />
           </div>
+        ) : (
+          <button
+            onClick={() => onNavigate?.('casting')}
+            className="w-full mb-2 py-3 rounded-2xl font-bold text-sm tracking-wide flex items-center justify-center gap-2 glass active:scale-[0.97] transition-all"
+            style={{ border: '1px solid rgba(94,106,210,0.25)', color: '#c5c9f5' }}
+          >
+            <Sparkles className="w-4 h-4 text-[#5e6ad2]" strokeWidth={1.8} />
+            Пройти кастинг — стать ведущим
+          </button>
         )}
         <button
           onClick={() => setShowStreamModal(true)}

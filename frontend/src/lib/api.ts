@@ -221,6 +221,50 @@ export async function sendTextMessage(_city: string, text: string, _lang: string
   return sendChatMessage(_city, text);
 }
 
+// ============ Casting (ведущий отбори) ============
+export interface CastingStatus {
+  applied: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
+  admin_note?: string;
+  created_at?: string;
+  already_doverenniy?: boolean;
+}
+
+export async function getCastingStatus(): Promise<CastingStatus> {
+  const resp = await fetch(`${API_URL}/casting/status`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch casting status');
+  return resp.json();
+}
+
+export async function applyCasting(audioBlob: Blob, note: string): Promise<any> {
+  const typeExtMap: Record<string, string> = {
+    'audio/mp4': 'm4a',
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/webm': 'webm',
+    'audio/wav': 'wav',
+  };
+  const baseType = (audioBlob.type || 'audio/webm').split(';')[0];
+  const ext = typeExtMap[baseType] || 'webm';
+
+  const fd = new FormData();
+  fd.append('audio_file', audioBlob, `audition.${ext}`);
+  fd.append('note', note);
+
+  const resp = await fetch(`${API_URL}/casting/apply`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: fd,
+  });
+  if (!resp.ok) {
+    const err: any = await resp.json().catch(() => ({}));
+    const error: any = new Error(err?.detail || 'Failed to submit casting application');
+    error.status = resp.status;
+    throw error;
+  }
+  return resp.json();
+}
+
 export async function uploadFile(_city: string, _file: File) {
   // v3 backend'da fayl endpointi yo'q — hozircha qo'llab-quvvatlanmaydi
   throw Object.assign(new Error('File upload not supported'), { status: 400 });

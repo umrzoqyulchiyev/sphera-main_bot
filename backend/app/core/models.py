@@ -218,8 +218,32 @@ class FavoriteOut(BaseModel):
     content: str | None = None
     broadcaster: str | None = None
     duration: int | None = None
-    audio_url: str | None = None
+
+
+# ============ Casting (ведущий отбори) ============
+class CastingApplicationOut(BaseModel):
+    id: int
+    user_id: int
+    username: str | None = None
+    display_name: str | None = None
+    audio_url: str
+    note: str = ""
+    status: str
+    admin_note: str = ""
     created_at: datetime
+    decided_at: datetime | None = None
+
+
+class CastingStatusOut(BaseModel):
+    applied: bool = False
+    status: str | None = None  # pending | approved | rejected
+    admin_note: str = ""
+    created_at: datetime | None = None
+    already_doverenniy: bool = False
+
+
+class CastingDecisionRequest(BaseModel):
+    admin_note: str = ""
 
 
 class FavoriteAddRequest(BaseModel):

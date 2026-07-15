@@ -214,3 +214,19 @@ CREATE TABLE IF NOT EXISTS broadcast_slots (
 );
 CREATE INDEX IF NOT EXISTS idx_slots_scheduled ON broadcast_slots(scheduled_at, status);
 CREATE INDEX IF NOT EXISTS idx_slots_host ON broadcast_slots(host_user_id, status);
+
+-- ============ Кастинг (отбор ведущих) ============
+-- Foydalanuvchi ariza + audio-audishen topshiradi, admin ko'rib chiqib
+-- tasdiqlasa — role 'doverenniy' bo'ladi (efirga chiqish huquqi).
+CREATE TABLE IF NOT EXISTS casting_applications (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    audio_path      VARCHAR(500) NOT NULL,
+    note            TEXT DEFAULT '',                -- foydalanuvchi o'zi haqida qisqa matn
+    status          VARCHAR(20) DEFAULT 'pending',   -- pending | approved | rejected
+    admin_note      TEXT DEFAULT '',                 -- admin izohi (masalan rad etish sababi)
+    created_at      TIMESTAMP DEFAULT NOW(),
+    decided_at      TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_casting_status ON casting_applications(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_casting_user ON casting_applications(user_id, created_at DESC);

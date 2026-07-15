@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminAddPoints,
@@ -8,7 +8,7 @@ import {
   getMusicNominations, adminDeleteNomination,
   type BroadcastSlot, type MusicNomination,
 } from '../lib/api';
-import { authHeaders } from '../lib/auth';
+import { authHeaders, getToken } from '../lib/auth';
 import { API_URL } from '../lib/config';
 import { getLang } from '../lib/i18n';
 
@@ -26,10 +26,17 @@ interface Draft {
   source_count: number; status: string; created_at: string;
   script_preview?: string; dialog?: string; meta?: any;
 }
+interface CastingApp {
+  id: number; user_id: number; username: string | null; display_name: string | null;
+  audio_url: string; note: string; status: string; admin_note: string;
+  created_at: string; decided_at: string | null;
+}
 
 const L: Record<string, Record<string, string>> = {
   ru: {
-    title: 'ADMIN PANEL', topics_tab: 'Темы', users_tab: 'Люди', drafts_tab: 'Эфир', slots_tab: 'Слоты', music_tab: 'Музыка',
+    title: 'ADMIN PANEL', topics_tab: 'Темы', users_tab: 'Люди', drafts_tab: 'Эфир', slots_tab: 'Слоты', music_tab: 'Музыка', casting_tab: 'Кастинг',
+    no_casting: 'Нет заявок', casting_approve: 'Одобрить → Доверенный', casting_reject: 'Отклонить',
+    casting_note_placeholder: 'Комментарий (необязательно)...',
     new_topic: 'Новая тема', topic_title: 'Название темы', topic_desc: 'Описание',
     create: 'Создать', close: 'Закрыть', active: 'Активна', closed: 'Закрыта',
     opinions: 'мнений', no_topics: 'Нет тем', no_users: 'Нет пользователей',
@@ -43,7 +50,9 @@ const L: Record<string, Record<string, string>> = {
     confirm_delete_nom: 'Удалить этот трек из голосования?',
   },
   en: {
-    title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'People', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music',
+    title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'People', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
+    no_casting: 'No applications', casting_approve: 'Approve → Trusted', casting_reject: 'Reject',
+    casting_note_placeholder: 'Note (optional)...',
     new_topic: 'New topic', topic_title: 'Topic title', topic_desc: 'Description',
     create: 'Create', close: 'Close', active: 'Active', closed: 'Closed',
     opinions: 'opinions', no_topics: 'No topics', no_users: 'No users',
@@ -57,7 +66,9 @@ const L: Record<string, Record<string, string>> = {
     confirm_delete_nom: 'Remove this track from voting?',
   },
   lt: {
-    title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Žmonės', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika',
+    title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Žmonės', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
+    no_casting: 'Nėra paraiškų', casting_approve: 'Patvirtinti → Patikimas', casting_reject: 'Atmesti',
+    casting_note_placeholder: 'Komentaras (neprivalomas)...',
     new_topic: 'Nauja tema', topic_title: 'Temos pavadinimas', topic_desc: 'Aprašymas',
     create: 'Sukurti', close: 'Uždaryti', active: 'Aktyvi', closed: 'Uždaryta',
     opinions: 'nuomonių', no_topics: 'Nėra temų', no_users: 'Nėra vartotojų',
@@ -104,16 +115,38 @@ async function adminRejectDraft(id: number) {
   if (!r.ok) throw new Error('Failed');
   return r.json();
 }
+async function adminGetCasting(status: string): Promise<CastingApp[]> {
+  const r = await fetch(`${API_URL}/casting/admin/list?status=${status}`, { headers: authHeaders() });
+  if (!r.ok) throw new Error('Failed');
+  return r.json();
+}
+async function adminApproveCasting(id: number, adminNote: string) {
+  const r = await fetch(`${API_URL}/casting/admin/${id}/approve`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ admin_note: adminNote }),
+  });
+  if (!r.ok) throw new Error('Failed');
+  return r.json();
+}
+async function adminRejectCasting(id: number, adminNote: string) {
+  const r = await fetch(`${API_URL}/casting/admin/${id}/reject`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ admin_note: adminNote }),
+  });
+  if (!r.ok) throw new Error('Failed');
+  return r.json();
+}
 
 export function Admin() {
   const navigate = useNavigate();
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
-  const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music'>('topics');
+  const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music' | 'casting'>('topics');
   const [topics, setTopics] = useState<Topic[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [slots, setSlots] = useState<BroadcastSlot[]>([]);
+  const [castingApps, setCastingApps] = useState<CastingApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -132,6 +165,7 @@ export function Admin() {
       else if (tab === 'users') setUsers(await getUsers());
       else if (tab === 'slots') { setSlots(await getAllSlots()); setUsers(await getUsers()); }
       else if (tab === 'music') setTopics(await adminGetTopics());
+      else if (tab === 'casting') setCastingApps(await adminGetCasting('pending'));
       else setDrafts(await adminGetDrafts());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -186,11 +220,11 @@ export function Admin() {
           </div>
         </header>
 
-        {/* Tabs — 5 ta */}
+        {/* Tabs — 6 ta */}
         <div className="flex gap-1.5 flex-wrap">
-          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')]] as const).map(([t, Icon, label]) => (
+          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')]] as const).map(([t, Icon, label]) => (
             <button key={t} onClick={() => setTab(t as any)}
-              className={`flex-1 py-2 px-1 rounded-[14px] border font-semibold text-[10px] transition-all flex items-center justify-center gap-1 min-w-[18%] ${
+              className={`flex-1 py-2 px-1 rounded-[14px] border font-semibold text-[10px] transition-all flex items-center justify-center gap-1 min-w-[30%] ${
                 tab === t ? 'bg-gradient-to-br from-[#7b85e8] to-[#5e6ad2] text-[#020203] border-transparent' : 'glass text-[#ededef]'
               }`}>
               <Icon className="w-3 h-3" />{label}
@@ -209,6 +243,10 @@ export function Admin() {
             onAggregate={handleAggregate} />
         ) : tab === 'drafts' ? (
           <DraftsTab drafts={drafts} tx={tx} onView={handleViewDraft} onApprove={handleApproveDraft} onReject={handleRejectDraft} />
+        ) : tab === 'casting' ? (
+          <CastingTab apps={castingApps} tx={tx}
+            onApprove={async (id: number, note: string) => { try { await adminApproveCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }}
+            onReject={async (id: number, note: string) => { try { await adminRejectCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }} />
         ) : tab === 'slots' ? (
           <SlotsTab slots={slots} users={users} onReload={loadData} flash={flash} />
         ) : tab === 'music' ? (
@@ -392,6 +430,61 @@ function DraftModal({ draft, tx, onClose, onApprove, onReject }: any) {
 }
 
 // ── SlotsTab — Efir jadvali boshqaruvi ──────────────────────
+function CastingTab({ apps, tx, onApprove, onReject }: any) {
+  const [noteById, setNoteById] = useState<Record<number, string>>({});
+  if (apps.length === 0) return <div className="glass p-8 text-center text-[#8a8f98] text-sm">{tx('no_casting')}</div>;
+  return (
+    <div className="flex flex-col gap-3">
+      {apps.map((a: CastingApp) => (
+        <div key={a.id} className="glass rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(94,106,210,0.15)' }}>
+              <Mic className="w-4 h-4 text-[#5e6ad2]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-[#ededef] truncate">
+                {a.display_name || a.username || `id${a.user_id}`}
+              </div>
+              <div className="text-[10px] text-[#8a8f98]">{new Date(a.created_at).toLocaleString()}</div>
+            </div>
+          </div>
+
+          <audio controls src={`${API_URL}${a.audio_url}?token=${getToken()}`} className="w-full h-9" />
+
+          {a.note && (
+            <div className="text-[11px] text-[#8a8f98] bg-[rgba(10,10,12,0.4)] rounded-xl p-3 leading-relaxed">
+              {a.note}
+            </div>
+          )}
+
+          <input
+            value={noteById[a.id] ?? ''}
+            onChange={(e) => setNoteById((prev) => ({ ...prev, [a.id]: e.target.value }))}
+            placeholder={tx('casting_note_placeholder')}
+            className="w-full bg-[rgba(10,10,12,0.6)] border border-[rgba(94,106,210,0.2)] rounded-xl px-3 py-2 text-xs text-[#ededef] outline-none"
+          />
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => onApprove(a.id, noteById[a.id] || '')}
+              className="flex-1 py-2 rounded-xl text-xs font-bold bg-[rgba(34,197,94,0.15)] text-[#22c55e] flex items-center justify-center gap-1"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> {tx('casting_approve')}
+            </button>
+            <button
+              onClick={() => onReject(a.id, noteById[a.id] || '')}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] flex items-center justify-center gap-1"
+            >
+              <XCircle className="w-3.5 h-3.5" /> {tx('casting_reject')}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SlotsTab({ slots, users, onReload, flash }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
