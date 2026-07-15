@@ -76,8 +76,8 @@ class Settings(BaseSettings):
     use_mediamtx: bool = False
     mediamtx_host: str = "localhost"
     mediamtx_rtmp_port: int = 1935
+    mediamtx_hls_port: int = 8888
     mediamtx_publish_pass: str = "MediaMTXPass2025!"
-    mediamtx_public_url: str = "http://localhost:8889"
 
     # ── Storage ──
     audio_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.audio"

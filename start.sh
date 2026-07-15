@@ -16,7 +16,13 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-VENV="$ROOT/.venv/bin"
+# .venv ba'zi mashinalarda (masalan bu Mac'da) mos kelmaydigan/eskirgan
+# Python'ga ishora qilishi mumkin — mavjud bo'lsa .venv_mac ustunlik qiladi.
+if [ -x "$ROOT/.venv_mac/bin/python" ]; then
+    VENV="$ROOT/.venv_mac/bin"
+else
+    VENV="$ROOT/.venv/bin"
+fi
 LOGDIR="$ROOT/.logs"
 mkdir -p "$LOGDIR" /tmp/sphera_uploads /tmp/sphera_audio
 
@@ -54,7 +60,17 @@ fi
 echo "[4/7] HTTPS tunnel ochilmoqda..."
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 sleep 1
-"$ROOT/bin/cloudflared" tunnel --url http://localhost:8001 --no-autoupdate \
+# Repo'dagi bin/cloudflared boshqa platforma (masalan Linux/WSL) uchun
+# bo'lishi mumkin — shu holatda PATH'dagi (masalan brew bilan o'rnatilgan)
+# cloudflared'ga o'tamiz.
+CLOUDFLARED_BIN="$ROOT/bin/cloudflared"
+if ! "$CLOUDFLARED_BIN" --version >/dev/null 2>&1; then
+    if command -v cloudflared >/dev/null 2>&1; then
+        CLOUDFLARED_BIN="$(command -v cloudflared)"
+        echo "  ⓘ  bin/cloudflared bu platformada ishlamayapti — $CLOUDFLARED_BIN ishlatilmoqda"
+    fi
+fi
+"$CLOUDFLARED_BIN" tunnel --url http://localhost:8001 --no-autoupdate \
     > "$LOGDIR/tunnel.log" 2>&1 &
 
 TUNNEL_URL=""
@@ -73,7 +89,9 @@ echo "[4/7] Tunnel ✓ → $TUNNEL_URL"
 
 # URL' larni .env va frontend/.env ga yozish
 WSS_URL="wss://${TUNNEL_URL#https://}"
-sed -i "s|^MINI_APP_URL=.*|MINI_APP_URL=$TUNNEL_URL|" "$ROOT/.env"
+# macOS (BSD sed) va Linux (GNU sed) -i bayrog'i boshqacha ishlaydi —
+# shu sabab vaqtinchalik faylga yozib, keyin almashtiramiz (ikkalasida ham ishlaydi).
+sed "s|^MINI_APP_URL=.*|MINI_APP_URL=$TUNNEL_URL|" "$ROOT/.env" > "$ROOT/.env.tmp" && mv "$ROOT/.env.tmp" "$ROOT/.env"
 cat > "$ROOT/frontend/.env" <<EOF
 # Same-origin API (backend frontendni o'zi serve qiladi)
 VITE_API_URL=

@@ -6,8 +6,20 @@ from app.core.config import settings
 AUDIO_DIR = settings.audio_dir
 USE_MEDIAMTX = settings.use_mediamtx
 
-# MediaMTX'ning public URL'i (HLS) — browser to'g'ridan ulanadi
-MEDIAMTX_PUBLIC_URL = os.getenv("MEDIAMTX_PUBLIC_URL", settings.mediamtx_public_url).rstrip("/")
+
+def hls_stream_url(lang: str | None = None) -> str | None:
+    """HLS oqim manzili — backend'ning o'z proksisi orqali (bir xil origin).
+
+    MediaMTX'ga to'g'ridan-to'g'ri (masalan http://localhost:8888) emas,
+    backend orqali beriladi: mobil klient (Telegram Mini App) faqat backend
+    tunnel'iga ulanadi, MediaMTX alohida oshkor qilinishi shart emas
+    (bo'lmasa "localhost" klient qurilmasining o'ziga ishora qiladi).
+    """
+    if not USE_MEDIAMTX:
+        return None
+    lng = lang if lang in ("ru", "lt", "en") else "ru"
+    return f"/radio/hls/live_{lng}/index.m3u8"
+
 
 # Amaldagi shaharlar (bazadan yuklanadi, dinamik kengayadi)
 VALID_CITIES: set[str] = set()
@@ -43,10 +55,7 @@ class CityRadioState:
 
     def stream_url(self, lang: str = None) -> str:
         if USE_MEDIAMTX:
-            lng = lang if lang in ("ru", "lt", "en") else "ru"
-            # Har safar env'dan o'qiymiz (runtime'da o'zgarishi mumkin)
-            base = os.getenv("MEDIAMTX_PUBLIC_URL", "").rstrip("/") or MEDIAMTX_PUBLIC_URL
-            return f"{base}/live_{lng}/index.m3u8"
+            return hls_stream_url(lang)
         if self.segments:
             return f"/radio/audio/{self.city}/{self.segments[-1]['filename']}"
         return None

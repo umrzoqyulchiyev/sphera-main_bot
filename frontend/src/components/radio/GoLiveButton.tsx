@@ -127,7 +127,16 @@ export function GoLiveButton({ city, onToast }: GoLiveButtonProps) {
           await stopBroadcast();
         }
       })
-      .catch(() => {});
+      .catch(async () => {
+        // fetch() tarmoq xatosi bilan reject bo'lishi mumkin (uzilish, timeout,
+        // mobil tarmoq sakrashi) — bu holatni jim yutib yubormaymiz, aks holda
+        // "🔴 LIVE" ko'rinib turaveradi-yu, chunk'lar serverga umuman yetib
+        // bormay qoladi va tinglovchi hech narsa eshitmaydi.
+        if (liveRef.current) {
+          onToast(t('send_error'));
+          await stopBroadcast();
+        }
+      });
   };
 
   const startRecorder = (stream: MediaStream) => {

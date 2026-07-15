@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -12,8 +14,9 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
+from app.core.config import settings
 from app.core.constants import ROLE_LEVELS
 from app.core.database import db
 from app.core.dependencies import decode_token, require_role
@@ -25,7 +28,7 @@ from app.core.models import (
     SegmentOut,
     SegmentRegister,
 )
-from app.core.state import AUDIO_DIR, VALID_CITIES, get_state
+from app.core.state import AUDIO_DIR, VALID_CITIES, get_state, hls_stream_url
 from app.core.ws_manager import manager
 from app.services import broadcast
 
@@ -140,13 +143,9 @@ async def clear_broadcast(city: str = Query(default="global")):
 async def radio_status(city: str = Query(...)):
     # "global" yoki VALID_CITIES da yo'q bo'lsa — umumiy holat qaytaramiz
     if city not in VALID_CITIES:
-        from app.core.state import MEDIAMTX_PUBLIC_URL, USE_MEDIAMTX
+        from app.core.state import USE_MEDIAMTX
 
-        _stream = (
-            f"{MEDIAMTX_PUBLIC_URL}/live_ru/index.m3u8"
-            if (MEDIAMTX_PUBLIC_URL and USE_MEDIAMTX)
-            else None
-        )
+        _stream = hls_stream_url()
         return RadioStatus(
             is_live=True,
             broadcaster_type="ai",
@@ -157,6 +156,73 @@ async def radio_status(city: str = Query(...)):
         )
     st = get_state(city)
     return RadioStatus(**st.to_dict(listeners_count=manager.listeners_count(city)))
+
+
+@router.get("/hls/{path:path}")
+async def hls_proxy(path: str, request: Request):
+    """MediaMTX HLS oqimini backend orqali proksi qiladi.
+
+    MediaMTX odatda faqat ichki tarmoqda (masalan localhost yoki docker
+    network) ishlaydi va alohida oshkor qilinmagan — klient (Telegram Mini
+    App) faqat backend'ning ochiq tunnel'iga ulanadi. Shu sabab .m3u8/.ts
+    so'rovlarini backend o'zi MediaMTX'dan olib, xuddi shu origin orqali
+    qaytaradi (mixed-content va "localhost klient qurilmasiga ishora
+    qiladi" muammolarining oldini oladi).
+
+    MediaMTX HLS server sessiyani cookie orqali kuzatadi (birinchi so'rovga
+    "cookieCheck" bilan 302 qaytaradi), shuning uchun klient↔MediaMTX
+    o'rtasida cookie va query-string (masalan ?session=...) ikki tomonlama
+    forward qilinishi kerak — aks holda keyingi (media playlist/segment)
+    so'rovlar 401 bilan qaytadi.
+    """
+    if not broadcast.USE_MEDIAMTX or ".." in path:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    url = f"http://{broadcast.MEDIAMTX_HOST}:{settings.mediamtx_hls_port}/{path}"
+    if request.url.query:
+        url = f"{url}?{request.url.query}"
+
+    fwd_headers = {}
+    if request.headers.get("cookie"):
+        fwd_headers["cookie"] = request.headers["cookie"]
+
+    client = httpx.AsyncClient(timeout=10.0)
+    try:
+        # MediaMTX birinchi so'rovga sessiya cookie o'rnatish uchun 302 bilan
+        # javob beradi ("cookieCheck") — shu redirect'ni server ichida bosib
+        # o'tamiz, aks holda klientga ichki MediaMTX manzili sizib chiqadi.
+        upstream = await client.send(
+            client.build_request("GET", url, headers=fwd_headers),
+            stream=True,
+            follow_redirects=True,
+        )
+    except httpx.RequestError:
+        await client.aclose()
+        raise HTTPException(status_code=502, detail="MediaMTX unreachable")
+
+    if upstream.status_code != 200:
+        await upstream.aclose()
+        await client.aclose()
+        raise HTTPException(status_code=upstream.status_code, detail="Upstream error")
+
+    async def body() -> AsyncIterator[bytes]:
+        try:
+            async for chunk in upstream.aiter_bytes():
+                yield chunk
+        finally:
+            await upstream.aclose()
+            await client.aclose()
+
+    media_type = upstream.headers.get("content-type", "application/octet-stream")
+    # Playlist (.m3u8) tez-tez yangilanadi — kesh qilinmasin
+    headers = {"Cache-Control": "no-cache"} if path.endswith(".m3u8") else {}
+    resp = StreamingResponse(body(), media_type=media_type, headers=headers)
+    # Sessiya cookie'sini (redirect zanjiridagi barcha bosqichlardan) klientga
+    # qaytaramiz — keyingi so'rovlarda brauzer o'zi qaytarib yuboradi.
+    for hop in (*upstream.history, upstream):
+        for raw_cookie in hop.headers.get_list("set-cookie"):
+            resp.headers.append("set-cookie", raw_cookie)
+    return resp
 
 
 @router.post("/status", response_model=OkResponse, dependencies=[Depends(require_internal_key)])
