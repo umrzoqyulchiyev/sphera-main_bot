@@ -9,15 +9,10 @@
         <client-timeout>30</client-timeout>
         <header-timeout>15</header-timeout>
         <source-timeout>10</source-timeout>
-        <!-- MUHIM: burst o'chirilgan. Burst yoqilgan bo'lsa, yangi klientga
-             darhol bir necha soniyalik audio "portlab" yuboriladi — bu esa
-             backend proksidagi (radio.py:icecast_proxy) bayt-hisobli kechikish
-             buferini deyarli zumda to'ldirib, qasddan qo'shilgan ~6-8s
-             kechikishni yo'qqa chiqaradi. Burst o'chiq bo'lsa, oqim proksiga
-             chinakam real vaqtда keladi va bufer haqiqatan ham ~6-8s davomida
-             to'ladi. -->
-        <burst-on-connect>0</burst-on-connect>
-        <burst-size>0</burst-size>
+        <!-- Yangi tinglovchi ulanganda bir necha soniyalik audio darhol
+             yuboriladi — pleyer tezroq ovoz eshita boshlaydi (kutish yo'q). -->
+        <burst-on-connect>1</burst-on-connect>
+        <burst-size>65535</burst-size>
     </limits>
 
     <authentication>

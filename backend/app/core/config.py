@@ -84,9 +84,6 @@ class Settings(BaseSettings):
     icecast_host: str = "localhost"
     icecast_port: int = 8000
     icecast_pass: str = "IcecastPass2025!"
-    # Proksi qasddan ushlab turadigan kechikish (sekund) — tarmoq jitter'idan
-    # himoya + tinglovchilar bir xil "live" nuqtada bo'lishi uchun.
-    icecast_delay_sec: float = 7.0
 
     # ── Storage ──
     audio_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.audio"

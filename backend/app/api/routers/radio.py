@@ -234,16 +234,19 @@ async def hls_proxy(path: str, request: Request):
 
 @router.get("/live/{lang}")
 async def icecast_proxy(lang: str):
-    """Icecast oqimini backend orqali proksi qiladi, qasddan kechikish bilan.
+    """Icecast oqimini backend orqali proksi qiladi (deyarli real vaqt).
 
     Icecast xuddi MediaMTX kabi faqat ichki tarmoqda ishlaydi — klient shu
     proksiga ulanadi, ichki manzil oshkor qilinmaydi.
 
-    Kechikish (settings.icecast_delay_sec, ~6-8s): boshlanishida klientga
-    darhol yubormasdan shuncha sekundlik audio ichki buferга yig'amiz, keyin
-    uzluksiz o'tkazamiz. Manba ham, o'tkazish ham real vaqtда ishlagani
-    uchun bu siljish butun sessiya davomida saqlanadi — barqaror kechikish
-    (tarmoq jitter'iga chidamli, barcha tinglovchida bir xil "live" nuqta).
+    Baytlar kelgan zahoti uzatiladi — sun'iy kechikish/bufer yo'q. Avval
+    ~6-8s qasddan kechikish sinab ko'rilgan edi (buferга yetarli bayt
+    yig'ilgunча klientga hech narsa yubormaslik), lekin bu mobil WebView'да
+    "play()" chaqirilgach bir necha soniya hech qanday bayt kelmasligiga olib
+    keldi — ba'zi pleyerlarning o'zining ichki stall-taймаути bizning JS
+    tarafdagi 12s kutishdan oldinroq ishga tushib, sukut bilan uzilib
+    qolishga sabab bo'lgan (xato ko'rsatilmasdan). Ishonchlilik ustunroq —
+    Icecast'ning tabiiy past kechikishi (~1-3s) bilan qoldirilgan.
     """
     if lang not in BROADCAST_LANGS:
         raise HTTPException(status_code=404, detail="Unknown stream language")
@@ -251,9 +254,6 @@ async def icecast_proxy(lang: str):
         raise HTTPException(status_code=404, detail="Icecast disabled")
 
     upstream_url = f"http://{broadcast.ICECAST_HOST}:{settings.icecast_port}/live_{lang}"
-    # continuous.py/broadcast.py bilan mos: 128kbps mp3
-    bytes_per_sec = 128_000 / 8
-    buffer_target = int(settings.icecast_delay_sec * bytes_per_sec)
 
     async def body() -> AsyncIterator[bytes]:
         # read=10.0: manba vaqtincha jim bo'lib qolsa (masalan continuous.py
@@ -269,17 +269,8 @@ async def icecast_proxy(lang: str):
                         if resp.status_code != 200:
                             await asyncio.sleep(0.5)
                             continue
-                        buf = bytearray()
-                        primed = False
                         async for chunk in resp.aiter_bytes(4096):
-                            if not primed:
-                                buf.extend(chunk)
-                                if len(buf) >= buffer_target:
-                                    yield bytes(buf)
-                                    buf.clear()
-                                    primed = True
-                            else:
-                                yield chunk
+                            yield chunk
             except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError):
                 await asyncio.sleep(0.5)
                 continue
