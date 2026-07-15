@@ -78,6 +78,12 @@ class BroadcastSession:
         mount = "/live_ru"
         cmd = [
             _ffmpeg_bin(),
+            # -re: kirishni real vaqt tezligida o'qiydi. Icecast — oddiy bayt
+            # relay (HLS'dan farqli, segment timestamp'lariga qarab qayta
+            # sinxronlamaydi), shu sabab -re bo'lmasa ffmpeg tarmoqdan kelgan
+            # bo'laklarni imkon qadar tez qayta ishlab, oqimni soniyalarда
+            # "tugatib qo'yadi" — tinglovchi hech narsa ulgurmaydi eshitishga.
+            "-re",
             "-f",
             "webm",
             "-i",
