@@ -313,6 +313,7 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
         console.warn('Audio loading timeout');
         setIsLoading(false);
         wantPlayingRef.current = false;
+        onErrorRef.current?.('Efirga ulanib bo\'lmadi, qayta urinib ko\'ring');
       }
     }, 12000);
 

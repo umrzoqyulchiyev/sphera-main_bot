@@ -9,9 +9,13 @@ Aks holda USE_MEDIAMTX=true bo'lsa — MediaMTX (AAC/RTMP→HLS) ishlatiladi.
 Ikkalasi ham false (dev) bo'lsa — jonli efir mavjud emas (AI playlist ishlaydi).
 """
 
+import logging
 import os
 import subprocess
+import threading
 import time
+
+log = logging.getLogger("broadcast")
 
 USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
 USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
@@ -78,6 +82,7 @@ class BroadcastSession:
         mount = "/live_ru"
         cmd = [
             _ffmpeg_bin(),
+            "-hide_banner",
             # -re: kirishni real vaqt tezligida o'qiydi. Icecast — oddiy bayt
             # relay (HLS'dan farqli, segment timestamp'lariga qarab qayta
             # sinxronlamaydi), shu sabab -re bo'lmasa ffmpeg tarmoqdan kelgan
@@ -95,8 +100,21 @@ class BroadcastSession:
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
         )
+        # stderr'ni DEVNULL qilib tashlab yubormaymiz — jonli mikrofon
+        # ffmpeg'i real qurilmalarda ba'zan tezda o'lib qoladi (feed failed),
+        # sababini ko'rish uchun fon oqimida log'ga yozamiz.
+        threading.Thread(target=self._log_stderr, daemon=True).start()
+
+    def _log_stderr(self) -> None:
+        proc = self.proc
+        if proc is None or proc.stderr is None:
+            return
+        for line in iter(proc.stderr.readline, b""):
+            text = line.decode(errors="replace").rstrip()
+            if text:
+                log.warning("[broadcast:%s] ffmpeg: %s", self.city, text)
 
     def write(self, chunk: bytes) -> bool:
         """Audio chunk'ni FFmpeg stdin'ga yozadi. Muvaffaqiyat — True."""

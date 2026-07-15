@@ -256,7 +256,10 @@ async def icecast_proxy(lang: str):
     buffer_target = int(settings.icecast_delay_sec * bytes_per_sec)
 
     async def body() -> AsyncIterator[bytes]:
-        timeout = httpx.Timeout(connect=5.0, read=None, write=5.0, pool=5.0)
+        # read=10.0: manba vaqtincha jim bo'lib qolsa (masalan continuous.py
+        # pause/resume o'tishida) uzilish tezda sezilib qayta ulanadi — aks
+        # holda klient hech qanday xatosiz cheksiz osilib qolardi.
+        timeout = httpx.Timeout(connect=5.0, read=10.0, write=5.0, pool=5.0)
         for _attempt in range(1000):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
@@ -277,7 +280,7 @@ async def icecast_proxy(lang: str):
                                     primed = True
                             else:
                                 yield chunk
-            except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError):
+            except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError):
                 await asyncio.sleep(0.5)
                 continue
             except Exception:  # noqa: BLE001
