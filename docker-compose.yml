@@ -48,6 +48,14 @@ services:
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
 
+  icecast:
+    image: moul/icecast
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # jonli efir manbai — backend /radio/live/{lang} orqali proksi qiladi
+    volumes:
+      - ./infra/icecast/icecast.xml:/etc/icecast2/icecast.xml:ro
+
   backend:
     build:
       context: ./backend
@@ -61,6 +69,7 @@ services:
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
       MEDIAMTX_HOST: mediamtx
+      ICECAST_HOST: icecast
       MINIAPP_DIR: /app/frontend
     volumes:
       - audio_data:${AUDIO_DIR:-/tmp/sphera_audio}

@@ -28,7 +28,13 @@ from app.core.models import (
     SegmentOut,
     SegmentRegister,
 )
-from app.core.state import AUDIO_DIR, VALID_CITIES, get_state, hls_stream_url
+from app.core.state import (
+    AUDIO_DIR,
+    VALID_CITIES,
+    get_state,
+    hls_stream_url,
+    icecast_stream_url,
+)
 from app.core.ws_manager import manager
 from app.services import broadcast
 
@@ -143,15 +149,16 @@ async def clear_broadcast(city: str = Query(default="global")):
 async def radio_status(city: str = Query(...)):
     # "global" yoki VALID_CITIES da yo'q bo'lsa — umumiy holat qaytaramiz
     if city not in VALID_CITIES:
-        from app.core.state import USE_MEDIAMTX
+        from app.core.state import USE_ICECAST, USE_MEDIAMTX
 
-        _stream = hls_stream_url()
+        _stream = icecast_stream_url() if USE_ICECAST else hls_stream_url()
         return RadioStatus(
             is_live=True,
             broadcaster_type="ai",
             broadcaster_name="AI Host",
             listeners_count=0,
-            use_hls=USE_MEDIAMTX,
+            use_hls=USE_MEDIAMTX and not USE_ICECAST,
+            use_icecast=USE_ICECAST,
             stream_url=_stream,
         )
     st = get_state(city)
@@ -223,6 +230,71 @@ async def hls_proxy(path: str, request: Request):
         for raw_cookie in hop.headers.get_list("set-cookie"):
             resp.headers.append("set-cookie", raw_cookie)
     return resp
+
+
+@router.get("/live/{lang}")
+async def icecast_proxy(lang: str):
+    """Icecast oqimini backend orqali proksi qiladi, qasddan kechikish bilan.
+
+    Icecast xuddi MediaMTX kabi faqat ichki tarmoqda ishlaydi — klient shu
+    proksiga ulanadi, ichki manzil oshkor qilinmaydi.
+
+    Kechikish (settings.icecast_delay_sec, ~6-8s): boshlanishida klientga
+    darhol yubormasdan shuncha sekundlik audio ichki buferга yig'amiz, keyin
+    uzluksiz o'tkazamiz. Manba ham, o'tkazish ham real vaqtда ishlagani
+    uchun bu siljish butun sessiya davomida saqlanadi — barqaror kechikish
+    (tarmoq jitter'iga chidamli, barcha tinglovchida bir xil "live" nuqta).
+    """
+    if lang not in BROADCAST_LANGS:
+        raise HTTPException(status_code=404, detail="Unknown stream language")
+    if not broadcast.USE_ICECAST:
+        raise HTTPException(status_code=404, detail="Icecast disabled")
+
+    upstream_url = f"http://{broadcast.ICECAST_HOST}:{settings.icecast_port}/live_{lang}"
+    # continuous.py/broadcast.py bilan mos: 128kbps mp3
+    bytes_per_sec = 128_000 / 8
+    buffer_target = int(settings.icecast_delay_sec * bytes_per_sec)
+
+    async def body() -> AsyncIterator[bytes]:
+        timeout = httpx.Timeout(connect=5.0, read=None, write=5.0, pool=5.0)
+        for _attempt in range(1000):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    async with client.stream(
+                        "GET", upstream_url, headers={"Icy-MetaData": "0"}
+                    ) as resp:
+                        if resp.status_code != 200:
+                            await asyncio.sleep(0.5)
+                            continue
+                        buf = bytearray()
+                        primed = False
+                        async for chunk in resp.aiter_bytes(4096):
+                            if not primed:
+                                buf.extend(chunk)
+                                if len(buf) >= buffer_target:
+                                    yield bytes(buf)
+                                    buf.clear()
+                                    primed = True
+                            else:
+                                yield chunk
+            except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError):
+                await asyncio.sleep(0.5)
+                continue
+            except Exception:  # noqa: BLE001
+                return
+
+    return StreamingResponse(
+        body(),
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "no-cache, no-store",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # nginx/cloudflare buferingini o'chiradi
+            "X-Content-Type-Options": "nosniff",
+            "Transfer-Encoding": "chunked",
+            "icy-name": f"Radio AI {lang.upper()}",
+        },
+    )
 
 
 @router.post("/status", response_model=OkResponse, dependencies=[Depends(require_internal_key)])

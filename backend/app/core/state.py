@@ -5,6 +5,7 @@ from app.core.config import settings
 
 AUDIO_DIR = settings.audio_dir
 USE_MEDIAMTX = settings.use_mediamtx
+USE_ICECAST = settings.use_icecast
 
 
 def hls_stream_url(lang: str | None = None) -> str | None:
@@ -19,6 +20,19 @@ def hls_stream_url(lang: str | None = None) -> str | None:
         return None
     lng = lang if lang in ("ru", "lt", "en") else "ru"
     return f"/radio/hls/live_{lng}/index.m3u8"
+
+
+def icecast_stream_url(lang: str | None = None) -> str | None:
+    """Icecast oqim manzili — backend'ning o'z proksisi orqali (bir xil origin).
+
+    HLS'dan farqli, past kechikish uchun: uzluksiz MP3 oqim, segment/manifest
+    yo'q. Proksi (radio.py:icecast_proxy) qasddan ~6-8s kechikish qo'shadi
+    (tarmoq jitter'iga chidamlilik uchun).
+    """
+    if not USE_ICECAST:
+        return None
+    lng = lang if lang in ("ru", "lt", "en") else "ru"
+    return f"/radio/live/{lng}"
 
 
 # Amaldagi shaharlar (bazadan yuklanadi, dinamik kengayadi)
@@ -54,6 +68,8 @@ class CityRadioState:
         self.segments: list[dict] = []
 
     def stream_url(self, lang: str = None) -> str:
+        if USE_ICECAST:
+            return icecast_stream_url(lang)
         if USE_MEDIAMTX:
             return hls_stream_url(lang)
         if self.segments:
@@ -86,7 +102,8 @@ class CityRadioState:
             "broadcaster_name": self.broadcaster_name,
             "listeners_count": listeners_count,
             "stream_url": self.stream_url(),
-            "use_hls": USE_MEDIAMTX,
+            "use_hls": USE_MEDIAMTX and not USE_ICECAST,
+            "use_icecast": USE_ICECAST,
             "current_segment": self.segments[-1] if self.segments else None,
         }
 

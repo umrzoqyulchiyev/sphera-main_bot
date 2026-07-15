@@ -1,24 +1,52 @@
-"""Broadcast_Service — jonli efir (WebSocket → MediaMTX RTMP).
+"""Broadcast_Service — jonli efir (WebSocket → Icecast yoki MediaMTX RTMP).
 
 Doverenniy mikrofon audiosini (webm/opus chunks) WebSocket orqali oladi,
-FFmpeg subprocess stdin'ga yozadi, FFmpeg uni MediaMTX mountpoint'ga uzatadi.
-Butun guruh shu mountpoint'ni tinglaydi.
+FFmpeg subprocess stdin'ga yozadi, FFmpeg uni Icecast/MediaMTX mountpoint'ga
+uzatadi. Butun guruh shu mountpoint'ni tinglaydi.
 
-USE_MEDIAMTX=false (dev) bo'lsa — jonli efir mavjud emas (AI playlist ishlaydi).
+USE_ICECAST=true bo'lsa — Icecast (MP3, past kechikish) ishlatiladi.
+Aks holda USE_MEDIAMTX=true bo'lsa — MediaMTX (AAC/RTMP→HLS) ishlatiladi.
+Ikkalasi ham false (dev) bo'lsa — jonli efir mavjud emas (AI playlist ishlaydi).
 """
 
 import os
 import subprocess
 import time
 
+USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
 USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
 # Mikrofon chunk'lari har ~0.5s kelib turishi kerak (GoLiveButton.tsx).
 # Shuncha vaqt chunk kelmasa — sessiya "osilib qolgan" deb hisoblanadi
 # (masalan foydalanuvchi /stop chaqirmasdan ilovani yopib qo'ygan).
 STALE_TIMEOUT_SEC = 15
+ICECAST_HOST = os.getenv("ICECAST_HOST", "icecast")
+ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
+ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
 MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "mediamtx")
 MEDIAMTX_RTMP_PORT = int(os.getenv("MEDIAMTX_RTMP_PORT", "1935"))
 MEDIAMTX_PUBLISH_PASS = os.getenv("MEDIAMTX_PUBLISH_PASS", "MediaMTXPass2025!")
+
+
+def _target_url(mount: str) -> str:
+    """Chiqish manzili — Icecast yoki MediaMTX (USE_ICECAST ustuvor)."""
+    if USE_ICECAST:
+        return f"icecast://source:{ICECAST_PASS}@{ICECAST_HOST}:{ICECAST_PORT}{mount}"
+    # MediaMTX internal auth RTMP orqali userinfo (user:pass@host) emas,
+    # query-parametr sifatida keladi: ?user=&pass=
+    return f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
+
+
+def _encode_args() -> list[str]:
+    """Kodek/konteyner — Icecast uchun MP3, MediaMTX uchun AAC/FLV."""
+    if USE_ICECAST:
+        return [
+            "-c:a", "libmp3lame", "-b:a", "128k", "-ar", "44100", "-ac", "2",
+            "-content_type", "audio/mpeg", "-f", "mp3",
+        ]
+    return [
+        "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
+        "-f", "flv",
+    ]
 
 
 def _ffmpeg_bin() -> str:
@@ -48,28 +76,14 @@ class BroadcastSession:
     def start(self) -> None:
         # Jonli efir /live_ru mount'ga uzatiladi (tinglovchilar shu yerni eshitadi)
         mount = "/live_ru"
-        # MediaMTX internal auth RTMP orqali userinfo (user:pass@host) emas,
-        # query-parametr sifatida keladi: ?user=&pass=
-        rtmp_url = (
-            f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
-        )
         cmd = [
             _ffmpeg_bin(),
             "-f",
             "webm",
             "-i",
             "pipe:0",  # stdin'dан webm/opus
-            "-c:a",
-            "aac",
-            "-b:a",
-            "128k",
-            "-ar",
-            "44100",
-            "-ac",
-            "2",
-            "-f",
-            "flv",
-            rtmp_url,
+            *_encode_args(),
+            _target_url(mount),
         ]
         self.proc = subprocess.Popen(
             cmd,
@@ -116,8 +130,8 @@ _active: dict[str, BroadcastSession] = {}
 
 
 def is_available() -> bool:
-    """Jonli efir mavjudmi (MediaMTX yoqilganmi)."""
-    return USE_MEDIAMTX
+    """Jonli efir mavjudmi (Icecast yoki MediaMTX yoqilganmi)."""
+    return USE_ICECAST or USE_MEDIAMTX
 
 
 def _reap_if_stale(city: str) -> None:
@@ -158,34 +172,16 @@ def close_session(city: str) -> None:
 
 
 def push_file(city: str, mp3_path: str) -> int:
-    """Tayyor mp3 faylni MediaMTX mountpoint'ga uzatadi (moderator одобрил → efir).
+    """Tayyor mp3 faylni Icecast/MediaMTX mountpoint'ga uzatadi (moderator одобрил → efir).
 
-    Faqat USE_MEDIAMTX=true bo'lganда ishlatiladi. Bloklovchi subprocess —
-    chaqiruvchi tomon to_thread ichidaн chaqirsin yoki dev'da o'tkazib yuborsin.
+    Faqat USE_ICECAST yoki USE_MEDIAMTX yoqilganda ishlatiladi. Bloklovchi
+    subprocess — chaqiruvchi tomon to_thread ichidaн chaqirsin yoki dev'da
+    o'tkazib yuborsin.
     """
-    if not USE_MEDIAMTX:
+    if not (USE_ICECAST or USE_MEDIAMTX):
         return 0
     mount = f"/{city}"
-    rtmp_url = (
-        f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
-    )
-    cmd = [
-        _ffmpeg_bin(),
-        "-re",
-        "-i",
-        mp3_path,
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        "-f",
-        "flv",
-        rtmp_url,
-    ]
+    cmd = [_ffmpeg_bin(), "-re", "-i", mp3_path, *_encode_args(), _target_url(mount)]
     proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     return proc.returncode
 
@@ -204,26 +200,7 @@ def mount_for(lang: str) -> str:
 def _push_one(lang: str, mp3_path: str) -> int:
     """Пушит один mp3 в mount /live_{lang} через FFmpeg."""
     mount = mount_for(lang)  # валидация языка
-    rtmp_url = (
-        f"rtmp://{MEDIAMTX_HOST}:{MEDIAMTX_RTMP_PORT}{mount}?user=publisher&pass={MEDIAMTX_PUBLISH_PASS}"
-    )
-    cmd = [
-        _ffmpeg_bin(),
-        "-re",
-        "-i",
-        mp3_path,
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        "-f",
-        "flv",
-        rtmp_url,
-    ]
+    cmd = [_ffmpeg_bin(), "-re", "-i", mp3_path, *_encode_args(), _target_url(mount)]
     proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     return proc.returncode
 
@@ -234,7 +211,7 @@ def push_files_multilang(paths: dict[str, str]) -> dict[str, int]:
     Изоляция сбоев: код != 0 у одного языка не затрагивает остальные (Req 11.4).
     Returns: {lang: returncode}.
     """
-    if not USE_MEDIAMTX:
+    if not (USE_ICECAST or USE_MEDIAMTX):
         return {}
     results: dict[str, int] = {}
     for lang, mp3 in paths.items():

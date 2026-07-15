@@ -23,7 +23,11 @@ import subprocess
 
 log = logging.getLogger("continuous")
 
+USE_ICECAST = os.getenv("USE_ICECAST", "false").lower() == "true"
 USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
+ICECAST_HOST = os.getenv("ICECAST_HOST", "localhost")
+ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
+ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
 MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "localhost")
 MEDIAMTX_RTMP_PORT = int(os.getenv("MEDIAMTX_RTMP_PORT", "1935"))
 MEDIAMTX_PUBLISH_PASS = os.getenv("MEDIAMTX_PUBLISH_PASS", "MediaMTXPass2025!")
@@ -74,7 +78,10 @@ def _ffmpeg_bin() -> str:
         return "ffmpeg"
 
 
-def _rtmp_url(lang: str) -> str:
+def _target_url(lang: str) -> str:
+    """Chiqish manzili — Icecast (USE_ICECAST ustuvor) yoki MediaMTX."""
+    if USE_ICECAST:
+        return f"icecast://source:{ICECAST_PASS}@{ICECAST_HOST}:{ICECAST_PORT}/live_{lang}"
     # MediaMTX internal auth RTMP orqali userinfo (user:pass@host) emas,
     # query-parametr sifatida keladi: ?user=&pass=
     # https://mediamtx.org/docs/features/authentication
@@ -173,7 +180,18 @@ async def _transcode_uniform(mp3_path: str) -> bytes:
 
 
 def _spawn_ffmpeg(lang: str) -> subprocess.Popen:
-    """Til uchun DOIMIY ffmpeg: pipe:0 (mp3) → MediaMTX RTMP mount. Bir marta ulanadi."""
+    """Til uchun DOIMIY ffmpeg: pipe:0 (mp3) → Icecast/MediaMTX mount. Bir marta ulanadi."""
+    if USE_ICECAST:
+        # Kirish allaqachon mp3 — qayta kodlashsiz to'g'ridan-to'g'ri Icecast'ga
+        encode_args = [
+            "-c:a", "copy", "-content_type", "audio/mpeg", "-f", "mp3",
+        ]
+    else:
+        encode_args = [
+            "-c:a", "aac", "-b:a", BITRATE,
+            "-ar", str(SAMPLE_RATE), "-ac", str(CHANNELS),
+            "-f", "flv",
+        ]
     cmd = [
         _ffmpeg_bin(),
         "-hide_banner",
@@ -184,17 +202,8 @@ def _spawn_ffmpeg(lang: str) -> subprocess.Popen:
         "mp3",
         "-i",
         "pipe:0",
-        "-c:a",
-        "aac",
-        "-b:a",
-        BITRATE,
-        "-ar",
-        str(SAMPLE_RATE),
-        "-ac",
-        str(CHANNELS),
-        "-f",
-        "flv",
-        _rtmp_url(lang),
+        *encode_args,
+        _target_url(lang),
     ]
     return subprocess.Popen(
         cmd,
@@ -306,7 +315,7 @@ def is_running() -> bool:
 async def start() -> None:
     """Barcha tillar uchun persistent oqim worker'larini ishga tushiradi."""
     global _started, _silence_mp3
-    if _started or not USE_MEDIAMTX:
+    if _started or not (USE_ICECAST or USE_MEDIAMTX):
         return
 
     _silence_mp3 = await _gen_silence()

@@ -38,9 +38,10 @@ export function EfirScreen({ user, onPointsUpdate }: EfirScreenProps) {
   const audioPlayer = useAudioPlayer({
     city,
     language: lang,
-    // USE_MEDIAMTX=true (server sozlamasi), radioStatus yuklanguncha ham true
-    useHls: radioStatus?.use_hls ?? true,
-    // MediaMTX HLS publik URL — browser to'g'ridan-to'g'ri shu manzilga ulanadi
+    // USE_ICECAST=true (server sozlamasi), radioStatus yuklanguncha ham true
+    useIcecast: radioStatus?.use_icecast ?? true,
+    useHls: radioStatus?.use_hls ?? false,
+    // Backend proksi orqali (bir xil origin) — /radio/live/{lang} yoki /radio/hls/...
     streamUrl: radioStatus?.stream_url,
     onError: showToast,
   });

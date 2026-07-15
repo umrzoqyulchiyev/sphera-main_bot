@@ -7,11 +7,12 @@ interface UseAudioPlayerOptions {
   city: string;
   language: Language;
   useHls: boolean;
+  useIcecast: boolean;
   streamUrl?: string | null;
   onError?: (message: string) => void;
 }
 
-export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: UseAudioPlayerOptions) {
+export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, onError }: UseAudioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,12 +27,14 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
   const streamUrlRef = useRef(streamUrl);
   const languageRef = useRef(language);
   const onErrorRef = useRef(onError);
+  const useIcecastRef = useRef(useIcecast);
   streamUrlRef.current = streamUrl;
   languageRef.current = language;
   onErrorRef.current = onError;
+  useIcecastRef.current = useIcecast;
 
   const hlsRef = useRef<Hls | null>(null);
-  const connectHlsRef = useRef<() => void>(() => {});
+  const connectRef = useRef<() => void>(() => {});
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
@@ -57,10 +60,37 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
     if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     reconnectTimerRef.current = setTimeout(() => {
       if (!wantPlayingRef.current) return;
-      connectHlsRef.current();
+      connectRef.current();
     }, 2000);
   }, []);
 
+  // ── Icecast: uzluksiz MP3 oqim, oddiy <audio src> (past kechikish) ──
+  const buildIcecastUrl = useCallback(() => {
+    const base = getStreamUrl(languageRef.current, streamUrlRef.current);
+    if (!base) return '';
+    // ?t= cache bypass (har ulanishда yangi — CDN/brauzer eski oqimni bermasin)
+    return `${base}${base.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  }, []);
+
+  const connectIcecast = useCallback(() => {
+    const audio = audioRef.current;
+    const url = buildIcecastUrl();
+    if (!audio || !url) {
+      clearLoadingTimeout();
+      setIsLoading(false);
+      if (!url) onErrorRef.current?.('Stream URL topilmadi (radio holati yuklanmagan)');
+      return;
+    }
+    audio.src = url;
+    audio.load();
+    audio.play().catch((err) => {
+      clearLoadingTimeout();
+      setIsLoading(false);
+      onErrorRef.current?.(`Audio play xatosi: ${err?.name || err}`);
+    });
+  }, [buildIcecastUrl]);
+
+  // ── HLS (MediaMTX) ──
   const connectHls = useCallback(() => {
     const audio = audioRef.current;
     const hlsUrl = getStreamUrl(languageRef.current, streamUrlRef.current);
@@ -112,11 +142,16 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
     });
   }, [disconnectHls, scheduleReconnect]);
 
-  useEffect(() => {
-    connectHlsRef.current = connectHls;
-  }, [connectHls]);
+  const connect = useCallback(() => {
+    if (useIcecast) connectIcecast();
+    else connectHls();
+  }, [useIcecast, connectIcecast, connectHls]);
 
-  // Audio element bir marta yaratiladi (playlist/HLS bir xil element)
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  // Audio element bir marta yaratiladi (playlist/HLS/Icecast bir xil element)
   useEffect(() => {
     const audio = new Audio();
     audio.volume = volume / 100;
@@ -141,10 +176,20 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
         });
       }
     };
+    const onStreamError = () => {
+      clearLoadingTimeout();
+      setIsLoading(false);
+      setIsPlaying(false);
+      // Icecast — oddiy <audio> oqimi, uzilsa hls.js kabi o'z-o'zidan qayta
+      // urinmaydi — shu sabab bu yerda qo'lda qayta ulaymiz.
+      if (useIcecastRef.current && wantPlayingRef.current) scheduleReconnect();
+    };
 
     audio.addEventListener('playing', onPlaying);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('error', onStreamError);
+    audio.addEventListener('stalled', onStreamError);
 
     return () => {
       audio.pause();
@@ -153,26 +198,31 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
       audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('error', onStreamError);
+      audio.removeEventListener('stalled', onStreamError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // bir marta yaratiladi
 
-  // Unmount bo'lganda HLS ulanishini yopamiz
+  // Unmount bo'lganda ulanishni yopamiz
   useEffect(() => {
-    return () => disconnectHls();
+    return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      disconnectHls();
+    };
   }, [disconnectHls]);
 
-  // Playlist yuklash (non-HLS)
+  // Playlist yuklash (Icecast/HLS ishlamaganда, segment fallback)
   useEffect(() => {
-    if (!useHls) {
+    if (!useHls && !useIcecast) {
       getPlaylist(city).then(setPlaylist).catch(console.error);
     }
-  }, [city, useHls]);
+  }, [city, useHls, useIcecast]);
 
   // Til o'zgarganda — agar playing bo'lsa, yangi til oqimiga o'tamiz
   useEffect(() => {
-    if (!useHls || !wantPlayingRef.current) return;
-    connectHls();
+    if ((!useHls && !useIcecast) || !wantPlayingRef.current) return;
+    connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -183,20 +233,20 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
 
   // Foreground qaytganда tiklash
   useEffect(() => {
-    if (!useHls) return;
+    if (!useHls && !useIcecast) return;
     const onVisible = () => {
       if (
         document.visibilityState === 'visible' &&
         wantPlayingRef.current &&
         audioRef.current?.paused
       ) {
-        connectHls();
+        connect();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useHls]);
+  }, [useHls, useIcecast]);
 
   const playNextSegment = useCallback(() => {
     if (playlist.length === 0) return;
@@ -219,8 +269,12 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
     if (isPlaying || isLoading) {
       wantPlayingRef.current = false;
       clearLoadingTimeout();
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (useHls) {
         disconnectHls();
+      } else if (useIcecast) {
+        audio.pause();
+        audio.src = '';
       } else {
         audio.pause();
       }
@@ -261,7 +315,9 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
     }, 12000);
 
     try {
-      if (useHls) {
+      if (useIcecast) {
+        connectIcecast();
+      } else if (useHls) {
         connectHls();
       } else {
         if (!audio.src && playlist.length > 0) {
@@ -276,7 +332,7 @@ export function useAudioPlayer({ city, language, useHls, streamUrl, onError }: U
       setIsLoading(false);
       wantPlayingRef.current = false;
     }
-  }, [isPlaying, isLoading, useHls, connectHls, disconnectHls, volume, playlist, playNextSegment]);
+  }, [isPlaying, isLoading, useHls, useIcecast, connectHls, connectIcecast, disconnectHls, volume, playlist, playNextSegment]);
 
   const addSegment = useCallback((segment: AudioSegment) => {
     setPlaylist((prev) => [...prev, segment]);

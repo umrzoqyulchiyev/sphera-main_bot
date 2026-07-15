@@ -137,6 +137,7 @@ class RadioStatus(BaseModel):
     listeners_count: int = 0
     stream_url: str | None = None
     use_hls: bool = False
+    use_icecast: bool = False
     current_segment: Any | None = None
 
 

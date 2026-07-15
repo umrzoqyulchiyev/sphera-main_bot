@@ -136,12 +136,12 @@ export async function getRadioStatus(city?: string): Promise<RadioStatus> {
     const resp = await fetch(`${API_URL}/radio/status?city=${c}`);
     if (resp.ok) return resp.json();
   } catch (_) {}
-  // fallback — HLS yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
+  // fallback — Icecast yoqilgan holat (backend ishlamasa ham pleyer urinib ko'radi)
   return {
     is_live: true,
     broadcaster_type: 'ai',
     broadcaster_name: 'AI Host',
-    use_hls: true,
+    use_icecast: true,
     stream_url: null,
     listeners_count: 0,
   };

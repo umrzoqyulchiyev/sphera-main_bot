@@ -49,11 +49,16 @@ else
     exit 1
 fi
 
-# ── 3. MediaMTX ────────────────────────────────────────────
+# ── 3. MediaMTX / Icecast ────────────────────────────────────
 if curl -s --max-time 3 http://localhost:8889/ >/dev/null 2>&1; then
     echo "[3/7] MediaMTX ✓"
 else
     echo "[3/7] ⚠️  MediaMTX javob bermayapti (efir ishlamasligi mumkin)"
+fi
+if curl -s --max-time 3 http://localhost:8000/status.xsl >/dev/null 2>&1; then
+    echo "[3/7] Icecast ✓"
+else
+    echo "[3/7] ⚠️  Icecast javob bermayapti (jonli efir ishlamasligi mumkin)"
 fi
 
 # ── 4. HTTPS Tunnel ────────────────────────────────────────

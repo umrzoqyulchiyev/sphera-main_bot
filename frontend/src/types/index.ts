@@ -77,6 +77,7 @@ export interface RadioStatus {
   broadcaster_type: string | null;
   broadcaster_name: string | null;
   use_hls?: boolean;
+  use_icecast?: boolean;
   stream_url?: string | null;
   listeners_count?: number;
 }

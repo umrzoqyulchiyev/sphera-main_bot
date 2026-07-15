@@ -1,0 +1,71 @@
+<icecast>
+    <location>Earth</location>
+    <admin>admin@radio.local</admin>
+
+    <limits>
+        <clients>1000</clients>
+        <sources>10</sources>
+        <queue-size>1048576</queue-size>
+        <client-timeout>30</client-timeout>
+        <header-timeout>15</header-timeout>
+        <source-timeout>10</source-timeout>
+        <!-- MUHIM: burst o'chirilgan. Burst yoqilgan bo'lsa, yangi klientga
+             darhol bir necha soniyalik audio "portlab" yuboriladi — bu esa
+             backend proksidagi (radio.py:icecast_proxy) bayt-hisobli kechikish
+             buferini deyarli zumda to'ldirib, qasddan qo'shilgan ~6-8s
+             kechikishni yo'qqa chiqaradi. Burst o'chiq bo'lsa, oqim proksiga
+             chinakam real vaqtда keladi va bufer haqiqatan ham ~6-8s davomida
+             to'ladi. -->
+        <burst-on-connect>0</burst-on-connect>
+        <burst-size>0</burst-size>
+    </limits>
+
+    <authentication>
+        <!-- Manba (FFmpeg) shu yerga pushlaydi. Parol .env ICECAST_PASS bilan bir xil bo'lishi kerak -->
+        <source-password>IcecastPass2025!</source-password>
+        <relay-password>IcecastPass2025!</relay-password>
+        <admin-user>admin</admin-user>
+        <admin-password>IcecastAdmin2025!</admin-password>
+    </authentication>
+
+    <hostname>localhost</hostname>
+
+    <listen-socket>
+        <port>8000</port>
+    </listen-socket>
+
+    <!-- ============ Мультипоток: 3 параллельных потока ============ -->
+    <mount type="normal">
+        <mount-name>/live_ru</mount-name>
+        <public>0</public>
+        <stream-name>Radio AI — Русский</stream-name>
+    </mount>
+
+    <mount type="normal">
+        <mount-name>/live_lt</mount-name>
+        <public>0</public>
+        <stream-name>Radio AI — Lietuvių</stream-name>
+    </mount>
+
+    <mount type="normal">
+        <mount-name>/live_en</mount-name>
+        <public>0</public>
+        <stream-name>Radio AI — English</stream-name>
+    </mount>
+
+    <fileserve>1</fileserve>
+
+    <paths>
+        <logdir>/var/log/icecast2</logdir>
+        <webroot>/usr/share/icecast2/web</webroot>
+        <adminroot>/usr/share/icecast2/admin</adminroot>
+        <alias source="/" destination="/status.xsl"/>
+    </paths>
+
+    <logging>
+        <accesslog>access.log</accesslog>
+        <errorlog>error.log</errorlog>
+        <loglevel>3</loglevel>
+        <logsize>10000</logsize>
+    </logging>
+</icecast>
