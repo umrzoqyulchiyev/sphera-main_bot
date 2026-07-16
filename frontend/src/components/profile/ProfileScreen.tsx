@@ -240,7 +240,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 
       {/* Admin link */}
       {user.role === 'admin' && (
-        <button onClick={() => navigate('/admin')} className="stitch-card py-3 text-center text-sm font-bold text-[#6e78e1] transition-all">
+        <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#6e78e1] transition-all">
           {tx('admin')}
         </button>
       )}

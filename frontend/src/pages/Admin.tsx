@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
@@ -139,6 +139,7 @@ async function adminRejectCasting(id: number, adminNote: string) {
 
 export function Admin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
   const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music' | 'casting'>('topics');
@@ -204,6 +205,14 @@ export function Admin() {
     catch { flash('❌'); }
   }
 
+  function handleBack() {
+    // /admin har doim faqat Profil tabidan ochiladi — shuning uchun orqaga
+    // qaytishda o'sha tabga qaytamiz (navigate(-1) Radio'ni remount qilib,
+    // tab holatini 'anons'ga tushirib yuborardi).
+    const from = (location.state as { from?: string } | null)?.from;
+    navigate('/radio', { replace: true, state: { screen: from || 'profile' } });
+  }
+
   return (
     <div
       className="bg-[#050506] text-[#ededef] overflow-y-auto overscroll-contain"
@@ -211,25 +220,34 @@ export function Admin() {
     >
       <div className="max-w-[520px] mx-auto px-3.5 pt-3.5 pb-6 flex flex-col gap-4">
         <header className="flex items-center gap-3 pt-2">
-          <button onClick={() => navigate(-1)} className="glass w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-[0.95]">
-            <ArrowLeft className="w-4 h-4 text-[#ededef]" />
+          <button onClick={handleBack} aria-label="Назад" className="glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.92] transition-transform duration-150">
+            <ArrowLeft className="w-4.5 h-4.5 text-[#ededef]" />
           </button>
-          <div>
-            <div className="text-[20px] font-extrabold tracking-[3px] logo-gradient">INTRA GROUP</div>
-            <div className="text-[9px] tracking-[4px] text-[#8a8f98] mt-0.5">{tx('title')}</div>
+          <div className="min-w-0">
+            <div className="text-[20px] font-extrabold tracking-[3px] logo-gradient leading-tight truncate">INTRA GROUP</div>
+            <div className="text-[9px] tracking-[4px] text-[#8a8f98] mt-1 font-semibold">{tx('title')}</div>
           </div>
         </header>
 
-        {/* Tabs — 6 ta */}
-        <div className="flex gap-1.5 flex-wrap">
-          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')]] as const).map(([t, Icon, label]) => (
-            <button key={t} onClick={() => setTab(t as any)}
-              className={`flex-1 py-2 px-1 rounded-[14px] border font-semibold text-[10px] transition-all flex items-center justify-center gap-1 min-w-[30%] ${
-                tab === t ? 'bg-gradient-to-br from-[#7b85e8] to-[#5e6ad2] text-[#020203] border-transparent' : 'glass text-[#ededef]'
-              }`}>
-              <Icon className="w-3 h-3" />{label}
-            </button>
-          ))}
+        {/* Tabs — gorizontal skroll bo'ladigan pill-lar */}
+        <div
+          className="flex gap-2 overflow-x-auto -mx-3.5 px-3.5"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')]] as const).map(([t, Icon, label]) => {
+            const active = tab === t;
+            return (
+              <button key={t} onClick={() => setTab(t as any)}
+                className={`shrink-0 flex items-center gap-1.5 py-2.5 px-4 rounded-full border font-bold text-[11px] transition-all duration-200 active:scale-[0.95] ${
+                  active ? 'text-[#020203] border-transparent' : 'glass text-[#9a9fa8] border-[rgba(110,118,220,0.14)]'
+                }`}
+                style={active ? { background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)', boxShadow: '0 4px 18px rgba(94,106,210,0.45)' } : undefined}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (

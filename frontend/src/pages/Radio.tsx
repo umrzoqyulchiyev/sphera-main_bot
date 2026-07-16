@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { TopBar } from '../components/layout/TopBar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { ChatScreen } from '../components/radio/ChatScreen';
@@ -17,7 +18,12 @@ import type { Screen, User } from '../types';
 const ONBOARDING_KEY = 'sfera5_onboarded';
 
 export function Radio() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('anons');
+  // Admin panelidan "Orqaga" bosilganda qaysi tabga qaytish kerakligi
+  // location.state orqali keladi (masalan { screen: 'profile' }) — aks holda
+  // Radio har safar remount bo'lganda tab holati yo'qolib, doim 'anons'ga
+  // tushib qolar edi.
+  const location = useLocation();
+  const [currentScreen, setCurrentScreen] = useState<Screen>((location.state as { screen?: Screen } | null)?.screen || 'anons');
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
