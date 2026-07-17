@@ -79,12 +79,21 @@ export function Radio() {
   // Уведомление о получении поинтов (перевод от пользователя, подарок
   // от админа) — опрашиваем историю, т.к. WS-чат подключён только на
   // вкладке "Анонсы" и не ловит события с других вкладок.
+  //
+  // Telegram Mini App odatda "yopib qayta ochish"da haqiqiy sahifa
+  // reload'i qilmaydi — WebView shunchaki background'dan qaytadi va
+  // JS taymerlari pauza bo'lib qolgan bo'lishi mumkin. Shuning uchun
+  // faqat setInterval'ga tayanmaymiz — ilova qayta faollashganda
+  // (visibilitychange/focus/pageshow) darhol qayta tekshiramiz.
   useEffect(() => {
     if (!user) return;
 
     let cancelled = false;
+    let inFlight = false;
 
     async function poll() {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const history = await getPointsHistory();
         if (cancelled || history.length === 0) return;
@@ -101,6 +110,13 @@ export function Radio() {
         if (fresh.length === 0) return;
         lastTxIdRef.current = Math.max(lastSeenId, ...fresh.map((h) => h.id));
 
+        // Balansni har doim yangilaymiz (chat/studiya orqali sarflangan
+        // bo'lsa ham UI eskirmasin), bildirishnomani esa faqat kirim uchun.
+        try {
+          const updatedUser = await getMe();
+          if (!cancelled) setUser({ ...updatedUser, points: Number(updatedUser.points) || 0 });
+        } catch { /* balans keyingi poll'da yangilanadi */ }
+
         const incoming = fresh.find((h) => h.event_type === 'transfer_in' || h.event_type === 'gift');
         if (incoming) {
           const amount = Number(incoming.amount).toFixed(3);
@@ -109,20 +125,27 @@ export function Radio() {
           if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
           setPointsNotice({ text, gift: incoming.event_type === 'gift' });
           noticeTimeoutRef.current = setTimeout(() => { if (!cancelled) setPointsNotice(null); }, 4500);
-
-          try {
-            const updatedUser = await getMe();
-            if (!cancelled) setUser({ ...updatedUser, points: Number(updatedUser.points) || 0 });
-          } catch { /* balans keyingi poll'da yangilanadi */ }
         }
       } catch { /* tarmoq xatosi — keyingi poll urinib ko'radi */ }
+      finally { inFlight = false; }
+    }
+
+    function onWake() {
+      if (document.visibilityState === 'visible') poll();
     }
 
     poll();
     const interval = setInterval(poll, POINTS_POLL_MS);
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
+    window.addEventListener('pageshow', onWake);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
+      window.removeEventListener('pageshow', onWake);
       if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
     };
   }, [!!user]);

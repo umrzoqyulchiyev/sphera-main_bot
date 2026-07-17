@@ -7,7 +7,10 @@ import type {
 
 // ============ Users / Profile ============
 export async function getMe(): Promise<User> {
-  const resp = await fetch(`${API_URL}/users/me`, { headers: authHeaders() });
+  // cache: 'no-store' — ba'zi mobil WebView'lar (jumladan Telegram Mini App)
+  // GET so'rovlarni eskirgan holda keshlab qo'yishi mumkin, natijada balans
+  // yangilanmaganday ko'rinadi.
+  const resp = await fetch(`${API_URL}/users/me`, { headers: authHeaders(), cache: 'no-store' });
   if (!resp.ok) throw new Error('Failed to fetch user');
   return resp.json();
 }
@@ -64,7 +67,7 @@ export async function getAnnouncements(): Promise<Announcements> {
 
 // ============ Points ============
 export async function getPointsBalance() {
-  const resp = await fetch(`${API_URL}/users/me/points`, { headers: authHeaders() });
+  const resp = await fetch(`${API_URL}/users/me/points`, { headers: authHeaders(), cache: 'no-store' });
   if (!resp.ok) throw new Error('Failed to fetch balance');
   return resp.json();
 }
@@ -114,7 +117,7 @@ export async function decideRequest(request_id: number, approve: boolean) {
 }
 
 export async function getPointsHistory(): Promise<PointsTransaction[]> {
-  const resp = await fetch(`${API_URL}/users/me/points/history`, { headers: authHeaders() });
+  const resp = await fetch(`${API_URL}/users/me/points/history`, { headers: authHeaders(), cache: 'no-store' });
   if (!resp.ok) throw new Error('Failed to fetch points history');
   return resp.json();
 }
