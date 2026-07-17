@@ -48,14 +48,16 @@ def _display_name(user: dict) -> str:
     )
 
 
-async def _convert_to_mp3(src_path: str, uid: str) -> str:
-    """Audio faylni MP3 ga konvert qiladi (ffmpeg).
+async def _convert_to_mp3_background(src_path: str, mp3_fpath: str) -> None:
+    """Audio faylni fonda MP3'ga konvert qiladi (ffmpeg).
 
-    Muvaffaqiyatli bo'lsa MP3 fayl nomini qaytaradi va asl faylni o'chiradi.
-    Xato bo'lsa — asl fayl nomi qaytariladi (fallback).
+    Xabar allaqachon shu mp3 fayl nomi bilan yuborilgan/broadcast qilingan
+    bo'ladi — shuning uchun bu funksiya HTTP javobini BLOKLAMAYDI (fire-and-
+    forget, asyncio.create_task orqali chaqiriladi). Oldingi versiyada
+    konvertatsiya `await` qilinardi, ya'ni foydalanuvchi ffmpeg tugashini
+    kutib turishi kerak edi — xabar "darhol yuborilmayapti" degan shikoyat
+    aynan shundan edi.
     """
-    mp3_fname = f"voice_{uid}.mp3"
-    mp3_fpath = os.path.join(settings.upload_dir, mp3_fname)
     try:
         proc = await asyncio.create_subprocess_exec(
             "ffmpeg",
@@ -73,18 +75,25 @@ async def _convert_to_mp3(src_path: str, uid: str) -> str:
         )
         await proc.wait()
         if proc.returncode == 0 and os.path.isfile(mp3_fpath) and os.path.getsize(mp3_fpath) > 0:
-            # Asl faylni tozalaymiz
             try:
                 os.remove(src_path)
             except OSError:
                 pass
-            return mp3_fname
-        log.warning("ffmpeg conversion failed (rc=%s), keeping original", proc.returncode)
+            return
+        log.warning("ffmpeg conversion failed (rc=%s), falling back to original file", proc.returncode)
     except FileNotFoundError:
-        log.warning("ffmpeg not found, keeping original audio format")
+        log.warning("ffmpeg not found, falling back to original audio format")
     except Exception as exc:
-        log.warning("ffmpeg conversion error: %s, keeping original", exc)
-    return os.path.basename(src_path)
+        log.warning("ffmpeg conversion error: %s, falling back to original file", exc)
+
+    # Konvertatsiya muvaffaqiyatsiz bo'lsa — xabar allaqachon mp3 nomi bilan
+    # yuborilgani uchun kamida shu nomga asl faylni ko'chiramiz (bo'lmasa
+    # havola butunlay ishlamay qoladi).
+    try:
+        if os.path.isfile(src_path) and not os.path.isfile(mp3_fpath):
+            os.replace(src_path, mp3_fpath)
+    except OSError:
+        pass
 
 
 @router.get("/history", response_model=list[ChatMessageOut])
@@ -200,9 +209,13 @@ async def send_voice(
     with open(raw_fpath, "wb") as f:
         f.write(content)
 
-    # Universal MP3 ga konvertatsiya — barcha brauzer/Telegram WebView ijro etadi.
-    # (webm/ogg ba'zi platformalarda, ayniqsa iOS, ishlamaydi)
-    fname = await _convert_to_mp3(raw_fpath, uid)
+    # Universal MP3 ga konvertatsiya — barcha brauzer/Telegram WebView ijro
+    # etadi (webm/ogg ba'zi platformalarda, ayniqsa iOS, ishlamaydi). Bu
+    # fonda ishlaydi — javobni va WS broadcast'ni bloklamaydi, chunki
+    # foydalanuvchi xabar "darhol yuborilishi"ni kutadi.
+    fname = f"voice_{uid}.mp3"
+    mp3_fpath = os.path.join(settings.upload_dir, fname)
+    asyncio.create_task(_convert_to_mp3_background(raw_fpath, mp3_fpath))
 
     row = await db.fetchrow(
         """
@@ -243,7 +256,15 @@ async def get_voice(filename: str):
     safe = os.path.basename(filename)
     fpath = os.path.join(settings.upload_dir, safe)
     if not os.path.isfile(fpath):
-        raise HTTPException(status_code=404, detail="Voice not found")
+        # Xabar darhol broadcast qilinadi, lekin fon MP3 konvertatsiyasi
+        # bir necha yuz millisekund davom etishi mumkin — kimdir shu oraliqda
+        # "play" bossa, qisqa muddat kutib ko'ramiz (404 qaytarish o'rniga).
+        for _ in range(20):
+            await asyncio.sleep(0.1)
+            if os.path.isfile(fpath):
+                break
+        else:
+            raise HTTPException(status_code=404, detail="Voice not found")
     ext = os.path.splitext(safe)[1].lower()
     media_types = {
         ".webm": "audio/webm",
