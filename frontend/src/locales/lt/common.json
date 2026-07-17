@@ -7,5 +7,7 @@
   "nav_profile": "Profilis",
   "points_label": "POINT",
   "points_balance": "Jūsų balansas",
-  "level": "LYGIS"
+  "level": "LYGIS",
+  "notify_points_received": "💰 Gauta +{amount} taškų",
+  "notify_points_gift": "🎁 Administratorius pridėjo +{amount} taškų"
 }

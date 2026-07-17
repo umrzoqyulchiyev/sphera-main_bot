@@ -2,7 +2,7 @@ import { API_URL } from './config';
 import { authHeaders } from './auth';
 import type {
   User, RadioStatus, ChatMessage, Announcements, AudioSegment,
-  News, PointsRequest, PointPackage, PointsTransaction,
+  News, PointsRequest, PointPackage, PointsTransaction, PaymentSettings, AdminPackage,
 } from '../types';
 
 // ============ Users / Profile ============
@@ -122,6 +122,12 @@ export async function getPointsHistory(): Promise<PointsTransaction[]> {
 export async function getPackages(): Promise<PointPackage[]> {
   const resp = await fetch(`${API_URL}/users/me/points/packages`, { headers: authHeaders() });
   if (!resp.ok) throw new Error('Failed to fetch packages');
+  return resp.json();
+}
+
+export async function getPaymentMethod(): Promise<PaymentSettings> {
+  const resp = await fetch(`${API_URL}/users/me/points/payment-method`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch payment method');
   return resp.json();
 }
 
@@ -376,6 +382,57 @@ export async function adminAddPoints(user_id: number, amount: number) {
     body: JSON.stringify({ user_id, amount }),
   });
   if (!resp.ok) throw new Error('Failed to add points');
+  return resp.json();
+}
+
+// ============ Admin: to'lov sozlamalari va paketlar ============
+export async function adminGetPaymentSettings(): Promise<PaymentSettings> {
+  const resp = await fetch(`${API_URL}/admin/settings/payment`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch payment settings');
+  return resp.json();
+}
+
+export async function adminUpdatePaymentSettings(method: 'stars' | 'manual', instructions: string): Promise<PaymentSettings> {
+  const resp = await fetch(`${API_URL}/admin/settings/payment`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ method, instructions }),
+  });
+  if (!resp.ok) throw new Error('Failed to update payment settings');
+  return resp.json();
+}
+
+export async function adminListPackages(): Promise<AdminPackage[]> {
+  const resp = await fetch(`${API_URL}/admin/packages`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch packages');
+  return resp.json();
+}
+
+export async function adminCreatePackage(data: { points_amount: number; price_eur: number; label: string }): Promise<AdminPackage> {
+  const resp = await fetch(`${API_URL}/admin/packages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error('Failed to create package');
+  return resp.json();
+}
+
+export async function adminUpdatePackage(id: number, data: { points_amount: number; price_eur: number; label: string; is_active: boolean }): Promise<AdminPackage> {
+  const resp = await fetch(`${API_URL}/admin/packages/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error('Failed to update package');
+  return resp.json();
+}
+
+export async function adminDeletePackage(id: number) {
+  const resp = await fetch(`${API_URL}/admin/packages/${id}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to delete package');
   return resp.json();
 }
 

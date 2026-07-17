@@ -7,11 +7,11 @@ import {
 } from 'lucide-react';
 import {
   updateProfile, transferPoints, requestPoints, getMyRequests,
-  decideRequest, getPackages, getMe, updateLanguage, getPointsHistory,
+  decideRequest, getPackages, getMe, updateLanguage, getPointsHistory, getPaymentMethod,
 } from '../../lib/api';
 import { getLang, setLang as setI18nLang } from '../../lib/i18n';
 import { LanguageSelector } from '../announcements/LanguageSelector';
-import type { User, PointsRequest, PointPackage, Language, PointsTransaction } from '../../types';
+import type { User, PointsRequest, PointPackage, Language, PointsTransaction, PaymentSettings } from '../../types';
 
 interface ProfileScreenProps {
   user: User | null;
@@ -35,6 +35,7 @@ const L: Record<string, Record<string, string>> = {
     tx_studio: 'Заявка в студию', tx_opinion_text: 'Мнение в студию', tx_opinion_voice: 'Голосовое мнение',
     tx_music_nominate: 'Номинация трека', tx_music_vote: 'Голос за трек',
     tx_slot_booking: 'Оплата слота эфира', tx_other: 'Операция',
+    buy_manual_intro: 'Автоматическая оплата пока недоступна. Свяжитесь с администратором по инструкции ниже.',
   },
   en: {
     balance: 'Your balance', points: 'Points', level: 'Level', language: 'Language', id: 'ID',
@@ -51,6 +52,7 @@ const L: Record<string, Record<string, string>> = {
     tx_studio: 'Studio request', tx_opinion_text: 'Studio opinion', tx_opinion_voice: 'Studio voice opinion',
     tx_music_nominate: 'Track nomination', tx_music_vote: 'Track vote',
     tx_slot_booking: 'Broadcast slot payment', tx_other: 'Transaction',
+    buy_manual_intro: 'Automatic payment is not available yet. Please contact the admin using the instructions below.',
   },
   lt: {
     balance: 'Jūsų balansas', points: 'Taškai', level: 'Lygis', language: 'Kalba', id: 'ID',
@@ -67,6 +69,7 @@ const L: Record<string, Record<string, string>> = {
     tx_studio: 'Užklausa studijai', tx_opinion_text: 'Nuomonė studijai', tx_opinion_voice: 'Balso nuomonė',
     tx_music_nominate: 'Dainos nominacija', tx_music_vote: 'Balsas už dainą',
     tx_slot_booking: 'Eterio slot apmokėjimas', tx_other: 'Operacija',
+    buy_manual_intro: 'Automatinis mokėjimas kol kas nepasiekiamas. Susisiekite su administratoriumi pagal instrukciją žemiau.',
   },
 };
 
@@ -462,6 +465,12 @@ function RequestModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =>
 }
 
 function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[]; onClose: () => void; onDone: () => void; onError: () => void }) {
+  const [payment, setPayment] = useState<PaymentSettings | null>(null);
+
+  useEffect(() => {
+    getPaymentMethod().then(setPayment).catch(() => setPayment({ method: 'stars', instructions: '' }));
+  }, []);
+
   // To'lov botda bo'ladi (Telegram Payments faqat bot orqali) → botga yo'naltiramiz
   function buyViaBot() {
     const tg = (window as any).Telegram?.WebApp;
@@ -474,12 +483,14 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
     }
   }
 
+  const isManual = payment?.method === 'manual';
+
   return (
     <ModalShell title={tx('buy')} onClose={onClose}>
       <p className="text-xs text-[#8a8f98] mb-3 leading-relaxed">
-        {/* Ru/En/Lt — to'lov bot orqali */}
-        Оплата проходит через бота безопасно (Telegram Payments).
-        Нажмите кнопку — откроется бот с пакетами.
+        {isManual
+          ? tx('buy_manual_intro')
+          : 'Оплата проходит через бота безопасно (Telegram Payments). Нажмите кнопку — откроется бот с пакетами.'}
       </p>
       <div className="flex flex-col gap-2 mb-3">
         {packages.map((p) => (
@@ -490,9 +501,17 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
           </div>
         ))}
       </div>
-      <button className={primaryBtn} style={primaryStyle} onClick={buyViaBot}>
-        {tx('buy')} →
-      </button>
+      {isManual ? (
+        payment?.instructions ? (
+          <div className="rounded-xl px-4 py-3 text-sm text-[#ededef] whitespace-pre-line" style={{ background: 'rgba(94,106,210,0.08)', border: '1px solid rgba(110,118,220,0.2)' }}>
+            {payment.instructions}
+          </div>
+        ) : null
+      ) : (
+        <button className={primaryBtn} style={primaryStyle} onClick={buyViaBot} disabled={!payment}>
+          {tx('buy')} →
+        </button>
+      )}
     </ModalShell>
   );
 }

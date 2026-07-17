@@ -97,6 +97,37 @@ class PurchaseRequest(BaseModel):
     package_id: int
 
 
+class PaymentSettingsOut(BaseModel):
+    method: str  # stars | manual
+    instructions: str = ""
+
+
+class PaymentSettingsUpdate(BaseModel):
+    method: str  # stars | manual
+    instructions: str = ""
+
+
+class PackageCreate(BaseModel):
+    points_amount: Decimal = Field(gt=0)
+    price_eur: Decimal = Field(gt=0)
+    label: str
+
+
+class PackageUpdate(BaseModel):
+    points_amount: Decimal = Field(gt=0)
+    price_eur: Decimal = Field(gt=0)
+    label: str
+    is_active: bool = True
+
+
+class PackageOut(BaseModel):
+    id: int
+    points_amount: Decimal
+    price_eur: Decimal
+    label: str
+    is_active: bool
+
+
 class PointsTransactionOut(BaseModel):
     id: int
     amount: Decimal

@@ -129,11 +129,43 @@ CREATE TABLE IF NOT EXISTS point_packages (
     is_active       BOOLEAN DEFAULT true
 );
 
+-- Bir martalik tozalash: `ON CONFLICT DO NOTHING` pastda unique constraint'siz
+-- ishlatilgani uchun default paketlar har server restart'ida (demak har Railway
+-- deploy'ida ham) takrorlanib qo'shilib kelgan edi. Dublikatlarni bitta qoldirib
+-- tozalaymiz, keyin haqiqiy unique constraint qo'yamiz — shu yerdan boshlab
+-- reseed idempotent bo'ladi.
+DELETE FROM point_packages a USING point_packages b
+WHERE a.id > b.id
+  AND a.label = b.label
+  AND a.points_amount = b.points_amount
+  AND a.price_eur = b.price_eur;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'point_packages_label_key'
+    ) THEN
+        ALTER TABLE point_packages ADD CONSTRAINT point_packages_label_key UNIQUE (label);
+    END IF;
+END $$;
+
 INSERT INTO point_packages (points_amount, price_eur, label) VALUES
     (100, 1.00, '100 points'),
     (500, 4.00, '500 points'),
     (1500, 10.00, '1500 points'),
     (5000, 25.00, '5000 points')
+ON CONFLICT (label) DO NOTHING;
+
+-- ============ Ilova sozlamalari (key-value) — poinт to'lovi qanday ishlashini admin belgilaydi ============
+CREATE TABLE IF NOT EXISTS app_settings (
+    key         VARCHAR(64) PRIMARY KEY,
+    value       TEXT NOT NULL DEFAULT '',
+    updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO app_settings (key, value) VALUES
+    ('payment_method', 'stars'),
+    ('payment_instructions', '')
 ON CONFLICT DO NOTHING;
 
 -- ============ Seed data (har til = o'sha davlat haqida yangilik) ============

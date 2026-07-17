@@ -7,5 +7,7 @@
   "nav_profile": "Профиль",
   "points_label": "POINT",
   "points_balance": "Ваш баланс",
-  "level": "УРОВЕНЬ"
+  "level": "УРОВЕНЬ",
+  "notify_points_received": "💰 Получено +{amount} поинтов",
+  "notify_points_gift": "🎁 Начислено +{amount} поинтов от администратора"
 }

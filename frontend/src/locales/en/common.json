@@ -7,5 +7,7 @@
   "nav_profile": "Profile",
   "points_label": "POINT",
   "points_balance": "Your balance",
-  "level": "LEVEL"
+  "level": "LEVEL",
+  "notify_points_received": "💰 Received +{amount} points",
+  "notify_points_gift": "🎁 +{amount} points credited by admin"
 }

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Mic, Send, MessageSquare, Paperclip, X } from 'lucide-react';
+import { Mic, Send, MessageSquare, Paperclip, X, Square } from 'lucide-react';
 import { sendVoiceMessage, uploadFile } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Language } from '../../types';
@@ -16,10 +16,15 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
   const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fmtSec = (s: number) =>
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
   const handleSend = (destination: 'chat' | 'studio') => {
     if (pendingVoice) {
@@ -42,6 +47,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
+      if (recTimerRef.current) clearInterval(recTimerRef.current);
       return;
     }
 
@@ -69,6 +75,8 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
         stream.getTracks().forEach((track) => track.stop());
         const actualType = mediaRecorder.mimeType || 'audio/webm';
         const blob = new Blob(audioChunksRef.current, { type: actualType });
+        if (recTimerRef.current) clearInterval(recTimerRef.current);
+        setRecSeconds(0);
         if (blob.size < 1000) {
           onToast(t('toast_short'));
           return;
@@ -79,6 +87,9 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
       mediaRecorder.start();
       setIsRecording(true);
+      setRecSeconds(0);
+      if (recTimerRef.current) clearInterval(recTimerRef.current);
+      recTimerRef.current = setInterval(() => setRecSeconds((s) => s + 1), 1000);
       onToast(t('toast_recording'));
     } catch (e) {
       console.error('Mic error:', e);
@@ -134,6 +145,38 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Recording indicator — видимо показывает, что идёт запись голоса */}
+      {isRecording && (
+        <div
+          className="px-4 py-3 rounded-2xl flex items-center gap-3"
+          style={{ background: 'rgba(255,77,109,0.1)', border: '1px solid rgba(255,77,109,0.35)' }}
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-[#ff4d6d] animate-pulse shrink-0" />
+          <div className="flex items-center gap-[2px] shrink-0">
+            {[5, 9, 6, 11, 7, 10, 6].map((h, i) => (
+              <div
+                key={i}
+                style={{
+                  width: '3px', height: `${h}px`,
+                  background: '#ff4d6d', borderRadius: '2px',
+                  animation: `recWave ${0.5 + i * 0.08}s ease-in-out ${i * 0.08}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-bold text-[#ff4d6d] tabular-nums shrink-0">{fmtSec(recSeconds)}</span>
+          <span className="text-xs text-[#ff9fb0] flex-1 truncate">{t('toast_recording')}</span>
+          <button
+            onClick={toggleRecording}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 active:scale-95 transition-transform"
+            style={{ background: '#ff4d6d' }}
+            aria-label="Остановить запись"
+          >
+            <Square className="w-3.5 h-3.5" fill="white" />
+          </button>
+        </div>
+      )}
+
       {/* Voice preview banner */}
       {pendingVoice && (
         <div className="glass px-4 py-3 rounded-2xl flex items-center justify-between border border-dashed border-[#5e6ad2]">

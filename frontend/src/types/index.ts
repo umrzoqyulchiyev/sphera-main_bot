@@ -55,6 +55,21 @@ export interface PointsTransaction {
   created_at: string;
 }
 
+// To'lov sozlamalari (admin belgilaydi — poinт uchun qanday to'lanadi)
+export interface PaymentSettings {
+  method: 'stars' | 'manual';
+  instructions: string;
+}
+
+// Point paketi (admin CRUD)
+export interface AdminPackage {
+  id: number;
+  points_amount: number;
+  price_eur: number;
+  label: string;
+  is_active: boolean;
+}
+
 // Yangilik
 export interface News {
   id: number;

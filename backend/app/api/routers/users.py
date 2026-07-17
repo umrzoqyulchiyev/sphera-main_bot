@@ -20,6 +20,7 @@ from app.core.dependencies import get_current_user
 from app.core.internal_auth import require_internal_key
 from app.core.models import (
     OkResponse,
+    PaymentSettingsOut,
     PointPackageOut,
     PointsBalanceOut,
     PointsRequestCreate,
@@ -206,6 +207,19 @@ async def get_packages():
         "SELECT id, points_amount, price_eur, label FROM point_packages WHERE is_active = true ORDER BY price_eur"
     )
     return [PointPackageOut(**dict(r)) for r in rows]
+
+
+@router.get("/me/points/payment-method", response_model=PaymentSettingsOut)
+async def get_payment_method(user: dict = Depends(get_current_user)):
+    """To'lov qanday ishlashi — admin belgilagan (stars = bot orqali, manual = kontakt)."""
+    rows = await db.fetch(
+        "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
+    )
+    values = {r["key"]: r["value"] for r in rows}
+    return PaymentSettingsOut(
+        method=values.get("payment_method", "stars"),
+        instructions=values.get("payment_instructions", ""),
+    )
 
 
 @router.post("/me/points/purchase", response_model=OkResponse)

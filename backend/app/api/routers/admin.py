@@ -12,7 +12,16 @@ from pydantic import BaseModel
 
 from app.core.database import db
 from app.core.dependencies import require_admin
-from app.core.models import AdminAddPointsRequest, AdminSetLevelRequest, OkResponse
+from app.core.models import (
+    AdminAddPointsRequest,
+    AdminSetLevelRequest,
+    OkResponse,
+    PackageCreate,
+    PackageOut,
+    PackageUpdate,
+    PaymentSettingsOut,
+    PaymentSettingsUpdate,
+)
 from app.services import points as points_service
 
 log = logging.getLogger("admin")
@@ -82,6 +91,105 @@ async def list_users(admin: dict = Depends(require_admin)):
         """
     )
     return [dict(r) for r in rows]
+
+
+# ============================================================
+# To'lov sozlamalari — admin poinт to'lovi qanday ishlashini belgilaydi
+# (Telegram Stars orqali avtomatik, yoki qo'lda/kontakt orqali)
+# ============================================================
+@router.get("/settings/payment", response_model=PaymentSettingsOut)
+async def get_payment_settings(admin: dict = Depends(require_admin)):
+    rows = await db.fetch(
+        "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
+    )
+    values = {r["key"]: r["value"] for r in rows}
+    return PaymentSettingsOut(
+        method=values.get("payment_method", "stars"),
+        instructions=values.get("payment_instructions", ""),
+    )
+
+
+@router.put("/settings/payment", response_model=PaymentSettingsOut)
+async def update_payment_settings(
+    payload: PaymentSettingsUpdate,
+    admin: dict = Depends(require_admin),
+):
+    if payload.method not in ("stars", "manual"):
+        raise HTTPException(status_code=400, detail="method must be 'stars' or 'manual'")
+
+    await db.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at) VALUES ('payment_method', $1, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+        """,
+        payload.method,
+    )
+    await db.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at) VALUES ('payment_instructions', $1, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+        """,
+        payload.instructions.strip(),
+    )
+    log.info("Admin %d payment settings o'zgartirdi: method=%s", admin["id"], payload.method)
+    return PaymentSettingsOut(method=payload.method, instructions=payload.instructions.strip())
+
+
+# ============================================================
+# Point paketlari — narx/miqdor/faollik admin tomonidan boshqariladi
+# ============================================================
+@router.get("/packages", response_model=list[PackageOut])
+async def admin_list_packages(admin: dict = Depends(require_admin)):
+    rows = await db.fetch(
+        "SELECT id, points_amount, price_eur, label, is_active FROM point_packages ORDER BY price_eur"
+    )
+    return [PackageOut(**dict(r)) for r in rows]
+
+
+@router.post("/packages", response_model=PackageOut)
+async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_admin)):
+    row = await db.fetchrow(
+        """
+        INSERT INTO point_packages (points_amount, price_eur, label, is_active)
+        VALUES ($1, $2, $3, true)
+        RETURNING id, points_amount, price_eur, label, is_active
+        """,
+        payload.points_amount,
+        payload.price_eur,
+        payload.label.strip(),
+    )
+    log.info("Admin %d yangi paket yaratdi: %s", admin["id"], payload.label)
+    return PackageOut(**dict(row))
+
+
+@router.put("/packages/{package_id}", response_model=PackageOut)
+async def admin_update_package(
+    package_id: int, payload: PackageUpdate, admin: dict = Depends(require_admin)
+):
+    row = await db.fetchrow(
+        """
+        UPDATE point_packages
+        SET points_amount = $2, price_eur = $3, label = $4, is_active = $5
+        WHERE id = $1
+        RETURNING id, points_amount, price_eur, label, is_active
+        """,
+        package_id,
+        payload.points_amount,
+        payload.price_eur,
+        payload.label.strip(),
+        payload.is_active,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Package not found")
+    return PackageOut(**dict(row))
+
+
+@router.delete("/packages/{package_id}", response_model=OkResponse)
+async def admin_delete_package(package_id: int, admin: dict = Depends(require_admin)):
+    result = await db.execute("DELETE FROM point_packages WHERE id = $1", package_id)
+    if result.endswith("0"):
+        raise HTTPException(status_code=404, detail="Package not found")
+    return OkResponse(detail={"package_id": package_id})
 
 
 # ============================================================

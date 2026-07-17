@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2 } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminAddPoints,
   adminCreateSlot, getAllSlots, adminUpdateSlotStatus,
   getMusicNominations, adminDeleteNomination,
+  adminGetPaymentSettings, adminUpdatePaymentSettings,
+  adminListPackages, adminCreatePackage, adminUpdatePackage, adminDeletePackage,
   type BroadcastSlot, type MusicNomination,
 } from '../lib/api';
 import { authHeaders, getToken } from '../lib/auth';
 import { API_URL } from '../lib/config';
 import { getLang } from '../lib/i18n';
+import type { PaymentSettings, AdminPackage } from '../types';
 
 interface Topic {
   id: number; title: string; description: string;
@@ -51,6 +54,15 @@ const L: Record<string, Record<string, string>> = {
     sources: 'источников', words: 'слов',
     no_nominations: 'Нет предложенных треков', votes: 'голосов', winner_label: 'Играет в эфире',
     confirm_delete_nom: 'Удалить этот трек из голосования?',
+    payment_tab: 'Оплата', payment_method_title: 'Способ оплаты поинтов',
+    payment_stars: '⭐ Telegram Stars', payment_stars_desc: 'Автоматическая покупка через бота (Telegram Payments)',
+    payment_manual: '✉️ Вручную', payment_manual_desc: 'Кнопка «Купить» покажет пользователю ваши инструкции/контакт',
+    payment_instructions_label: 'Инструкция для пользователя (если «Вручную»)',
+    payment_instructions_placeholder: 'Например: напишите @admin_username, чтобы купить поинты картой или переводом',
+    save: 'Сохранить', saved: 'Сохранено', packages_title: 'Пакеты поинтов',
+    package_label: 'Название', package_points: 'Поинты', package_price: 'Цена €',
+    package_active: 'Активен', package_add: 'Добавить пакет', package_delete: 'Удалить пакет?',
+    no_packages: 'Нет пакетов',
   },
   en: {
     title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
@@ -70,6 +82,15 @@ const L: Record<string, Record<string, string>> = {
     sources: 'sources', words: 'words',
     no_nominations: 'No track suggestions', votes: 'votes', winner_label: 'On air',
     confirm_delete_nom: 'Remove this track from voting?',
+    payment_tab: 'Payment', payment_method_title: 'Points payment method',
+    payment_stars: '⭐ Telegram Stars', payment_stars_desc: 'Automatic purchase via bot (Telegram Payments)',
+    payment_manual: '✉️ Manual', payment_manual_desc: 'The "Buy" button will show your instructions/contact to users',
+    payment_instructions_label: 'Instructions for users (if "Manual")',
+    payment_instructions_placeholder: 'e.g. message @admin_username to buy points by card or transfer',
+    save: 'Save', saved: 'Saved', packages_title: 'Point packages',
+    package_label: 'Label', package_points: 'Points', package_price: 'Price €',
+    package_active: 'Active', package_add: 'Add package', package_delete: 'Delete package?',
+    no_packages: 'No packages',
   },
   lt: {
     title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
@@ -89,6 +110,15 @@ const L: Record<string, Record<string, string>> = {
     sources: 'šaltinių', words: 'žodžių',
     no_nominations: 'Nėra pasiūlytų dainų', votes: 'balsų', winner_label: 'Eteryje',
     confirm_delete_nom: 'Pašalinti šią dainą iš balsavimo?',
+    payment_tab: 'Mokėjimas', payment_method_title: 'Taškų mokėjimo būdas',
+    payment_stars: '⭐ Telegram Stars', payment_stars_desc: 'Automatinis pirkimas per botą (Telegram Payments)',
+    payment_manual: '✉️ Rankiniu būdu', payment_manual_desc: 'Mygtukas „Pirkti“ parodys vartotojui jūsų instrukcijas/kontaktą',
+    payment_instructions_label: 'Instrukcija vartotojui (jei „Rankiniu būdu“)',
+    payment_instructions_placeholder: 'Pvz.: rašykite @admin_username, kad nusipirktumėte taškų kortele ar pervedimu',
+    save: 'Išsaugoti', saved: 'Išsaugota', packages_title: 'Taškų paketai',
+    package_label: 'Pavadinimas', package_points: 'Taškai', package_price: 'Kaina €',
+    package_active: 'Aktyvus', package_add: 'Pridėti paketą', package_delete: 'Ištrinti paketą?',
+    no_packages: 'Nėra paketų',
   },
 };
 
@@ -151,12 +181,14 @@ export function Admin() {
   const location = useLocation();
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
-  const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music' | 'casting'>('topics');
+  const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music' | 'casting' | 'payment'>('topics');
   const [topics, setTopics] = useState<Topic[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [slots, setSlots] = useState<BroadcastSlot[]>([]);
   const [castingApps, setCastingApps] = useState<CastingApp[]>([]);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [packages, setPackages] = useState<AdminPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -176,6 +208,10 @@ export function Admin() {
       else if (tab === 'slots') { setSlots(await getAllSlots()); setUsers(await getUsers()); }
       else if (tab === 'music') setTopics(await adminGetTopics());
       else if (tab === 'casting') setCastingApps(await adminGetCasting('pending'));
+      else if (tab === 'payment') {
+        setPaymentSettings(await adminGetPaymentSettings());
+        setPackages(await adminListPackages());
+      }
       else setDrafts(await adminGetDrafts());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -243,7 +279,7 @@ export function Admin() {
           className="flex gap-2 overflow-x-auto -mx-3.5 px-3.5"
           style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
         >
-          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')]] as const).map(([t, Icon, label]) => {
+          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')], ['payment', CreditCard, tx('payment_tab')]] as const).map(([t, Icon, label]) => {
             const active = tab === t;
             return (
               <button key={t} onClick={() => setTab(t as any)}
@@ -278,6 +314,8 @@ export function Admin() {
           <SlotsTab slots={slots} users={users} onReload={loadData} flash={flash} />
         ) : tab === 'music' ? (
           <MusicTab topics={topics} tx={tx} flash={flash} />
+        ) : tab === 'payment' ? (
+          <PaymentTab tx={tx} settings={paymentSettings} packages={packages} flash={flash} onReload={loadData} />
         ) : (
           <UsersTab users={users} tx={tx}
             onSetLevel={async (id: number, lvl: number) => { try { await adminSetLevel(id, lvl); flash('✅'); await loadData(); } catch { flash('❌'); } }}
@@ -807,6 +845,197 @@ function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── PaymentTab — admin поинт оплатасини қандай ишлашини белгилайди ──
+function PaymentTab({ tx, settings, packages, flash, onReload }: {
+  tx: any; settings: PaymentSettings | null; packages: AdminPackage[];
+  flash: (m: string) => void; onReload: () => Promise<void>;
+}) {
+  const [method, setMethod] = useState<'stars' | 'manual'>(settings?.method || 'stars');
+  const [instructions, setInstructions] = useState(settings?.instructions || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setMethod(settings?.method || 'stars');
+    setInstructions(settings?.instructions || '');
+  }, [settings]);
+
+  async function saveSettings(newMethod?: 'stars' | 'manual') {
+    setSaving(true);
+    try {
+      await adminUpdatePaymentSettings(newMethod || method, instructions);
+      flash('✅ ' + tx('saved'));
+      await onReload();
+    } catch { flash('❌'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="glass rounded-2xl p-4">
+        <div className="text-[11px] font-bold text-[#5e6ad2] uppercase tracking-wide mb-3">{tx('payment_method_title')}</div>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => { setMethod('stars'); saveSettings('stars'); }}
+            className="text-left rounded-xl p-3 border transition-all"
+            style={method === 'stars'
+              ? { borderColor: '#5e6ad2', background: 'rgba(94,106,210,0.1)' }
+              : { borderColor: 'rgba(110,118,220,0.14)' }}
+          >
+            <div className="text-sm font-bold text-[#ededef]">{tx('payment_stars')}</div>
+            <div className="text-[11px] text-[#8a8f98] mt-0.5">{tx('payment_stars_desc')}</div>
+          </button>
+          <button
+            onClick={() => { setMethod('manual'); saveSettings('manual'); }}
+            className="text-left rounded-xl p-3 border transition-all"
+            style={method === 'manual'
+              ? { borderColor: '#5e6ad2', background: 'rgba(94,106,210,0.1)' }
+              : { borderColor: 'rgba(110,118,220,0.14)' }}
+          >
+            <div className="text-sm font-bold text-[#ededef]">{tx('payment_manual')}</div>
+            <div className="text-[11px] text-[#8a8f98] mt-0.5">{tx('payment_manual_desc')}</div>
+          </button>
+        </div>
+
+        {method === 'manual' && (
+          <div className="mt-3">
+            <label className="text-[10px] text-[#8a8f98] uppercase tracking-wide">{tx('payment_instructions_label')}</label>
+            <textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder={tx('payment_instructions_placeholder')}
+              rows={3}
+              className="w-full mt-1.5 rounded-xl px-3 py-2.5 text-sm text-[#ededef] outline-none resize-none"
+              style={{ background: 'rgba(5,5,6,0.7)', border: '1px solid rgba(110,118,220,0.18)' }}
+            />
+            <button
+              onClick={() => saveSettings()}
+              disabled={saving}
+              className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold text-[#020203] disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' }}
+            >
+              {saving ? <Loader className="w-3.5 h-3.5 animate-spin mx-auto" /> : tx('save')}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <PackagesEditor tx={tx} packages={packages} flash={flash} onReload={onReload} />
+    </div>
+  );
+}
+
+// ── PackagesEditor — point пакетларини CRUD қилиш (нарх/миқдор/фаоллик) ──
+function PackagesEditor({ tx, packages, flash, onReload }: {
+  tx: any; packages: AdminPackage[]; flash: (m: string) => void; onReload: () => Promise<void>;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ label: '', points_amount: '', price_eur: '' });
+  const [creating, setCreating] = useState(false);
+
+  async function handleAdd() {
+    const points = parseFloat(form.points_amount);
+    const price = parseFloat(form.price_eur);
+    if (!form.label.trim() || !points || !price) return;
+    setCreating(true);
+    try {
+      await adminCreatePackage({ points_amount: points, price_eur: price, label: form.label.trim() });
+      setForm({ label: '', points_amount: '', price_eur: '' });
+      setShowAdd(false);
+      flash('✅');
+      await onReload();
+    } catch { flash('❌'); }
+    finally { setCreating(false); }
+  }
+
+  async function toggleActive(p: AdminPackage) {
+    try {
+      await adminUpdatePackage(p.id, {
+        points_amount: p.points_amount, price_eur: p.price_eur, label: p.label, is_active: !p.is_active,
+      });
+      await onReload();
+    } catch { flash('❌'); }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm(tx('package_delete'))) return;
+    try { await adminDeletePackage(id); flash('✅'); await onReload(); }
+    catch { flash('❌'); }
+  }
+
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[11px] font-bold text-[#5e6ad2] uppercase tracking-wide">{tx('packages_title')}</div>
+        <button onClick={() => setShowAdd((s) => !s)} className="p-1.5 rounded-lg bg-[rgba(94,106,210,0.1)] text-[#5e6ad2]">
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {showAdd && (
+        <div className="flex flex-col gap-2 mb-3 p-3 rounded-xl" style={{ background: 'rgba(5,5,6,0.5)', border: '1px solid rgba(110,118,220,0.14)' }}>
+          <input
+            placeholder={tx('package_label')}
+            value={form.label}
+            onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+            className="rounded-lg px-3 py-2 text-sm text-[#ededef] outline-none"
+            style={{ background: 'rgba(5,5,6,0.7)', border: '1px solid rgba(110,118,220,0.18)' }}
+          />
+          <div className="flex gap-2">
+            <input
+              placeholder={tx('package_points')}
+              value={form.points_amount}
+              inputMode="decimal"
+              onChange={(e) => setForm((f) => ({ ...f, points_amount: e.target.value }))}
+              className="flex-1 rounded-lg px-3 py-2 text-sm text-[#ededef] outline-none"
+              style={{ background: 'rgba(5,5,6,0.7)', border: '1px solid rgba(110,118,220,0.18)' }}
+            />
+            <input
+              placeholder={tx('package_price')}
+              value={form.price_eur}
+              inputMode="decimal"
+              onChange={(e) => setForm((f) => ({ ...f, price_eur: e.target.value }))}
+              className="flex-1 rounded-lg px-3 py-2 text-sm text-[#ededef] outline-none"
+              style={{ background: 'rgba(5,5,6,0.7)', border: '1px solid rgba(110,118,220,0.18)' }}
+            />
+          </div>
+          <button
+            onClick={handleAdd}
+            disabled={creating}
+            className="py-2 rounded-lg text-xs font-bold text-[#020203] disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' }}
+          >
+            {creating ? <Loader className="w-3.5 h-3.5 animate-spin mx-auto" /> : tx('package_add')}
+          </button>
+        </div>
+      )}
+
+      {packages.length === 0 ? (
+        <div className="text-center text-xs text-[#8a8f98] py-4">{tx('no_packages')}</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {packages.map((p) => (
+            <div key={p.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(5,5,6,0.4)', border: '1px solid rgba(110,118,220,0.1)' }}>
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-semibold truncate ${p.is_active ? 'text-[#ededef]' : 'text-[#5a5f68] line-through'}`}>{p.label}</div>
+                <div className="text-[11px] text-[#8a8f98]">{Number(p.points_amount).toFixed(0)} pts · €{Number(p.price_eur).toFixed(2)}</div>
+              </div>
+              <button
+                onClick={() => toggleActive(p)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 ${p.is_active ? 'bg-[rgba(34,197,94,0.15)] text-[#22c55e]' : 'bg-[rgba(138,143,152,0.15)] text-[#8a8f98]'}`}
+              >
+                {tx('package_active')}
+              </button>
+              <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

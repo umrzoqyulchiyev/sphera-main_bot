@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Gift, Sparkles } from 'lucide-react';
 import { TopBar } from '../components/layout/TopBar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { ChatScreen } from '../components/radio/ChatScreen';
@@ -10,12 +11,14 @@ import { MusicScreen } from '../components/music/MusicScreen';
 import { SlotsScreen } from '../components/slots/SlotsScreen';
 import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
-import { getMe } from '../lib/api';
+import { getMe, getPointsHistory } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
+import { t } from '../lib/i18n';
 import type { Screen, User } from '../types';
 
 const ONBOARDING_KEY = 'sfera5_onboarded';
+const POINTS_POLL_MS = 20000;
 
 export function Radio() {
   // Admin panelidan "Orqaga" bosilganda qaysi tabga qaytish kerakligi
@@ -26,7 +29,10 @@ export function Radio() {
   const [currentScreen, setCurrentScreen] = useState<Screen>((location.state as { screen?: Screen } | null)?.screen || 'anons');
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [pointsNotice, setPointsNotice] = useState<{ text: string; gift: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastTxIdRef = useRef<number | null>(null);
+  const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -69,6 +75,57 @@ export function Radio() {
 
     init();
   }, []);
+
+  // Уведомление о получении поинтов (перевод от пользователя, подарок
+  // от админа) — опрашиваем историю, т.к. WS-чат подключён только на
+  // вкладке "Анонсы" и не ловит события с других вкладок.
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const history = await getPointsHistory();
+        if (cancelled || history.length === 0) return;
+
+        if (lastTxIdRef.current === null) {
+          // Birinchi so'rov — faqat boshlang'ich holatni belgilaymiz,
+          // eski tranzaksiyalar uchun bildirishnoma ko'rsatmaymiz.
+          lastTxIdRef.current = Math.max(...history.map((h) => h.id));
+          return;
+        }
+
+        const lastSeenId = lastTxIdRef.current;
+        const fresh = history.filter((h) => h.id > lastSeenId);
+        if (fresh.length === 0) return;
+        lastTxIdRef.current = Math.max(lastSeenId, ...fresh.map((h) => h.id));
+
+        const incoming = fresh.find((h) => h.event_type === 'transfer_in' || h.event_type === 'gift');
+        if (incoming) {
+          const amount = Number(incoming.amount).toFixed(3);
+          const key = incoming.event_type === 'gift' ? 'notify_points_gift' : 'notify_points_received';
+          const text = t(key).replace('{amount}', amount);
+          if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+          setPointsNotice({ text, gift: incoming.event_type === 'gift' });
+          noticeTimeoutRef.current = setTimeout(() => { if (!cancelled) setPointsNotice(null); }, 4500);
+
+          try {
+            const updatedUser = await getMe();
+            if (!cancelled) setUser({ ...updatedUser, points: Number(updatedUser.points) || 0 });
+          } catch { /* balans keyingi poll'da yangilanadi */ }
+        }
+      } catch { /* tarmoq xatosi — keyingi poll urinib ko'radi */ }
+    }
+
+    poll();
+    const interval = setInterval(poll, POINTS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    };
+  }, [!!user]);
 
   const handlePointsUpdate = (newPoints: number) => {
     if (user) {
@@ -151,6 +208,22 @@ export function Radio() {
 
       <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+      {pointsNotice && (
+        <div
+          className="fixed top-[calc(12px+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[2500] w-[92%] max-w-[400px] cursor-pointer"
+          onClick={() => setPointsNotice(null)}
+        >
+          <div
+            className="glass rounded-2xl px-4 py-3 flex items-center gap-3 animate-[slideDown_0.25s_ease-out]"
+            style={{ border: '1px solid rgba(34,227,165,0.35)', boxShadow: '0 8px 30px rgba(34,227,165,0.15)' }}
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-[rgba(34,227,165,0.15)] text-[#22e3a5]">
+              {pointsNotice.gift ? <Gift size={18} /> : <Sparkles size={18} />}
+            </div>
+            <span className="text-sm font-semibold text-[#ededef]">{pointsNotice.text}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
