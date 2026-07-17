@@ -98,13 +98,14 @@ async def _convert_to_mp3_background(src_path: str, mp3_fpath: str) -> None:
 
 @router.get("/history", response_model=list[ChatMessageOut])
 async def get_chat_history(limit: int = 50):
-    """Oxirgi chat xabarlari."""
+    """Oxirgi chat xabarlari (umumiy chat — guruh xabarlari bu yerga chiqmaydi)."""
     rows = await db.fetch(
         """
         SELECT c.id, u.username, u.display_name, c.message, c.message_type,
                c.audio_file_path, c.created_at
         FROM chat_messages c
         LEFT JOIN users u ON u.id = c.user_id
+        WHERE c.room_id IS NULL
         ORDER BY c.created_at DESC
         LIMIT $1
         """,

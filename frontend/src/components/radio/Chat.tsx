@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+import { RoomsButton } from './RoomsScreen';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ChatMessage as ChatMessageType, User, Language } from '../../types';
 
@@ -38,6 +39,7 @@ export function Chat({
     <div className="glass p-3 flex flex-col flex-1 min-h-0">
       <div className="flex justify-between items-center text-[11px] tracking-[2px] mb-3">
         <span className="text-[#5e6ad2]">{t('chat_title')}</span>
+        <RoomsButton user={currentUser} />
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1 min-h-[60px] scroll-smooth"

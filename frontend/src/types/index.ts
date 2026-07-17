@@ -61,6 +61,17 @@ export interface PaymentSettings {
   instructions: string;
 }
 
+// Guruh (ведущий yaratadi)
+export interface ChatRoom {
+  id: number;
+  title: string;
+  description: string;
+  host_user_id: number | null;
+  host_display_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 // Point paketi (admin CRUD)
 export interface AdminPackage {
   id: number;

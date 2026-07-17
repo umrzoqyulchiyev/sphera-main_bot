@@ -75,6 +75,21 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
 
+-- ============ Guruhlar (ведущий/admin yaratadi — TZ: "ведущий имел возможность создавать группы") ============
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id              SERIAL PRIMARY KEY,
+    title           VARCHAR(100) NOT NULL,
+    description     TEXT DEFAULT '',
+    host_user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    is_active       BOOLEAN DEFAULT true,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- Guruh xabarlari xuddi shu chat_messages jadvalida saqlanadi — room_id
+-- NULL bo'lsa umumiy chat, aks holda shu guruhga tegishli.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS room_id INTEGER REFERENCES chat_rooms(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id, created_at);
+
 -- ============ Studiya/efir zayavkalari (AI agregator + moderator uchun) ============
 CREATE TABLE IF NOT EXISTS messages (
     id              SERIAL PRIMARY KEY,

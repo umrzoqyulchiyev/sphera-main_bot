@@ -2,7 +2,7 @@ import { API_URL } from './config';
 import { authHeaders } from './auth';
 import type {
   User, RadioStatus, ChatMessage, Announcements, AudioSegment,
-  News, PointsRequest, PointPackage, PointsTransaction, PaymentSettings, AdminPackage,
+  News, PointsRequest, PointPackage, PointsTransaction, PaymentSettings, AdminPackage, ChatRoom,
 } from '../types';
 
 // ============ Users / Profile ============
@@ -609,6 +609,74 @@ export async function adminDeleteSlot(slotId: number) {
     method: 'DELETE', headers: authHeaders(),
   });
   if (!resp.ok) throw new Error('Failed');
+  return resp.json();
+}
+
+// ============ Guruhlar (ведущий yaratadi) ============
+export async function getRooms(): Promise<ChatRoom[]> {
+  const resp = await fetch(`${API_URL}/rooms`, { headers: authHeaders(), cache: 'no-store' });
+  if (!resp.ok) throw new Error('Failed to fetch rooms');
+  return resp.json();
+}
+
+export async function createRoom(title: string, description: string): Promise<ChatRoom> {
+  const resp = await fetch(`${API_URL}/rooms`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ title, description }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed to create room');
+  }
+  return resp.json();
+}
+
+export async function closeRoom(roomId: number) {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/close`, {
+    method: 'POST', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to close room');
+  return resp.json();
+}
+
+export async function getRoomMessages(roomId: number): Promise<ChatMessage[]> {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/messages`, { headers: authHeaders(), cache: 'no-store' });
+  if (!resp.ok) throw new Error('Failed to fetch room messages');
+  return resp.json();
+}
+
+export async function sendRoomMessage(roomId: number, message: string) {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ message }),
+  });
+  if (!resp.ok) {
+    const err: any = new Error('Failed to send room message');
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
+}
+
+export async function sendRoomVoice(roomId: number, audioBlob: Blob) {
+  const typeExtMap: Record<string, string> = {
+    'audio/mp4': 'm4a', 'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/webm': 'webm', 'audio/wav': 'wav',
+  };
+  const baseType = (audioBlob.type || 'audio/webm').split(';')[0];
+  const ext = typeExtMap[baseType] || 'webm';
+  const fd = new FormData();
+  fd.append('audio_file', audioBlob, `voice.${ext}`);
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/voice`, {
+    method: 'POST', headers: authHeaders(), body: fd,
+  });
+  if (!resp.ok) {
+    const err: any = new Error('Failed to send room voice');
+    err.status = resp.status;
+    err.response = resp;
+    throw err;
+  }
   return resp.json();
 }
 

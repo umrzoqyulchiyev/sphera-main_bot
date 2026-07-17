@@ -6,6 +6,9 @@ import type { Language } from '../../types';
 
 interface ChatInputProps {
   onSendMessage: (message: string, destination: 'chat' | 'studio') => void;
+  // Umumiy chat uchun standart /chat/voice ishlatiladi — guruh chatlari
+  // kabi boshqa manzilga yuborish kerak bo'lsa shu orqali almashtiriladi.
+  onSendVoice?: (blob: Blob) => Promise<{ points?: string | number }>;
   onToast: (message: string) => void;
   city: string;
   language: Language;
@@ -15,7 +18,7 @@ interface ChatInputProps {
 // Bu input faqat CHAT'ga yuborish uchun — studiyaga yuborish Efir ekranida
 // alohida joylashgan. Tugma Telegram uslubida: matn bo'lsa yuborish
 // belgisi, bo'lmasa mikrofon — bitta doira tugma, matn maydonidan tashqarida.
-export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpdate }: ChatInputProps) {
+export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language, onPointsUpdate }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -82,7 +85,8 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
   const sendVoice = async (blob: Blob) => {
     onToast(t('toast_processing'));
     try {
-      await sendVoiceMessage(city, blob, 'chat', language);
+      if (onSendVoice) await onSendVoice(blob);
+      else await sendVoiceMessage(city, blob, 'chat', language);
       onToast(t('toast_sent_chat'));
     } catch (error: any) {
       if (error.status === 402) {

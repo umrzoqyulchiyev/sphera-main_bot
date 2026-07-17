@@ -27,6 +27,7 @@ from app.api.routers import (
     news,
     opinions,
     radio,
+    rooms,
     slots,
     stats,
     users,
@@ -147,6 +148,7 @@ app.include_router(favorites.router)
 app.include_router(music.router)
 app.include_router(slots.router)
 app.include_router(casting.router)
+app.include_router(rooms.router)
 
 
 # Global exception handler

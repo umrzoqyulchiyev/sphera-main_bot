@@ -160,6 +160,26 @@ class ChatMessageOut(BaseModel):
     created_at: datetime
 
 
+# ============ Guruhlar (ведущий yaratadi) ============
+class RoomCreate(BaseModel):
+    title: str
+    description: str = ""
+
+
+class RoomOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    host_user_id: int | None = None
+    host_display_name: str | None = None
+    is_active: bool
+    created_at: datetime
+
+
+class RoomMessageRequest(BaseModel):
+    message: str
+
+
 # ============ Radio / Broadcast ============
 class RadioStatus(BaseModel):
     is_live: bool
