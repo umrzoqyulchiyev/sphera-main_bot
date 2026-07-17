@@ -73,7 +73,6 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
       mediaRecorder.start();
       setIsRecording(true);
-      onToast(t('toast_recording'));
     } catch (e) {
       console.error('Mic error:', e);
       onToast(t('toast_mic_denied'));

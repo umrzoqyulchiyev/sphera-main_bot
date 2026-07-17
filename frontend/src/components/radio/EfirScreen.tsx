@@ -180,7 +180,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
       };
       rec.start();
       setIsRecording(true);
-      showToast(t('toast_recording'));
     } catch (err: any) {
       console.error('Mic error:', err);
       if (err?.name === 'NotAllowedError') {

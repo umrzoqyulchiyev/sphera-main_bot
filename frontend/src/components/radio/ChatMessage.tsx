@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Check, CheckCheck, Clock } from 'lucide-react';
 import { API_URL } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ChatMessage, User } from '../../types';
@@ -51,12 +52,23 @@ export function ChatMessage({ message, currentUser }: ChatMessageProps) {
           </div>
         )}
         {renderContent()}
-        <div className={`text-[10px] text-right mt-0.5 ${isMine ? 'text-[rgba(2,2,3,0.6)]' : 'text-[#8a8f98]'}`}>
+        <div className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${isMine ? 'text-[rgba(2,2,3,0.6)]' : 'text-[#8a8f98]'}`}>
           {time}
+          {isMine && message.status && <StatusTicks status={message.status} />}
         </div>
       </div>
     </div>
   );
+}
+
+// Telegram uslubidagi galochkalar — faqat shu sessiyada yuborilgan xabarlar
+// uchun (status maydoni bo'lgan xabarlarda). "Delivered" WS orqali xabar
+// serverdan qaytib kelganini bildiradi (haqiqiy "o'qildi" holati emas —
+// guruh chatida bittalab o'qilganlikni kuzatish yo'q).
+function StatusTicks({ status }: { status: 'sending' | 'sent' | 'delivered' }) {
+  if (status === 'sending') return <Clock className="w-3 h-3 shrink-0" />;
+  if (status === 'delivered') return <CheckCheck className="w-3.5 h-3.5 shrink-0" />;
+  return <Check className="w-3.5 h-3.5 shrink-0" />;
 }
 
 function VoicePlayer({ url, duration, voiceLabel }: { url: string; duration: number | null; voiceLabel: string }) {

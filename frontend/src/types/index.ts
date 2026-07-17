@@ -93,6 +93,9 @@ export interface ChatMessage {
   duration_sec?: number | null;
   kind?: 'chat' | 'studio' | 'ai';
   created_at: string;
+  // Faqat shu sessiyada optimistik yuborilgan xabarlarda bo'ladi (Telegram
+  // uslubidagi bitta/ikkita galochka) — tarixdan yuklangan xabarlarda yo'q.
+  status?: 'sending' | 'sent' | 'delivered';
 }
 
 // Radio Status
