@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Mic, Send, MessageSquare, Paperclip, X, Square } from 'lucide-react';
+import { Mic, Send, Paperclip, X, Square } from 'lucide-react';
 import { sendVoiceMessage, uploadFile } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Language } from '../../types';
@@ -12,23 +12,21 @@ interface ChatInputProps {
   onPointsUpdate: (points: number) => void;
 }
 
+// Bu input faqat CHAT'ga yuborish uchun — studiyaga yuborish Efir ekranida
+// (mikrofon ikonkasi tagida) alohida joylashgan, ikkalasini bitta joyda
+// aralashtirish foydalanuvchini chalkashtirar edi.
 export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpdate }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [recSeconds, setRecSeconds] = useState(0);
   const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fmtSec = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-
-  const handleSend = (destination: 'chat' | 'studio') => {
+  const handleSend = () => {
     if (pendingVoice) {
-      sendVoice(destination);
+      sendVoice();
       return;
     }
 
@@ -38,16 +36,15 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
       return;
     }
 
-    onSendMessage(message, destination);
+    onSendMessage(message, 'chat');
     setText('');
-    onToast(destination === 'studio' ? t('toast_sent_studio') : t('toast_sent_chat'));
+    onToast(t('toast_sent_chat'));
   };
 
   const toggleRecording = async () => {
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      if (recTimerRef.current) clearInterval(recTimerRef.current);
       return;
     }
 
@@ -75,8 +72,6 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
         stream.getTracks().forEach((track) => track.stop());
         const actualType = mediaRecorder.mimeType || 'audio/webm';
         const blob = new Blob(audioChunksRef.current, { type: actualType });
-        if (recTimerRef.current) clearInterval(recTimerRef.current);
-        setRecSeconds(0);
         if (blob.size < 1000) {
           onToast(t('toast_short'));
           return;
@@ -87,9 +82,6 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
       mediaRecorder.start();
       setIsRecording(true);
-      setRecSeconds(0);
-      if (recTimerRef.current) clearInterval(recTimerRef.current);
-      recTimerRef.current = setInterval(() => setRecSeconds((s) => s + 1), 1000);
       onToast(t('toast_recording'));
     } catch (e) {
       console.error('Mic error:', e);
@@ -97,17 +89,15 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
     }
   };
 
-  const sendVoice = async (destination: 'chat' | 'studio') => {
+  const sendVoice = async () => {
     if (!pendingVoice) return;
     onToast(t('toast_processing'));
 
     try {
-      await sendVoiceMessage(city, pendingVoice, destination, language);
-      onToast(destination === 'studio' ? t('toast_sent_studio') : t('toast_sent_chat'));
+      await sendVoiceMessage(city, pendingVoice, 'chat', language);
+      onToast(t('toast_sent_chat'));
     } catch (error: any) {
-      if (error.status === 403) {
-        onToast(t('studio_denied_role'));
-      } else if (error.status === 402) {
+      if (error.status === 402) {
         const data = await error.response?.json().catch(() => ({}));
         if (data?.detail?.points !== undefined) {
           onPointsUpdate(data.detail.points);
@@ -145,39 +135,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Recording indicator — видимо показывает, что идёт запись голоса */}
-      {isRecording && (
-        <div
-          className="px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{ background: 'rgba(255,77,109,0.1)', border: '1px solid rgba(255,77,109,0.35)' }}
-        >
-          <span className="w-2.5 h-2.5 rounded-full bg-[#ff4d6d] animate-pulse shrink-0" />
-          <div className="flex items-center gap-[2px] shrink-0">
-            {[5, 9, 6, 11, 7, 10, 6].map((h, i) => (
-              <div
-                key={i}
-                style={{
-                  width: '3px', height: `${h}px`,
-                  background: '#ff4d6d', borderRadius: '2px',
-                  animation: `recWave ${0.5 + i * 0.08}s ease-in-out ${i * 0.08}s infinite`,
-                }}
-              />
-            ))}
-          </div>
-          <span className="text-sm font-bold text-[#ff4d6d] tabular-nums shrink-0">{fmtSec(recSeconds)}</span>
-          <span className="text-xs text-[#ff9fb0] flex-1 truncate">{t('toast_recording')}</span>
-          <button
-            onClick={toggleRecording}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 active:scale-95 transition-transform"
-            style={{ background: '#ff4d6d' }}
-            aria-label="Остановить запись"
-          >
-            <Square className="w-3.5 h-3.5" fill="white" />
-          </button>
-        </div>
-      )}
-
-      {/* Voice preview banner */}
+      {/* Voice preview — yozib bo'lgach, "Отправить" bosilmaguncha yuborilmaydi */}
       {pendingVoice && (
         <div className="glass px-4 py-3 rounded-2xl flex items-center justify-between border border-dashed border-[#5e6ad2]">
           <span className="text-xs text-[#5e6ad2]">{t('voice_ready')}</span>
@@ -203,45 +161,37 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend('chat')}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={t('chat_placeholder')}
           className="flex-1 min-w-0 bg-transparent text-sm text-[#ededef] placeholder-[#4a5568] outline-none"
         />
 
-        {/* Mic */}
+        {/* Mic — yozayotganda shakli/rangi o'zgaradi (mikrofon → to'xtatish belgisi) */}
         <button
           onClick={toggleRecording}
+          aria-label={isRecording ? 'Остановить запись' : 'Записать голосовое'}
           className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
             isRecording
               ? 'bg-[#ff4d6d] text-white animate-pulse'
               : 'text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)]'
           }`}
         >
-          <Mic className="w-4.5 h-4.5" strokeWidth={1.8} />
+          {isRecording ? <Square className="w-4 h-4" fill="currentColor" /> : <Mic className="w-4.5 h-4.5" strokeWidth={1.8} />}
         </button>
       </div>
 
-      {/* Send buttons */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <button
-          onClick={() => handleSend('chat')}
-          className="glass py-3 px-4 rounded-2xl flex items-center justify-center gap-2 hover:border-[rgba(94,106,210,0.3)] transition-all active:scale-[0.97]"
-        >
-          <MessageSquare className="w-4 h-4 text-[#5e6ad2]" strokeWidth={1.8} />
-          <span className="text-xs font-semibold text-[#ededef]">{t('send_to_chat')}</span>
-        </button>
-        <button
-          onClick={() => handleSend('studio')}
-          className="py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
-          style={{
-            background: 'linear-gradient(135deg, rgba(123,133,232,0.9), rgba(94,106,210,0.9))',
-            boxShadow: '0 0 20px rgba(94,106,210,0.3)',
-          }}
-        >
-          <Send className="w-4 h-4 text-[#050506]" strokeWidth={2} />
-          <span className="text-xs font-bold text-[#050506]">{t('send_to_studio')}</span>
-        </button>
-      </div>
+      {/* Send */}
+      <button
+        onClick={handleSend}
+        className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+        style={{
+          background: 'linear-gradient(135deg, rgba(123,133,232,0.9), rgba(94,106,210,0.9))',
+          boxShadow: '0 0 20px rgba(94,106,210,0.3)',
+        }}
+      >
+        <Send className="w-4 h-4 text-[#050506]" strokeWidth={2} />
+        <span className="text-xs font-bold text-[#050506]">{t('send_to_chat')}</span>
+      </button>
     </div>
   );
 }

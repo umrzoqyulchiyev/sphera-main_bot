@@ -21,5 +21,5 @@
   "toast_short": "⚠️ Too short, please try again",
   "toast_limit": "⚠️ Not enough points on balance",
   "studio_denied_role": "🔒 Studio available from the \"Active\" role",
-  "voice_ready": "🎤 Voice recorded - choose where to send:"
+  "voice_ready": "🎤 Voice recorded — press \"Send\""
 }

@@ -63,6 +63,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Название', package_points: 'Поинты', package_price: 'Цена €',
     package_active: 'Активен', package_add: 'Добавить пакет', package_delete: 'Удалить пакет?',
     no_packages: 'Нет пакетов',
+    add_pts_title: 'Начислить поинты', add_pts_to: 'Кому', amount: 'Количество',
+    add_pts_submit: 'Начислить', add_pts_hint: 'Можно с минусом — чтобы списать',
+    cancel: 'Отмена', confirm: 'Подтвердить', confirm_delete_title: 'Подтверждение',
   },
   en: {
     title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
@@ -91,6 +94,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Label', package_points: 'Points', package_price: 'Price €',
     package_active: 'Active', package_add: 'Add package', package_delete: 'Delete package?',
     no_packages: 'No packages',
+    add_pts_title: 'Add points', add_pts_to: 'To', amount: 'Amount',
+    add_pts_submit: 'Add', add_pts_hint: 'Negative values deduct points',
+    cancel: 'Cancel', confirm: 'Confirm', confirm_delete_title: 'Confirm',
   },
   lt: {
     title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
@@ -119,6 +125,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Pavadinimas', package_points: 'Taškai', package_price: 'Kaina €',
     package_active: 'Aktyvus', package_add: 'Pridėti paketą', package_delete: 'Ištrinti paketą?',
     no_packages: 'Nėra paketų',
+    add_pts_title: 'Pridėti taškų', add_pts_to: 'Kam', amount: 'Kiekis',
+    add_pts_submit: 'Pridėti', add_pts_hint: 'Su minusu — nurašyti',
+    cancel: 'Atšaukti', confirm: 'Patvirtinti', confirm_delete_title: 'Patvirtinimas',
   },
 };
 
@@ -189,6 +198,7 @@ export function Admin() {
   const [castingApps, setCastingApps] = useState<CastingApp[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [packages, setPackages] = useState<AdminPackage[]>([]);
+  const [addPointsTarget, setAddPointsTarget] = useState<UserRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -319,9 +329,28 @@ export function Admin() {
         ) : (
           <UsersTab users={users} tx={tx}
             onSetLevel={async (id: number, lvl: number) => { try { await adminSetLevel(id, lvl); flash('✅'); await loadData(); } catch { flash('❌'); } }}
-            onAddPoints={async (id: number) => { const s = prompt(tx('add_pts')); if (!s) return; const a = parseFloat(s); if (!a) return; try { await adminAddPoints(id, a); flash('✅'); await loadData(); } catch { flash('❌'); } }} />
+            onAddPoints={(u: UserRow) => setAddPointsTarget(u)} />
         )}
       </div>
+
+      {/* Poinт berish modali — admin xohlagan foydalanuvchiga, xohlagan
+          vaqtda, xohlagan miqdorda point qo'sha oladi (native prompt()
+          Telegram Mini App'da ishlamasligi mumkin edi). */}
+      {addPointsTarget && (
+        <AddPointsModal
+          user={addPointsTarget}
+          tx={tx}
+          onClose={() => setAddPointsTarget(null)}
+          onSubmit={async (amount: number) => {
+            try {
+              await adminAddPoints(addPointsTarget.id, amount);
+              flash('✅');
+              setAddPointsTarget(null);
+              await loadData();
+            } catch { flash('❌'); }
+          }}
+        />
+      )}
 
       {/* Draft ko'rish modal */}
       {activeDraft && (
@@ -729,6 +758,7 @@ function MusicTab({ topics, tx, flash }: any) {
   const [topicId, setTopicId] = useState<number | null>(null);
   const [noms, setNoms] = useState<MusicNomination[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
 
   useEffect(() => {
     if (topics.length === 0) return;
@@ -746,8 +776,10 @@ function MusicTab({ topics, tx, flash }: any) {
     finally { setLoading(false); }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm(tx('confirm_delete_nom'))) return;
+  async function confirmDelete() {
+    if (pendingDelete === null) return;
+    const id = pendingDelete;
+    setPendingDelete(null);
     try { await adminDeleteNomination(id); flash('✅'); if (topicId) await loadNoms(topicId); }
     catch { flash('❌'); }
   }
@@ -785,12 +817,21 @@ function MusicTab({ topics, tx, flash }: any) {
               {n.artist && <div className="text-[11px] text-[#8a8f98]">{n.artist}</div>}
               <div className="text-[10px] text-[#8a8f98] mt-0.5">{n.display_name || n.username || '—'}</div>
             </div>
-            <button onClick={() => handleDelete(n.id)} className="p-2 rounded-lg bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] shrink-0">
+            <button onClick={() => setPendingDelete(n.id)} className="p-2 rounded-lg bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] shrink-0">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
       ))}
+
+      {pendingDelete !== null && (
+        <ConfirmModal
+          tx={tx}
+          message={tx('confirm_delete_nom')}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -825,7 +866,7 @@ function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
                 {' · '}{Number(u.points).toFixed(3)} pts
               </div>
             </div>
-            <button onClick={() => onAddPoints(u.id)}
+            <button onClick={() => onAddPoints(u)}
               className="ml-2 px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-[rgba(94,106,210,0.1)] text-[#5e6ad2]">
               +pts
             </button>
@@ -935,6 +976,7 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ label: '', points_amount: '', price_eur: '' });
   const [creating, setCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
 
   async function handleAdd() {
     const points = parseFloat(form.points_amount);
@@ -960,8 +1002,10 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
     } catch { flash('❌'); }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm(tx('package_delete'))) return;
+  async function confirmDelete() {
+    if (pendingDelete === null) return;
+    const id = pendingDelete;
+    setPendingDelete(null);
     try { await adminDeletePackage(id); flash('✅'); await onReload(); }
     catch { flash('❌'); }
   }
@@ -1029,13 +1073,107 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
               >
                 {tx('package_active')}
               </button>
-              <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] shrink-0">
+              <button onClick={() => setPendingDelete(p.id)} className="p-1.5 rounded-lg bg-[rgba(255,77,109,0.1)] text-[#ff9fb0] shrink-0">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
         </div>
       )}
+
+      {pendingDelete !== null && (
+        <ConfirmModal
+          tx={tx}
+          message={tx('package_delete')}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── AddPointsModal — админ хоҳлаган пользовательга, хоҳлаган пайтда,
+// хоҳлаган миқдорда поинт бера олади. window.prompt() Telegram Mini App
+// WebView'da ishonchli ishlamasligi mumkin edi (ba'zi klientlarda umuman
+// ko'rinmaydi) — shu sabab oddiy in-app modal orqali qilinadi.
+function AddPointsModal({ user, tx, onClose, onSubmit }: {
+  user: { id: number; display_name: string | null; username: string | null; telegram_id: number };
+  tx: any; onClose: () => void; onSubmit: (amount: number) => Promise<void>;
+}) {
+  const [amount, setAmount] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    const a = parseFloat(amount);
+    if (!a) return;
+    setBusy(true);
+    try { await onSubmit(a); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="text-base font-bold text-[#5e6ad2]">{tx('add_pts_title')}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#9a9fa8] active:scale-90 transition-transform">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="text-xs text-[#8a8f98] mb-1">{tx('add_pts_to')}</div>
+        <div className="text-sm font-semibold text-[#ededef] mb-4">
+          {user.display_name || user.username || `ID ${user.telegram_id}`}
+        </div>
+
+        <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
+        <input
+          autoFocus
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          inputMode="decimal"
+          placeholder="0"
+          className="w-full bg-[rgba(5,5,6,0.7)] border border-[rgba(110,118,220,0.18)] rounded-xl px-4 py-3 text-sm text-[#ededef] outline-none focus:border-[#5e6ad2] mb-1.5"
+        />
+        <div className="text-[10px] text-[#8a8f98] mb-4">{tx('add_pts_hint')}</div>
+
+        <button
+          onClick={submit}
+          disabled={busy || !amount}
+          className="w-full py-3 rounded-xl font-bold text-[#020203] text-sm disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' }}
+        >
+          {busy ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : tx('add_pts_submit')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── ConfirmModal — window.confirm() o'rniga (bir xil sababdan: Telegram
+// Mini App'da native dialoglar ishonchsiz) ──
+function ConfirmModal({ tx, message, onConfirm, onCancel }: {
+  tx: any; message: string; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-bold text-[#ededef] mb-2">{tx('confirm_delete_title')}</h3>
+        <p className="text-sm text-[#9a9fa8] mb-5">{message}</p>
+        <div className="flex gap-2.5">
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#9a9fa8] glass">
+            {tx('cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #ff6b81, #ef4444)' }}
+          >
+            {tx('confirm')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
