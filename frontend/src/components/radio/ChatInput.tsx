@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Mic, Send, Paperclip, X, Square } from 'lucide-react';
+import { Mic, Send, Paperclip } from 'lucide-react';
 import { sendVoiceMessage, uploadFile } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Language } from '../../types';
@@ -13,29 +13,19 @@ interface ChatInputProps {
 }
 
 // Bu input faqat CHAT'ga yuborish uchun — studiyaga yuborish Efir ekranida
-// (mikrofon ikonkasi tagida) alohida joylashgan, ikkalasini bitta joyda
-// aralashtirish foydalanuvchini chalkashtirar edi.
+// alohida joylashgan. Tugma Telegram uslubida: matn bo'lsa yuborish
+// belgisi, bo'lmasa mikrofon — bitta doira tugma, matn maydonidan tashqarida.
 export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpdate }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = () => {
-    if (pendingVoice) {
-      sendVoice();
-      return;
-    }
-
+  const handleSendText = () => {
     const message = text.trim();
-    if (!message) {
-      onToast(t('toast_short'));
-      return;
-    }
-
+    if (!message) return;
     onSendMessage(message, 'chat');
     setText('');
     onToast(t('toast_sent_chat'));
@@ -43,6 +33,8 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
 
   const toggleRecording = async () => {
     if (isRecording) {
+      // To'xtatish — ovoz darhol yuboriladi (Telegram kabi, oraliq
+      // tasdiqlashsiz: mediaRecorder.onstop ichida sendVoice chaqiriladi).
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
       return;
@@ -76,8 +68,7 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
           onToast(t('toast_short'));
           return;
         }
-        setPendingVoice(blob);
-        onToast(t('voice_ready'));
+        sendVoice(blob);
       };
 
       mediaRecorder.start();
@@ -89,12 +80,10 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
     }
   };
 
-  const sendVoice = async () => {
-    if (!pendingVoice) return;
+  const sendVoice = async (blob: Blob) => {
     onToast(t('toast_processing'));
-
     try {
-      await sendVoiceMessage(city, pendingVoice, 'chat', language);
+      await sendVoiceMessage(city, blob, 'chat', language);
       onToast(t('toast_sent_chat'));
     } catch (error: any) {
       if (error.status === 402) {
@@ -106,8 +95,6 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
       } else {
         onToast(t('send_error'));
       }
-    } finally {
-      setPendingVoice(null);
     }
   };
 
@@ -133,65 +120,66 @@ export function ChatInput({ onSendMessage, onToast, city, language, onPointsUpda
     }
   };
 
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Voice preview — yozib bo'lgach, "Отправить" bosilmaguncha yuborilmaydi */}
-      {pendingVoice && (
-        <div className="glass px-4 py-3 rounded-2xl flex items-center justify-between border border-dashed border-[#5e6ad2]">
-          <span className="text-xs text-[#5e6ad2]">{t('voice_ready')}</span>
-          <button onClick={() => setPendingVoice(null)} className="text-[#8a8f98] hover:text-white transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+  const hasText = text.trim().length > 0;
 
-      {/* Text input row */}
-      <div className="glass rounded-2xl px-3 py-2 flex items-center gap-2">
-        {/* Attach */}
+  const handleActionClick = () => {
+    if (isRecording || hasText) {
+      isRecording ? toggleRecording() : handleSendText();
+    } else {
+      toggleRecording();
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {/* Text input row — Telegram uslubida pill */}
+      <div className="flex-1 glass rounded-full px-3 py-2 flex items-center gap-2 min-w-0">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)] transition-all"
+          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)] transition-all"
         >
           <Paperclip className="w-4.5 h-4.5" strokeWidth={1.8} />
         </button>
         <input ref={fileInputRef} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" onChange={handleFileSelect} className="hidden" />
 
-        {/* Text field */}
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
           placeholder={t('chat_placeholder')}
-          className="flex-1 min-w-0 bg-transparent text-sm text-[#ededef] placeholder-[#4a5568] outline-none"
+          disabled={isRecording}
+          className="flex-1 min-w-0 bg-transparent text-sm text-[#ededef] placeholder-[#4a5568] outline-none disabled:opacity-50"
         />
-
-        {/* Mic — yozayotganda shakli/rangi o'zgaradi (mikrofon → to'xtatish belgisi) */}
-        <button
-          onClick={toggleRecording}
-          aria-label={isRecording ? 'Остановить запись' : 'Записать голосовое'}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-            isRecording
-              ? 'bg-[#ff4d6d] text-white animate-pulse'
-              : 'text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)]'
-          }`}
-        >
-          {isRecording ? <Square className="w-4 h-4" fill="currentColor" /> : <Mic className="w-4.5 h-4.5" strokeWidth={1.8} />}
-        </button>
       </div>
 
-      {/* Send */}
-      <button
-        onClick={handleSend}
-        className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
-        style={{
-          background: 'linear-gradient(135deg, rgba(123,133,232,0.9), rgba(94,106,210,0.9))',
-          boxShadow: '0 0 20px rgba(94,106,210,0.3)',
-        }}
-      >
-        <Send className="w-4 h-4 text-[#050506]" strokeWidth={2} />
-        <span className="text-xs font-bold text-[#050506]">{t('send_to_chat')}</span>
-      </button>
+      {/* Doira tugma — Telegram kabi: matn bo'lsa yuborish, bo'lmasa mikrofon.
+          Yozib turganda qizil rangga o'zgaradi, tashqi halqa animate-ping bilan
+          urib turadi (button'ning o'zi/ikonkasi hech qachon xira bo'lmaydi). */}
+      <div className="relative shrink-0">
+        {isRecording && (
+          <span className="absolute inset-0 rounded-full bg-[#ff4d6d] opacity-60 animate-ping" />
+        )}
+        <button
+          onClick={handleActionClick}
+          aria-label={isRecording ? 'Остановить и отправить' : hasText ? 'Отправить' : 'Записать голосовое'}
+          className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
+          style={{
+            background: isRecording
+              ? '#ff4d6d'
+              : 'linear-gradient(135deg, #7b85e8, #5e6ad2)',
+            boxShadow: isRecording
+              ? '0 0 18px rgba(255,77,109,0.6)'
+              : '0 0 16px rgba(94,106,210,0.4)',
+          }}
+        >
+          {hasText && !isRecording ? (
+            <Send className="w-4.5 h-4.5 text-white ml-[-1px]" strokeWidth={2} fill="white" />
+          ) : (
+            <Mic className="w-5 h-5 text-white" strokeWidth={2} />
+          )}
+        </button>
+      </div>
     </div>
   );
 }
