@@ -2,7 +2,7 @@ import { API_URL } from './config';
 import { authHeaders } from './auth';
 import type {
   User, RadioStatus, ChatMessage, Announcements, AudioSegment,
-  News, PointsRequest, PointPackage,
+  News, PointsRequest, PointPackage, PointsTransaction,
 } from '../types';
 
 // ============ Users / Profile ============
@@ -110,6 +110,12 @@ export async function decideRequest(request_id: number, approve: boolean) {
     body: JSON.stringify({ approve }),
   });
   if (!resp.ok) throw new Error('Failed to decide request');
+  return resp.json();
+}
+
+export async function getPointsHistory(): Promise<PointsTransaction[]> {
+  const resp = await fetch(`${API_URL}/users/me/points/history`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch points history');
   return resp.json();
 }
 

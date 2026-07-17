@@ -34,13 +34,16 @@ interface CastingApp {
 
 const L: Record<string, Record<string, string>> = {
   ru: {
-    title: 'ADMIN PANEL', topics_tab: 'Темы', users_tab: 'Люди', drafts_tab: 'Эфир', slots_tab: 'Слоты', music_tab: 'Музыка', casting_tab: 'Кастинг',
+    title: 'ADMIN PANEL', topics_tab: 'Темы', users_tab: 'Доступ', drafts_tab: 'Эфир', slots_tab: 'Слоты', music_tab: 'Музыка', casting_tab: 'Кастинг',
     no_casting: 'Нет заявок', casting_approve: 'Одобрить → Доверенный', casting_reject: 'Отклонить',
     casting_note_placeholder: 'Комментарий (необязательно)...',
     new_topic: 'Новая тема', topic_title: 'Название темы', topic_desc: 'Описание',
     create: 'Создать', close: 'Закрыть', active: 'Активна', closed: 'Закрыта',
     opinions: 'мнений', no_topics: 'Нет тем', no_users: 'Нет пользователей',
-    add_pts: 'Поинты', lvl1: 'Слушатель', lvl2: 'Активный', lvl3: 'Доверенный',
+    add_pts: 'Поинты', lvl1: '1', lvl2: '2', lvl3: '3',
+    level_label: 'Уровень', access_legend_title: 'Уровни доступа',
+    lvl1_desc: '1 — слушает эфир и чат', lvl2_desc: '2 — пишет в чат, переводит поинты',
+    lvl3_desc: '3 — доступ к микрофону (эфир)',
     aggregate: 'Создать диалог', no_drafts: 'Нет черновиков эфира',
     pending: 'Ожидает', approved: 'В эфире', rejected: 'Отклонён',
     approve: 'Одобрить → Эфир', reject: 'Отклонить', view: 'Смотреть',
@@ -50,13 +53,16 @@ const L: Record<string, Record<string, string>> = {
     confirm_delete_nom: 'Удалить этот трек из голосования?',
   },
   en: {
-    title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'People', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
+    title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
     no_casting: 'No applications', casting_approve: 'Approve → Trusted', casting_reject: 'Reject',
     casting_note_placeholder: 'Note (optional)...',
     new_topic: 'New topic', topic_title: 'Topic title', topic_desc: 'Description',
     create: 'Create', close: 'Close', active: 'Active', closed: 'Closed',
     opinions: 'opinions', no_topics: 'No topics', no_users: 'No users',
-    add_pts: 'Points', lvl1: 'Listener', lvl2: 'Active', lvl3: 'Trusted',
+    add_pts: 'Points', lvl1: '1', lvl2: '2', lvl3: '3',
+    level_label: 'Level', access_legend_title: 'Access levels',
+    lvl1_desc: '1 — listens to broadcast and chat', lvl2_desc: '2 — writes in chat, transfers points',
+    lvl3_desc: '3 — microphone access (broadcast)',
     aggregate: 'Create dialog', no_drafts: 'No broadcast drafts',
     pending: 'Pending', approved: 'On air', rejected: 'Rejected',
     approve: 'Approve → Air', reject: 'Reject', view: 'View',
@@ -66,13 +72,16 @@ const L: Record<string, Record<string, string>> = {
     confirm_delete_nom: 'Remove this track from voting?',
   },
   lt: {
-    title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Žmonės', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
+    title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
     no_casting: 'Nėra paraiškų', casting_approve: 'Patvirtinti → Patikimas', casting_reject: 'Atmesti',
     casting_note_placeholder: 'Komentaras (neprivalomas)...',
     new_topic: 'Nauja tema', topic_title: 'Temos pavadinimas', topic_desc: 'Aprašymas',
     create: 'Sukurti', close: 'Uždaryti', active: 'Aktyvi', closed: 'Uždaryta',
     opinions: 'nuomonių', no_topics: 'Nėra temų', no_users: 'Nėra vartotojų',
-    add_pts: 'Taškai', lvl1: 'Klausytojas', lvl2: 'Aktyvus', lvl3: 'Patikimas',
+    add_pts: 'Taškai', lvl1: '1', lvl2: '2', lvl3: '3',
+    level_label: 'Lygis', access_legend_title: 'Prieigos lygiai',
+    lvl1_desc: '1 — klauso eterio ir pokalbio', lvl2_desc: '2 — rašo pokalbyje, perveda taškus',
+    lvl3_desc: '3 — mikrofono prieiga (eteris)',
     aggregate: 'Sukurti dialogą', no_drafts: 'Nėra eterio juodraščių',
     pending: 'Laukia', approved: 'Eteryje', rejected: 'Atmesta',
     approve: 'Patvirtinti → Eterį', reject: 'Atmesti', view: 'Žiūrėti',
@@ -570,7 +579,7 @@ function SlotsTab({ slots, users, onReload, flash }: any) {
             <option value="">Выбрать ведущего (уровень 3)...</option>
             {trustedUsers.map((u: any) => (
               <option key={u.id} value={u.id}>
-                {u.display_name || u.username || `ID ${u.telegram_id}`} — {u.role}
+                {u.display_name || u.username || `ID ${u.telegram_id}`} — {u.role === 'admin' ? 'ADMIN' : `Уровень ${u.level}`}
               </option>
             ))}
           </select>
@@ -748,28 +757,33 @@ function MusicTab({ topics, tx, flash }: any) {
   );
 }
 
-// ── UsersTab ─────────────────────────────────────────────────
+// ── UsersTab (контроль доступа — уровни 1/2/3) ────────────────
 function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
-  const roleColor: Record<string, string> = {
-    admin:      'text-[#f59e0b]',
-    doverenniy: 'text-[#a78bfa]',
-    aktivniy:   'text-[#5e6ad2]',
-    listener:   'text-[#8a8f98]',
-  };
   if (users.length === 0) return (
     <div className="glass p-8 text-center text-[#8a8f98] text-sm">{tx('no_users')}</div>
   );
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      {/* Легенда уровней доступа */}
+      <div className="glass rounded-2xl p-3.5">
+        <div className="text-[10px] font-bold text-[#5e6ad2] uppercase tracking-wide mb-1.5">{tx('access_legend_title')}</div>
+        <div className="flex flex-col gap-0.5 text-[11px] text-[#9a9fa8]">
+          <div>{tx('lvl1_desc')}</div>
+          <div>{tx('lvl2_desc')}</div>
+          <div>{tx('lvl3_desc')}</div>
+        </div>
+      </div>
+
       {users.map((u: any) => (
         <div key={u.id} className="glass rounded-2xl p-3.5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-[#ededef] truncate">
                 {u.display_name || u.username || `ID ${u.telegram_id}`}
+                {u.role === 'admin' && <span className="ml-1.5 text-[10px] font-bold text-[#f59e0b]">👑 ADMIN</span>}
               </div>
               <div className="text-[10px] text-[#8a8f98]">
-                <span className={`font-semibold ${roleColor[u.role] || 'text-[#8a8f98]'}`}>{u.role}</span>
+                <span className="font-semibold text-[#5e6ad2]">{tx('level_label')} {u.level}</span>
                 {' · '}{Number(u.points).toFixed(3)} pts
               </div>
             </div>
@@ -778,11 +792,11 @@ function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
               +pts
             </button>
           </div>
-          {/* Level tugmalari */}
+          {/* Level tugmalari — raqamli darajalar (1/2/3) */}
           <div className="flex gap-1.5">
             {[1, 2, 3].map(lvl => (
               <button key={lvl} onClick={() => onSetLevel(u.id, lvl)}
-                className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                className={`flex-1 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
                   u.level === lvl
                     ? 'bg-gradient-to-r from-[#7b85e8] to-[#5e6ad2] text-[#020203]'
                     : 'glass text-[#8a8f98]'

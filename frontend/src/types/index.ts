@@ -46,6 +46,15 @@ export interface PointPackage {
   label: string;
 }
 
+// Point tranzaksiyasi (tarix)
+export interface PointsTransaction {
+  id: number;
+  amount: number;
+  event_type: string;
+  description: string;
+  created_at: string;
+}
+
 // Yangilik
 export interface News {
   id: number;

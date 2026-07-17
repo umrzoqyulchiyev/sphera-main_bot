@@ -2,15 +2,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Check, X, Award, Globe, IdCard, User as UserIcon, AtSign, Focus, Smile, Tag,
-  ArrowDown, ArrowUp, Edit, ShoppingCart, ChevronRight, type LucideIcon,
+  ArrowDown, ArrowUp, Edit, ShoppingCart, ChevronRight, History, ArrowUpRight, ArrowDownLeft,
+  Gift, MessageSquare, Mic, Radio, Music, type LucideIcon,
 } from 'lucide-react';
 import {
   updateProfile, transferPoints, requestPoints, getMyRequests,
-  decideRequest, getPackages, getMe, updateLanguage,
+  decideRequest, getPackages, getMe, updateLanguage, getPointsHistory,
 } from '../../lib/api';
 import { getLang, setLang as setI18nLang } from '../../lib/i18n';
 import { LanguageSelector } from '../announcements/LanguageSelector';
-import type { User, PointsRequest, PointPackage, Language } from '../../types';
+import type { User, PointsRequest, PointPackage, Language, PointsTransaction } from '../../types';
 
 interface ProfileScreenProps {
   user: User | null;
@@ -27,6 +28,13 @@ const L: Record<string, Record<string, string>> = {
     reject: 'Отклонить', no_req: 'Нет новых запросов', from_you: 'запрашивает у вас',
     admin: '👑 Admin Panel', saved: 'Сохранено', sent: 'Отправлено', error: 'Ошибка', requested: 'Запрос отправлен',
     lang_ru: 'Русский', lang_en: 'English', lang_lt: 'Lietuvių',
+    history: 'История', history_title: 'История операций', no_history: 'Пока нет операций',
+    tx_transfer_out: 'Перевод пользователю', tx_transfer_in: 'Перевод от пользователя',
+    tx_purchase: 'Покупка поинтов', tx_gift: 'Подарок от админа',
+    tx_text_message: 'Сообщение в чат', tx_voice_message: 'Голосовое в чат',
+    tx_studio: 'Заявка в студию', tx_opinion_text: 'Мнение в студию', tx_opinion_voice: 'Голосовое мнение',
+    tx_music_nominate: 'Номинация трека', tx_music_vote: 'Голос за трек',
+    tx_slot_booking: 'Оплата слота эфира', tx_other: 'Операция',
   },
   en: {
     balance: 'Your balance', points: 'Points', level: 'Level', language: 'Language', id: 'ID',
@@ -36,6 +44,13 @@ const L: Record<string, Record<string, string>> = {
     reject: 'Reject', no_req: 'No new requests', from_you: 'requests from you',
     admin: '👑 Admin Panel', saved: 'Saved', sent: 'Sent', error: 'Error', requested: 'Request sent',
     lang_ru: 'Русский', lang_en: 'English', lang_lt: 'Lietuvių',
+    history: 'History', history_title: 'Transaction history', no_history: 'No transactions yet',
+    tx_transfer_out: 'Transfer to user', tx_transfer_in: 'Transfer from user',
+    tx_purchase: 'Points purchase', tx_gift: 'Gift from admin',
+    tx_text_message: 'Chat message', tx_voice_message: 'Chat voice message',
+    tx_studio: 'Studio request', tx_opinion_text: 'Studio opinion', tx_opinion_voice: 'Studio voice opinion',
+    tx_music_nominate: 'Track nomination', tx_music_vote: 'Track vote',
+    tx_slot_booking: 'Broadcast slot payment', tx_other: 'Transaction',
   },
   lt: {
     balance: 'Jūsų balansas', points: 'Taškai', level: 'Lygis', language: 'Kalba', id: 'ID',
@@ -45,10 +60,17 @@ const L: Record<string, Record<string, string>> = {
     reject: 'Atmesti', no_req: 'Naujų prašymų nėra', from_you: 'prašo iš jūsų',
     admin: '👑 Admin Panel', saved: 'Išsaugota', sent: 'Išsiųsta', error: 'Klaida', requested: 'Prašymas išsiųstas',
     lang_ru: 'Русский', lang_en: 'English', lang_lt: 'Lietuvių',
+    history: 'Istorija', history_title: 'Operacijų istorija', no_history: 'Kol kas nėra operacijų',
+    tx_transfer_out: 'Pervedimas vartotojui', tx_transfer_in: 'Pervedimas iš vartotojo',
+    tx_purchase: 'Taškų pirkimas', tx_gift: 'Dovana iš admino',
+    tx_text_message: 'Žinutė pokalbyje', tx_voice_message: 'Balso žinutė pokalbyje',
+    tx_studio: 'Užklausa studijai', tx_opinion_text: 'Nuomonė studijai', tx_opinion_voice: 'Balso nuomonė',
+    tx_music_nominate: 'Dainos nominacija', tx_music_vote: 'Balsas už dainą',
+    tx_slot_booking: 'Eterio slot apmokėjimas', tx_other: 'Operacija',
   },
 };
 
-type Modal = null | 'edit' | 'give' | 'request' | 'buy' | 'lang';
+type Modal = null | 'edit' | 'give' | 'request' | 'buy' | 'lang' | 'history';
 
 export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   const lang = getLang();
@@ -57,6 +79,8 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   const [modal, setModal] = useState<Modal>(null);
   const [requests, setRequests] = useState<PointsRequest[]>([]);
   const [packages, setPackages] = useState<PointPackage[]>([]);
+  const [history, setHistory] = useState<PointsTransaction[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -89,6 +113,14 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
     }
   }
 
+  async function openHistory() {
+    setModal('history');
+    setHistoryLoading(true);
+    try { setHistory(await getPointsHistory()); }
+    catch { setHistory([]); }
+    finally { setHistoryLoading(false); }
+  }
+
   async function handleDecide(id: number, approve: boolean) {
     try {
       await decideRequest(id, approve);
@@ -109,12 +141,9 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 
   const langLabel = tx(`lang_${user.language || 'ru'}`);
 
-  // Level → rol nomi (TZ: 1/2 Слушатель, 3 Слушатель и ведущий)
+  // Uровень отображается числом (1/2/3), а не словом — по требованию клиента
   const lvl = user.level ?? 1;
-  const levelDisplay =
-    lvl >= 3
-      ? (lang === 'ru' ? 'Слушатель и ведущий' : lang === 'lt' ? 'Klausytojas ir vedėjas' : 'Listener & Host')
-      : (lang === 'ru' ? 'Слушатель' : lang === 'lt' ? 'Klausytojas' : 'Listener');
+  const levelDisplay = String(lvl);
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,6 +235,15 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
         </button>
       </section>
 
+      {/* Tranzaksiyalar tarixi */}
+      <button
+        onClick={openHistory}
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#d5d6dc] active:scale-[0.98] transition-transform"
+      >
+        <History size={20} className="text-[#5e6ad2]" />
+        {tx('history')}
+      </button>
+
       {/* Menga kelgan so'rovlar */}
       <div className="flex flex-col gap-2">
         <div className="text-[11px] font-bold text-[#6e78e1] uppercase tracking-wide font-mono">{tx('requests')}</div>
@@ -271,6 +309,11 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
           <LanguageSelector selectedLang={lang} onLangChange={handleLangChange} />
         </ModalShell>
       )}
+      {modal === 'history' && (
+        <ModalShell title={tx('history_title')} onClose={() => setModal(null)}>
+          <HistoryList tx={tx} lang={lang} items={history} loading={historyLoading} />
+        </ModalShell>
+      )}
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#ededef] border border-[rgba(94,106,210,0.4)] z-[200]">
@@ -324,9 +367,21 @@ function StitchAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label:
 function ModalShell({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-bold text-[#5e6ad2] mb-4">{title}</h3>
-        {children}
+      <div
+        className="w-full max-w-[360px] max-h-[85vh] glass rounded-3xl p-5 bg-[#101014] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
+          <h3 className="text-base font-bold text-[#5e6ad2]">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,255,255,0.06)] text-[#9a9fa8] active:scale-90 transition-transform"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -439,5 +494,55 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
         {tx('buy')} →
       </button>
     </ModalShell>
+  );
+}
+
+const TX_ICON: Record<string, LucideIcon> = {
+  transfer_out: ArrowUpRight,
+  transfer_in: ArrowDownLeft,
+  purchase: ShoppingCart,
+  gift: Gift,
+  text_message: MessageSquare,
+  voice_message: MessageSquare,
+  studio: Mic,
+  opinion_text: Mic,
+  opinion_voice: Mic,
+  music_nominate: Music,
+  music_vote: Music,
+  slot_booking: Radio,
+};
+
+function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; items: PointsTransaction[]; loading: boolean }) {
+  if (loading) {
+    return <div className="py-8 text-center text-xs text-[#8a8f98]">…</div>;
+  }
+  if (items.length === 0) {
+    return <div className="py-8 text-center text-xs text-[#8a8f98]">{tx('no_history')}</div>;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map((t) => {
+        const Icon = TX_ICON[t.event_type] || History;
+        const positive = Number(t.amount) >= 0;
+        const label = tx(`tx_${t.event_type}`) === `tx_${t.event_type}` ? tx('tx_other') : tx(`tx_${t.event_type}`);
+        const date = new Date(t.created_at).toLocaleString(lang === 'ru' ? 'ru-RU' : lang === 'lt' ? 'lt-LT' : 'en-GB', {
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+        });
+        return (
+          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(5,5,6,0.5)] border border-[rgba(110,118,220,0.1)]">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(34,227,165,0.12)] text-[#22e3a5]' : 'bg-[rgba(255,77,109,0.1)] text-[#ff9fb0]'}`}>
+              <Icon size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-[#d5d6dc] truncate">{label}</div>
+              <div className="text-[11px] text-[#8a8f98]">{date}</div>
+            </div>
+            <div className={`text-[13px] font-bold font-mono shrink-0 ${positive ? 'text-[#22e3a5]' : 'text-[#ff9fb0]'}`}>
+              {positive ? '+' : ''}{Number(t.amount).toFixed(3)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
