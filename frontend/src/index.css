@@ -304,8 +304,8 @@
 /* Central navigation ORB (breathing animation) */
 .orb-nav {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -323,10 +323,10 @@
 .orb-nav::after {
   content: '';
   position: absolute;
-  top: 8px;
-  left: 13px;
-  width: 16px;
-  height: 12px;
+  top: 7px;
+  left: 11px;
+  width: 14px;
+  height: 10px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, transparent 70%);
   pointer-events: none;
@@ -351,9 +351,9 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 72px;
-  height: 72px;
-  margin: -36px 0 0 -36px;
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
   border-radius: 50%;
   border: 1.5px solid transparent;
   border-top-color: rgba(94,106,210, 0.9);

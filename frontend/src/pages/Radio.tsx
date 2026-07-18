@@ -236,7 +236,7 @@ export function Radio() {
       >
         <div
           className={`w-full max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pt-3 flex flex-col gap-4 ${
-            isChat ? 'h-full pb-[calc(12px+env(safe-area-inset-bottom))]' : 'pb-[190px]'
+            isChat ? 'h-full pb-[86px]' : 'pb-[170px]'
           }`}
         >
           <TopBar points={user?.points || 0} />
@@ -248,9 +248,7 @@ export function Radio() {
         </div>
       </div>
 
-      {/* Chat ekranida BottomNav yashiriladi — chiqish endi Chat sarlavhasidagi
-          tugma orqali (o'sha ekran o'ziga xos "orqaga" navigatsiyasiga ega) */}
-      {!isChat && <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />}
+      <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
       {pointsNotice && (
         <div

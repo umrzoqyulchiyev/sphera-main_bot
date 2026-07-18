@@ -39,22 +39,23 @@ export function Chat({
 
   return (
     <div className="glass p-3 flex flex-col flex-1 min-h-0">
-      <div className="flex justify-between items-center text-[11px] tracking-[2px] mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          {onExit && (
-            <button
-              onClick={onExit}
-              aria-label="Выйти из чата"
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 -ml-1"
-              style={{ background: 'rgba(94,106,210,0.08)' }}
-            >
-              <svg className="w-4 h-4 text-[#5e6ad2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-          <span className="text-[#5e6ad2] truncate">{t('chat_title')}</span>
-        </div>
+      {/* Sarlavha — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" modali bilan bir xil
+          uslub (orqaga tugmasi + text-sm font-bold sarlavha), ikkala
+          chat bir xil ko'rinishi uchun. */}
+      <div className="flex items-center gap-3 pb-3 mb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+        {onExit && (
+          <button
+            onClick={onExit}
+            aria-label="Выйти из чата"
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(94,106,210,0.08)' }}
+          >
+            <svg className="w-4 h-4 text-[#5e6ad2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+        <span className="text-sm font-bold text-[#5e6ad2] truncate flex-1 min-w-0">{t('chat_title')}</span>
         <RoomsButton user={currentUser} />
       </div>
 
