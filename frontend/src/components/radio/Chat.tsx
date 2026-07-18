@@ -39,8 +39,13 @@ export function Chat({
     <div className="bg-[#050506] p-3 flex flex-col flex-1 min-h-0">
       {/* Sarlavhasiz, chegarasiz — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" bilan bir
           xil toza ko'rinish uchun. Faqat funksional tugmalar (chiqish,
-          guruhlar) qoladi, matn/border yo'q. */}
-      <div className="flex items-center justify-between mb-2">
+          guruhlar) qoladi, matn/border yo'q. Yuqoridan qo'shimcha bo'sh joy
+          (safe-area + o'zi) — Telegram'ning o'z "⋮ ⌄ ✕" native paneli aynan
+          shu burchakda bo'lgani uchun, tugmalar shu bilan to'qnashmasin. */}
+      <div
+        className="flex items-center justify-between mb-2"
+        style={{ paddingTop: 'calc(40px + env(safe-area-inset-top))' }}
+      >
         {onExit ? (
           <button
             onClick={onExit}

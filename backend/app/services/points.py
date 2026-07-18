@@ -147,7 +147,18 @@ async def add_points(
 
 
 async def add_points_admin(user_id: int, amount: Decimal) -> dict:
-    """Admin tomonidan point qo'shish."""
+    """Admin tomonidan point qo'shish yoki yechish (manfiy amount — списание).
+
+    Adminning o'z balansiga umuman tegmaydi — to'g'ridan-to'g'ri
+    foydalanuvchiga qo'shiladi/undan yechiladi. Manfiy bo'lsa, mavjud
+    balansdan ko'p yechib yubormaslik uchun 0 gacha cheklanadi.
+    """
+    if amount < 0:
+        current = await get_balance(user_id)
+        amount = -min(-amount, current)
+        if amount == 0:
+            return {"ok": True, "points": current}
+        return await add_points(user_id, amount, "gift", "Admin deduction")
     return await add_points(user_id, amount, "gift", "Admin gift")
 
 

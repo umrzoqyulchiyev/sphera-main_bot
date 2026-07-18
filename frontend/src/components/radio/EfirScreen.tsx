@@ -27,9 +27,14 @@ interface EfirScreenProps {
   user: User | null;
   onPointsUpdate: (points: number) => void;
   onNavigate?: (screen: Screen) => void;
+  // Efir holati Radio.tsx darajasida saqlanadi (useLiveBroadcast) —
+  // shu ekran boshqasiga almashtirilib qaytilganda ham efir uzilmaydi.
+  isLive: boolean;
+  liveRemainingSec: number | null;
+  onToggleLive: () => void;
 }
 
-export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -535,7 +540,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
         {/* 🔴 LIVE tugmasi — faqat admin/doverenniy uchun, qolganlarga kasting taklifi */}
         {(user?.role === 'admin' || user?.role === 'doverenniy') ? (
           <div className="mb-2">
-            <GoLiveButton city={city} onToast={showToast} />
+            <GoLiveButton isLive={isLive} remainingSec={liveRemainingSec} onToggle={onToggleLive} />
           </div>
         ) : (
           <button

@@ -63,8 +63,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Название', package_points: 'Поинты', package_price: 'Цена €',
     package_active: 'Активен', package_add: 'Добавить пакет', package_delete: 'Удалить пакет?',
     no_packages: 'Нет пакетов',
-    add_pts_title: 'Начислить поинты', add_pts_to: 'Кому', amount: 'Количество',
-    add_pts_submit: 'Начислить', add_pts_hint: 'Можно с минусом — чтобы списать',
+    add_pts_title: 'Управление поинтами', add_pts_to: 'Кому', amount: 'Количество',
+    add_pts_submit: 'Начислить', add_pts_hint: 'Баланс админа не меняется — поинты берутся не с вашего счёта',
+    mode_add: 'Начислить', mode_deduct: 'Списать', deduct_pts_submit: 'Списать',
     cancel: 'Отмена', confirm: 'Подтвердить', confirm_delete_title: 'Подтверждение',
   },
   en: {
@@ -94,8 +95,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Label', package_points: 'Points', package_price: 'Price €',
     package_active: 'Active', package_add: 'Add package', package_delete: 'Delete package?',
     no_packages: 'No packages',
-    add_pts_title: 'Add points', add_pts_to: 'To', amount: 'Amount',
-    add_pts_submit: 'Add', add_pts_hint: 'Negative values deduct points',
+    add_pts_title: 'Manage points', add_pts_to: 'To', amount: 'Amount',
+    add_pts_submit: 'Add', add_pts_hint: "Your own balance is untouched — points aren't taken from your account",
+    mode_add: 'Add', mode_deduct: 'Deduct', deduct_pts_submit: 'Deduct',
     cancel: 'Cancel', confirm: 'Confirm', confirm_delete_title: 'Confirm',
   },
   lt: {
@@ -125,8 +127,9 @@ const L: Record<string, Record<string, string>> = {
     package_label: 'Pavadinimas', package_points: 'Taškai', package_price: 'Kaina €',
     package_active: 'Aktyvus', package_add: 'Pridėti paketą', package_delete: 'Ištrinti paketą?',
     no_packages: 'Nėra paketų',
-    add_pts_title: 'Pridėti taškų', add_pts_to: 'Kam', amount: 'Kiekis',
-    add_pts_submit: 'Pridėti', add_pts_hint: 'Su minusu — nurašyti',
+    add_pts_title: 'Taškų valdymas', add_pts_to: 'Kam', amount: 'Kiekis',
+    add_pts_submit: 'Pridėti', add_pts_hint: 'Jūsų balansas nekeičiamas — taškai neimami iš jūsų sąskaitos',
+    mode_add: 'Pridėti', mode_deduct: 'Nurašyti', deduct_pts_submit: 'Nurašyti',
     cancel: 'Atšaukti', confirm: 'Patvirtinti', confirm_delete_title: 'Patvirtinimas',
   },
 };
@@ -1101,14 +1104,17 @@ function AddPointsModal({ user, tx, onClose, onSubmit }: {
   user: { id: number; display_name: string | null; username: string | null; telegram_id: number };
   tx: any; onClose: () => void; onSubmit: (amount: number) => Promise<void>;
 }) {
+  const [mode, setMode] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    const a = parseFloat(amount);
+    // Maydon doim musbat — yo'nalish yuqoridagi Начислить/Списать tugmasi
+    // orqali tanlanadi, minus belgisi terish shart emas.
+    const a = Math.abs(parseFloat(amount));
     if (!a) return;
     setBusy(true);
-    try { await onSubmit(a); } finally { setBusy(false); }
+    try { await onSubmit(mode === 'deduct' ? -a : a); } finally { setBusy(false); }
   }
 
   return (
@@ -1126,6 +1132,29 @@ function AddPointsModal({ user, tx, onClose, onSubmit }: {
           {user.display_name || user.username || `ID ${user.telegram_id}`}
         </div>
 
+        {/* Yo'nalish tanlash — Начислить (admin balansiga tegmasdan qo'shadi)
+            yoki Списать (foydalanuvchidan yechadi, 0 dan pastga tushmaydi) */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setMode('add')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              mode === 'add' ? 'text-[#020203]' : 'glass text-[#9a9fa8]'
+            }`}
+            style={mode === 'add' ? { background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' } : undefined}
+          >
+            {tx('mode_add')}
+          </button>
+          <button
+            onClick={() => setMode('deduct')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              mode === 'deduct' ? 'text-white' : 'glass text-[#9a9fa8]'
+            }`}
+            style={mode === 'deduct' ? { background: 'linear-gradient(135deg, #ff6b81, #ef4444)' } : undefined}
+          >
+            {tx('mode_deduct')}
+          </button>
+        </div>
+
         <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
         <input
           autoFocus
@@ -1141,10 +1170,15 @@ function AddPointsModal({ user, tx, onClose, onSubmit }: {
         <button
           onClick={submit}
           disabled={busy || !amount}
-          className="w-full py-3 rounded-xl font-bold text-[#020203] text-sm disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' }}
+          className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+          style={{
+            background: mode === 'deduct'
+              ? 'linear-gradient(135deg, #ff6b81, #ef4444)'
+              : 'linear-gradient(135deg, #7b85e8, #5e6ad2)',
+            color: mode === 'deduct' ? '#fff' : '#020203',
+          }}
         >
-          {busy ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : tx('add_pts_submit')}
+          {busy ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : mode === 'deduct' ? tx('deduct_pts_submit') : tx('add_pts_submit')}
         </button>
       </div>
     </div>

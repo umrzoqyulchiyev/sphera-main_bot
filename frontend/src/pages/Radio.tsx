@@ -11,8 +11,11 @@ import { MusicScreen } from '../components/music/MusicScreen';
 import { SlotsScreen } from '../components/slots/SlotsScreen';
 import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
+import { Toast } from '../components/ui/Toast';
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useLiveBroadcast } from '../hooks/useLiveBroadcast';
+import { useToast } from '../hooks/useToast';
 import { getMe, getPointsHistory } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
@@ -36,9 +39,18 @@ export function Radio() {
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [pointsNotice, setPointsNotice] = useState<{ text: string; gift: boolean } | null>(null);
+  const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastTxIdRef = useRef<number | null>(null);
   const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Efir (mikrofon) holati shu darajada — Radio.tsx hech qachon qayta
+  // mount bo'lmagani uchun, vediushiy chatga o'tib qaytsa ham efir
+  // uzilmaydi va tugma holati chalkashmaydi (ilgari EfirScreen qayta
+  // mount bo'lganda isLive qaytadan false bo'lib qolar, "band" xatosi
+  // chiqib na to'xtatib, na qaytadan boshlab bo'lmasdi).
+  const { message: liveToast, showToast: showLiveToast } = useToast();
+  const { isLive, remainingSec: liveRemainingSec, toggleLive } = useLiveBroadcast(city, showLiveToast);
 
   useEffect(() => {
     async function init() {
@@ -201,7 +213,16 @@ export function Radio() {
           />
         );
       case 'efir':
-        return <EfirScreen user={user} onPointsUpdate={handlePointsUpdate} onNavigate={handleNavigate} />;
+        return (
+          <EfirScreen
+            user={user}
+            onPointsUpdate={handlePointsUpdate}
+            onNavigate={handleNavigate}
+            isLive={isLive}
+            liveRemainingSec={liveRemainingSec}
+            onToggleLive={toggleLive}
+          />
+        );
       case 'stats':
         return <StatsScreen user={user} />;
       case 'music':
@@ -267,6 +288,7 @@ export function Radio() {
 
       <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+      <Toast message={liveToast} />
       {pointsNotice && (
         <div
           className="fixed top-[calc(12px+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[2500] w-[92%] max-w-[400px] cursor-pointer"
