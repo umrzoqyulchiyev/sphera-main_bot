@@ -1,24 +1,22 @@
 import { useState, useRef } from 'react';
 import { Mic, Send, Paperclip } from 'lucide-react';
-import { sendVoiceMessage, uploadFile } from '../../lib/api';
+import { uploadFile } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Language } from '../../types';
 
 interface ChatInputProps {
   onSendMessage: (message: string, destination: 'chat' | 'studio') => void;
-  // Umumiy chat uchun standart /chat/voice ishlatiladi — guruh chatlari
-  // kabi boshqa manzilga yuborish kerak bo'lsa shu orqali almashtiriladi.
-  onSendVoice?: (blob: Blob) => Promise<{ points?: string | number }>;
+  // Yozib bo'lingan ovoz shu callback'ga uzatiladi — yuborish, optimistik
+  // ko'rsatish va status (bitta/ikkita galochka) hammasi chaqiruvchi
+  // ekranda (ChatScreen/RoomChatModal) boshqariladi, xuddi matn kabi.
+  onSendVoice: (blob: Blob) => void;
   onToast: (message: string) => void;
   city: string;
-  language: Language;
-  onPointsUpdate: (points: number) => void;
 }
 
 // Bu input faqat CHAT'ga yuborish uchun — studiyaga yuborish Efir ekranida
 // alohida joylashgan. Tugma Telegram uslubida: matn bo'lsa yuborish
 // belgisi, bo'lmasa mikrofon — bitta doira tugma, matn maydonidan tashqarida.
-export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language, onPointsUpdate }: ChatInputProps) {
+export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -31,13 +29,12 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language,
     if (!message) return;
     onSendMessage(message, 'chat');
     setText('');
-    onToast(t('toast_sent_chat'));
   };
 
   const toggleRecording = async () => {
     if (isRecording) {
       // To'xtatish — ovoz darhol yuboriladi (Telegram kabi, oraliq
-      // tasdiqlashsiz: mediaRecorder.onstop ichida sendVoice chaqiriladi).
+      // tasdiqlashsiz: mediaRecorder.onstop ichida onSendVoice chaqiriladi).
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
       return;
@@ -71,7 +68,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language,
           onToast(t('toast_short'));
           return;
         }
-        sendVoice(blob);
+        onSendVoice(blob);
       };
 
       mediaRecorder.start();
@@ -82,25 +79,6 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language,
     }
   };
 
-  const sendVoice = async (blob: Blob) => {
-    onToast(t('toast_processing'));
-    try {
-      if (onSendVoice) await onSendVoice(blob);
-      else await sendVoiceMessage(city, blob, 'chat', language);
-      onToast(t('toast_sent_chat'));
-    } catch (error: any) {
-      if (error.status === 402) {
-        const data = await error.response?.json().catch(() => ({}));
-        if (data?.detail?.points !== undefined) {
-          onPointsUpdate(data.detail.points);
-        }
-        onToast(t('toast_limit'));
-      } else {
-        onToast(t('send_error'));
-      }
-    }
-  };
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -108,10 +86,8 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, language,
       onToast('⚠️ Max 20MB');
       return;
     }
-    onToast(t('toast_processing'));
     try {
       await uploadFile(city, file);
-      onToast(t('toast_sent_chat'));
     } catch (error: any) {
       if (error.status === 402) {
         onToast(t('toast_limit'));

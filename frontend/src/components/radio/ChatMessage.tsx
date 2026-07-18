@@ -72,7 +72,9 @@ function StatusTicks({ status }: { status: 'sending' | 'sent' | 'delivered' }) {
 }
 
 function VoicePlayer({ url, duration, voiceLabel }: { url: string; duration: number | null; voiceLabel: string }) {
-  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+  // blob: — hali serverga yuklanmagan, optimistik ko'rsatilayotgan ovoz
+  // (mahalliy URL, o'zgartirmasdan ishlatiladi).
+  const fullUrl = url.startsWith('http') || url.startsWith('blob:') ? url : `${API_URL}${url}`;
   const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);

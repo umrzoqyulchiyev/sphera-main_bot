@@ -3,26 +3,24 @@ import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { ChatMessage as ChatMessageType, User, Language } from '../../types';
+import type { ChatMessage as ChatMessageType, User } from '../../types';
 
 interface ChatProps {
   messages: ChatMessageType[];
   currentUser: User | null;
   onSendMessage: (message: string, destination: 'chat' | 'studio') => void;
+  onSendVoice: (blob: Blob) => void;
   onToast: (message: string) => void;
   city: string;
-  language: Language;
-  onPointsUpdate: (points: number) => void;
 }
 
 export function Chat({
   messages,
   currentUser,
   onSendMessage,
+  onSendVoice,
   onToast,
   city,
-  language,
-  onPointsUpdate,
 }: ChatProps) {
   const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -56,10 +54,9 @@ export function Chat({
 
       <ChatInput
         onSendMessage={onSendMessage}
+        onSendVoice={onSendVoice}
         onToast={onToast}
         city={city}
-        language={language}
-        onPointsUpdate={onPointsUpdate}
       />
     </div>
   );

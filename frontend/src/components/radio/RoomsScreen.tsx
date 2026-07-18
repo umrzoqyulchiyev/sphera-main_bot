@@ -224,15 +224,40 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // Rooms'da WS yo'q (v1 — polling), shuning uchun "keyingi load() eskirgan
+  // optimistik yozuvni asl ro'yxat bilan almashtiradi" prinsipiga tayanamiz —
+  // xabar darhol ko'rinadi, xato bo'lsa olib tashlanadi.
   async function handleSendText(msg: string) {
+    const tempId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+    setMessages((prev) => [...prev, {
+      id: tempId,
+      username: user?.username ?? null,
+      display_name: user?.display_name || user?.full_name || null,
+      message: msg,
+      message_type: 'text',
+      voice_url: null,
+      created_at: new Date().toISOString(),
+      status: 'sent',
+    }]);
     try { await sendRoomMessage(room.id, msg); load(); }
-    catch { /* toast xabari ChatInput ichida ko'rsatiladi */ }
+    catch { setMessages((prev) => prev.filter((m) => m.id !== tempId)); }
   }
 
   async function handleSendVoice(blob: Blob) {
-    const res = await sendRoomVoice(room.id, blob);
-    load();
-    return res.detail || res;
+    const tempId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+    const blobUrl = URL.createObjectURL(blob);
+    setMessages((prev) => [...prev, {
+      id: tempId,
+      username: user?.username ?? null,
+      display_name: user?.display_name || user?.full_name || null,
+      message: '',
+      message_type: 'voice',
+      voice_url: blobUrl,
+      created_at: new Date().toISOString(),
+      status: 'sent',
+    }]);
+    try { await sendRoomVoice(room.id, blob); load(); }
+    catch { setMessages((prev) => prev.filter((m) => m.id !== tempId)); }
   }
 
   return (
@@ -269,8 +294,6 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
           onSendVoice={handleSendVoice}
           onToast={() => {}}
           city=""
-          language={(getLang() as any)}
-          onPointsUpdate={() => {}}
         />
       </div>
 

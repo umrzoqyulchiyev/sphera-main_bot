@@ -108,7 +108,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
         break;
       case 'studio_ack':
         onPointsUpdate(wsMessage.data.points);
-        showToast(t('toast_sent_studio'));
         break;
       case 'limit_exceeded':
         onPointsUpdate(wsMessage.data.points);
@@ -132,7 +131,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
     try {
       const res: any = await sendChatMessage('global', msg);
       if (res?.points !== undefined) onPointsUpdate(Number(res.points));
-      showToast(destination === 'studio' ? t('toast_sent_studio') : t('toast_sent_chat'));
       // Tarixni yangilash (WS yo'q, shuning uchun qo'lda qo'shamiz)
       getChatHistory(city).then(msgs => {
         const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
@@ -198,11 +196,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
     if (pendingVoice) {
       const blob = pendingVoice;
       setPendingVoice(null);
-      showToast(t('toast_processing'));
       try {
         const res = await sendOpinionVoice(blob);
         if (res?.points !== undefined) onPointsUpdate(Number(res.points));
-        showToast(t('toast_sent_studio'));
       } catch (err: any) {
         if (err.status === 403) showToast(t('studio_denied_role'));
         else if (err.status === 402) showToast(t('toast_limit'));
@@ -967,7 +963,6 @@ function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, on
         const data = await resp.json();
         const pts = data?.detail?.points;
         if (pts !== undefined) onPointsUpdate(Number(pts));
-        onToast('Голосовое отправлено ✅');
         discardVoice();
         onSent?.();
       }
