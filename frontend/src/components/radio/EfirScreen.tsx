@@ -1,17 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check } from 'lucide-react';
-import { ChatMessages } from './ChatMessages';
+import { ChatMessage as ChatMessageComponent } from './ChatMessage';
+import { ChatInput } from './ChatInput';
+import { RoomsButton } from './RoomsScreen';
 import { Visualizer } from './Visualizer';
 import { GoLiveButton } from './GoLiveButton';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../ui/Toast';
-import { getRadioStatus, getChatHistory, sendOpinionVoice, sendChatMessage } from '../../lib/api';
-import { authHeaders } from '../../lib/auth';
+import { getRadioStatus, getChatHistory, sendOpinionVoice, sendChatMessage, sendVoiceMessage } from '../../lib/api';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User, RadioStatus, ChatMessage, Screen } from '../../types';
+
+interface PendingChatSend {
+  tempId: number;
+  kind: 'text' | 'voice';
+  content: string;
+  blobUrl?: string;
+}
 
 interface EfirScreenProps {
   user: User | null;
@@ -25,6 +33,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
   const [radioStatus, setRadioStatus] = useState<RadioStatus | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // O'zimiz optimistik qo'shgan (hali serverdan tasdiqlanmagan) chat
+  // xabarlari — asosiy chat ekranidagi bilan bir xil 1/2 galochka mexanizmi.
+  const pendingChatRef = useRef<PendingChatSend[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [showChatModal, setShowChatModal] = useState(false);
@@ -94,6 +105,19 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
           // Bir xil id li xabar allaqachon bor bo'lsa qo'shmaymiz (WS reconnect duplikatlari)
           const newMsg = wsMessage.data;
           if (newMsg?.id && prev.some(m => m.id === newMsg.id)) return prev;
+
+          // O'zimiz optimistik qo'shgan yozuv bo'lsa — o'sha bilan almashtiramiz
+          // (dublikat qo'shmaymiz, 2-galochka).
+          const kind = newMsg.message_type === 'voice' ? 'voice' : 'text';
+          const pendingIdx = pendingChatRef.current.findIndex(
+            (p) => p.kind === kind && (kind === 'voice' || p.content === (newMsg.message || ''))
+          );
+          if (pendingIdx !== -1) {
+            const { tempId, blobUrl } = pendingChatRef.current[pendingIdx];
+            pendingChatRef.current.splice(pendingIdx, 1);
+            if (blobUrl) URL.revokeObjectURL(blobUrl);
+            return prev.map((m) => (m.id === tempId ? { ...newMsg, status: 'delivered' as const } : m));
+          }
           return [...prev, newMsg];
         });
         break;
@@ -123,9 +147,43 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
   }
 
   const handleSendMessage = useCallback(async (msg: string, destination: 'chat' | 'studio') => {
+    // Faqat "chat" uchun darhol ko'rsatamiz — asosiy chat ekrani bilan bir xil.
+    let tempId: number | null = null;
+    if (destination === 'chat') {
+      tempId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+      pendingChatRef.current.push({ tempId, kind: 'text', content: msg });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: tempId!,
+          username: user?.username ?? null,
+          display_name: user?.display_name || user?.full_name || null,
+          message: msg,
+          message_type: 'text',
+          voice_url: null,
+          created_at: new Date().toISOString(),
+          status: 'sending',
+        },
+      ]);
+    }
+    const markSent = () => {
+      if (tempId === null) return;
+      const id = tempId;
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'sent' as const } : m)));
+    };
+    const rollback = () => {
+      if (tempId === null) return;
+      const id = tempId;
+      pendingChatRef.current = pendingChatRef.current.filter((p) => p.tempId !== id);
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    };
+
     // 1-urinish: WebSocket (real-time). Ulanmagan bo'lsa — HTTP fallback.
     const sentViaWs = wsSend({ type: destination, message: msg, lang });
-    if (sentViaWs) return;
+    if (sentViaWs) {
+      markSent();
+      return;
+    }
 
     // WS yopiq — HTTP orqali yuboramiz (xabar yo'qolmasin)
     try {
@@ -137,10 +195,47 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
         setMessages(unique);
       }).catch(() => {});
     } catch (e: any) {
+      rollback();
       if (e?.status === 402) showToast(t('toast_limit'));
       else showToast(t('send_error'));
     }
-  }, [wsSend, lang, onPointsUpdate, showToast, t, city]);
+  }, [wsSend, lang, onPointsUpdate, showToast, t, city, user]);
+
+  const handleSendVoiceToChat = useCallback(async (blob: Blob) => {
+    const tempId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+    const blobUrl = URL.createObjectURL(blob);
+    pendingChatRef.current.push({ tempId, kind: 'voice', content: '', blobUrl });
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        username: user?.username ?? null,
+        display_name: user?.display_name || user?.full_name || null,
+        message: '',
+        message_type: 'voice',
+        voice_url: blobUrl,
+        created_at: new Date().toISOString(),
+        status: 'sending',
+      },
+    ]);
+
+    try {
+      const res: any = await sendVoiceMessage(city, blob, 'chat', lang);
+      if (res?.points !== undefined) onPointsUpdate(Number(res.points));
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'sent' as const } : m)));
+    } catch (e: any) {
+      pendingChatRef.current = pendingChatRef.current.filter((p) => p.tempId !== tempId);
+      URL.revokeObjectURL(blobUrl);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      if (e?.status === 402) {
+        const data = await e.response?.json().catch(() => ({}));
+        if (data?.detail?.points !== undefined) onPointsUpdate(Number(data.detail.points));
+        showToast(t('toast_limit'));
+      } else {
+        showToast(t('send_error'));
+      }
+    }
+  }, [city, lang, onPointsUpdate, showToast, t, user]);
 
   // Golosovoe mikrofon tugmasi — bosilsa yozib boshlaydi, yana bosilsa
   // to'xtatadi. Darhol yubormaydi: yozilgan ovoz "ОТПРАВИТЬ" tugmasi
@@ -309,6 +404,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
         <div className="text-[9px] tracking-[3px] text-[#8a8f98] uppercase mt-0.5">
           {audioPlayer.isPlaying ? 'ПОТОК АКТИВЕН' : 'ПАУЗА'}
         </div>
+      </div>
+
+      {/* ── Группы — ведущий эфир вақтида ҳам guruh chatlariga kira oladi ── */}
+      <div className="px-4 mb-3 flex justify-end">
+        <RoomsButton user={user} />
       </div>
 
       {/* Голос записалган — hali yuborilmagan, "ОТПРАВИТЬ" bosilguncha kutadi */}
@@ -742,24 +842,22 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
                 <p className="text-xs text-[#8a8f98]/60 mt-1">Начните диалог</p>
               </div>
             ) : (
-              <ChatMessages messages={messages} onPlayVoice={() => {}} />
+              <div className="flex flex-col gap-2">
+                {messages.map((m) => (
+                  <ChatMessageComponent key={m.id} message={m} currentUser={user} />
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Input */}
+          {/* Input — asosiy "Живой чат" bilan bir xil komponent (Telegram
+              uslubidagi doira tugma, darhol ko'rinish, galochka statusi) */}
           <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-            <ChatInputBar
-              city={city}
-              lang={lang}
-              onSendText={(msg) => handleSendMessage(msg, 'chat')}
-              onPointsUpdate={onPointsUpdate}
+            <ChatInput
+              onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
+              onSendVoice={handleSendVoiceToChat}
               onToast={showToast}
-              onSent={() => {
-                getChatHistory(city).then(msgs => {
-                  const unique = msgs.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
-                  setMessages(unique);
-                }).catch(() => {});
-              }}
+              city={city}
             />
           </div>
         </div>
@@ -850,272 +948,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
       )}
 
       <Toast message={message} />
-    </div>
-  );
-}
-
-/* ── Chat input (matn + ovoz yozish + yuborish) ── */
-interface ChatInputBarProps {
-  city: string;
-  lang: string;
-  onSendText: (msg: string) => void | Promise<void>;
-  onPointsUpdate: (pts: number) => void;
-  onToast: (msg: string) => void;
-  onSent?: () => void;
-}
-
-function ChatInputBar({ city: _city, lang: _lang, onSendText, onPointsUpdate, onToast, onSent }: ChatInputBarProps) {
-  const [val, setVal] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recSeconds, setRecSeconds] = useState(0);
-  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [sendingVoice, setSendingVoice] = useState(false);
-  const recRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Ovoz yozishni boshlash/to'xtatish
-  const toggleRecording = async () => {
-    if (recording && recRef.current) {
-      recRef.current.stop();
-      if (timerRef.current) clearInterval(timerRef.current);
-      setRecording(false);
-      return;
-    }
-    try {
-      // Telegram WebApp da mikrofon ruxsati so'rash
-      const tgApp = (window as any).Telegram?.WebApp;
-      if (tgApp?.requestMicrophoneAccess) {
-        const granted: boolean = await new Promise(resolve => {
-          tgApp.requestMicrophoneAccess((ok: boolean) => resolve(ok));
-        });
-        if (!granted) {
-          onToast('Микрофон рұқсаты берілмеді. Telegram настройкаларыдан рұқсат беріңіз.');
-          return;
-        }
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      recRef.current = mr;
-      chunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        if (blob.size < 500) {
-          onToast('Запись слишком короткая');
-          return;
-        }
-        setPendingBlob(blob);
-        setPreviewUrl(URL.createObjectURL(blob));
-        setRecSeconds(0);
-      };
-      mr.start(100);
-      setRecording(true);
-      setRecSeconds(0);
-      timerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
-    } catch (err: any) {
-      console.error('Mic error:', err);
-      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        onToast('Микрофон рұқсаты жоқ. Telegram → Настройки → Конфиденциальность → Микрофон');
-      } else if (err?.name === 'NotFoundError') {
-        onToast('Микрофон табылмады');
-      } else {
-        onToast('Микрофонга қол жетімді емес');
-      }
-    }
-  };
-
-  // Preview ni o'chirish
-  const discardVoice = () => {
-    setPendingBlob(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setRecSeconds(0);
-  };
-
-  // Preview tinglash
-  const playPreview = () => {
-    if (previewUrl) new Audio(previewUrl).play().catch(() => {});
-  };
-
-  // Ovozni serverga yuborish
-  const sendVoice = async () => {
-    if (!pendingBlob || sendingVoice) return;
-    setSendingVoice(true);
-    try {
-      const fd = new FormData();
-      fd.append('audio_file', pendingBlob, 'voice.webm');
-      const resp = await fetch('/chat/voice', {
-        method: 'POST',
-        headers: { ...authHeaders() },
-        body: fd,
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        if (resp.status === 402) onToast('Недостаточно поинтов');
-        else onToast('Ошибка отправки голосового');
-        console.error('Voice send error:', err);
-      } else {
-        const data = await resp.json();
-        const pts = data?.detail?.points;
-        if (pts !== undefined) onPointsUpdate(Number(pts));
-        discardVoice();
-        onSent?.();
-      }
-    } catch (e) {
-      onToast('Ошибка отправки');
-      console.error(e);
-    } finally {
-      setSendingVoice(false);
-    }
-  };
-
-  // Matn yuborish
-  const sendText = async () => {
-    if (!val.trim() || busy) return;
-    setBusy(true);
-    const text = val.trim();
-    setVal('');
-    try {
-      await onSendText(text);
-    } catch {
-      setVal(text); // xato bo'lsa matnni qaytaramiz
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const fmtSec = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-
-  return (
-    <div className="flex flex-col gap-2">
-
-      {/* Ovoz preview (yozilgandan keyin) */}
-      {pendingBlob && previewUrl && (
-        <div
-          className="rounded-2xl px-3 py-2.5 flex items-center gap-3"
-          style={{ background: 'rgba(16,16,20,0.9)', border: '1px solid rgba(94,106,210,0.2)' }}
-        >
-          {/* Tinglash */}
-          <button
-            onClick={playPreview}
-            className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center active:scale-90"
-            style={{ background: 'linear-gradient(135deg,#5e6ad2,#5e6ad2)' }}
-          >
-            <svg width="11" height="13" fill="white" viewBox="0 0 11 13" style={{ marginLeft: 2 }}>
-              <path d="M0 0 L11 6.5 L0 13 Z"/>
-            </svg>
-          </button>
-
-          {/* Waveform ko'rinish */}
-          <div className="flex-1 flex items-center gap-[2px]" style={{ height: '20px' }}>
-            {[3,5,8,6,10,7,12,9,14,11,12,8,10,6,7,4,5].map((h, i) => (
-              <div key={i} style={{
-                flex: 1, height: `${h}px`,
-                background: 'rgba(94,106,210,0.5)',
-                borderRadius: '2px',
-              }} />
-            ))}
-          </div>
-
-          <span className="text-[10px] text-[#8a8f98] shrink-0">готово</span>
-
-          {/* Yuborish */}
-          <button
-            onClick={sendVoice}
-            disabled={sendingVoice}
-            className="px-3 py-1.5 rounded-xl text-[11px] font-bold disabled:opacity-50 active:scale-95 transition-all shrink-0"
-            style={{ background: 'linear-gradient(135deg,#7b85e8,#5e6ad2)', color: '#020203' }}
-          >
-            {sendingVoice ? '...' : 'Отправить'}
-          </button>
-
-          {/* O'chirish */}
-          <button
-            onClick={discardVoice}
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 active:scale-90"
-            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
-          >
-            <X className="w-3.5 h-3.5 text-[#ef4444]" />
-          </button>
-        </div>
-      )}
-
-      {/* Matn input + yuborish */}
-      <div className="flex gap-2">
-        <input
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendText())}
-          placeholder="Введите сообщение..."
-          disabled={busy}
-          className="flex-1 px-4 py-3 rounded-2xl text-sm text-[#ededef] placeholder:text-[#5a5f68] outline-none disabled:opacity-50"
-          style={{ background: 'rgba(14,14,18,0.9)', border: '1px solid rgba(94,106,210,0.12)' }}
-        />
-        <button
-          onClick={sendText}
-          disabled={!val.trim() || busy}
-          className="w-12 h-12 rounded-2xl flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
-          style={{
-            background: val.trim() ? 'linear-gradient(135deg,#7b85e8,#5e6ad2)' : 'rgba(14,14,18,0.9)',
-            border: '1px solid rgba(94,106,210,0.15)',
-          }}
-        >
-          {busy
-            ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            : <Send className="w-4 h-4" style={{ color: val.trim() ? '#050506' : '#5a5f68' }} strokeWidth={2} />
-          }
-        </button>
-      </div>
-
-      {/* Mic tugmasi — har doim ko'rinadi */}
-      <button
-        onClick={toggleRecording}
-        className="w-full rounded-2xl py-3 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-        style={{
-          background: recording ? 'rgba(239,68,68,0.1)' : 'rgba(14,14,18,0.7)',
-          border: recording ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(94,106,210,0.12)',
-          boxShadow: recording ? '0 0 16px rgba(239,68,68,0.2)' : 'none',
-        }}
-      >
-        <svg width="16" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          strokeWidth={1.8} style={{ color: recording ? '#ef4444' : '#5e6ad2' }}>
-          <path strokeLinecap="round" strokeLinejoin="round"
-            d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path strokeLinecap="round" strokeLinejoin="round"
-            d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
-        </svg>
-
-        {recording ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-[2px]">
-              {[5,8,6,10,7].map((h, i) => (
-                <div key={i} style={{
-                  width: '3px', height: `${h}px`,
-                  background: '#ef4444', borderRadius: '2px',
-                  animation: `recWave ${0.5 + i * 0.1}s ease-in-out ${i * 0.1}s infinite`,
-                }} />
-              ))}
-            </div>
-            <span className="text-sm font-bold text-[#ef4444] tabular-nums">{fmtSec(recSeconds)}</span>
-            <span className="text-[11px] text-[#ef4444]/70">Нажмите чтобы остановить</span>
-          </div>
-        ) : (
-          <span className="text-sm font-medium text-[#5e6ad2]">Голосовое сообщение</span>
-        )}
-      </button>
-
-      <style>{`
-        @keyframes recWave {
-          0%,100% { transform: scaleY(0.5); }
-          50% { transform: scaleY(1.6); }
-        }
-      `}</style>
     </div>
   );
 }
