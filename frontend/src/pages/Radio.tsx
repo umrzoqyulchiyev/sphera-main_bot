@@ -12,6 +12,7 @@ import { SlotsScreen } from '../components/slots/SlotsScreen';
 import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { getMe, getPointsHistory } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
@@ -161,6 +162,20 @@ export function Radio() {
     }
   };
 
+  // Boshqa foydalanuvchidan point kelganda balansni darhol yangilash uchun —
+  // Radio.tsx darajasida doim tirik ulanish (qaysi tab ochiq bo'lishidan
+  // qat'i nazar), 20s'lik poll'ni kutmasdan. Backend barcha ulanishlarni
+  // bitta "global" xonaga broadcast qiladi, shuning uchun user_id bo'yicha
+  // o'zimizga tegishlisini filtrlaymiz.
+  useWebSocket({
+    city: 'global',
+    onMessage: (msg) => {
+      if (msg.type === 'points_update' && user && (msg.data as any)?.user_id === user.id) {
+        handlePointsUpdate(Number((msg.data as any).points));
+      }
+    },
+  });
+
   const handleCloseOnboarding = () => {
     localStorage.setItem(ONBOARDING_KEY, '1');
     setShowOnboarding(false);
@@ -235,11 +250,13 @@ export function Radio() {
         }}
       >
         <div
-          className={`w-full max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pt-3 flex flex-col gap-4 ${
-            isChat ? 'h-full pb-[86px]' : 'pb-[170px]'
+          className={`w-full max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto flex flex-col gap-4 ${
+            isChat ? 'h-full pb-[86px]' : 'px-4 pt-3 pb-[170px]'
           }`}
         >
-          <TopBar points={user?.points || 0} />
+          {/* Chat ekranida TopBar (logo + points) yashiriladi — Efir'dagi
+              "ЧАЙ СВЕРХМОЩНОСТЬ" chat'i kabi toza, sarlavhasiz ko'rinish. */}
+          {!isChat && <TopBar points={user?.points || 0} />}
           {isChat ? (
             <div className="flex-1 min-h-0 flex flex-col">{renderScreen(currentScreen)}</div>
           ) : (

@@ -18,6 +18,7 @@ from app.core.constants import LEVELS
 from app.core.database import db
 from app.core.dependencies import get_current_user
 from app.core.internal_auth import require_internal_key
+from app.core.ws_manager import manager
 from app.core.models import (
     OkResponse,
     PaymentSettingsOut,
@@ -41,6 +42,18 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 def _level_name(level: int) -> str:
     return LEVELS.get(level, "Слушатель")
+
+
+async def _notify_balance(user_id: int, points) -> None:
+    """Boshqa foydalanuvchidan point kelganda oluvchini WS orqali darhol
+    xabardor qiladi — aks holda balans faqat 20s'lik poll yoki mini appni
+    to'liq yopib-ochganda yangilanardi (chat_ws barcha ulanishlarni bitta
+    "global" xonaga qo'shadi, shuning uchun broadcast qilib, frontend'da
+    user_id bo'yicha filtrlaymiz — real per-connection routing yo'q)."""
+    await manager.broadcast(
+        "global",
+        {"type": "points_update", "data": {"user_id": user_id, "points": str(points)}},
+    )
 
 
 # TZ §1: Rol nomi (role maydoni bo'yicha)
@@ -144,6 +157,7 @@ async def transfer_points(
     result = await points_service.transfer(user["id"], target["id"], payload.amount)
     if not result["ok"]:
         raise HTTPException(status_code=400, detail=result.get("reason", "Transfer failed"))
+    await _notify_balance(target["id"], result["to_points"])
     return OkResponse(detail={"points": result["points"]})
 
 
@@ -196,6 +210,8 @@ async def decide_point_request(
     result = await points_service.decide_request(request_id, user["id"], payload.approve)
     if not result["ok"]:
         raise HTTPException(status_code=400, detail=result.get("reason"))
+    if result["status"] == "approved":
+        await _notify_balance(result["recipient_user_id"], result["recipient_points"])
     return OkResponse(detail={"status": result["status"]})
 
 

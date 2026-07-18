@@ -2,7 +2,6 @@ import { useRef, useEffect } from 'react';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
-import { useTranslation } from '../../hooks/useTranslation';
 import type { ChatMessage as ChatMessageType, User } from '../../types';
 
 interface ChatProps {
@@ -26,7 +25,6 @@ export function Chat({
   city,
   onExit,
 }: ChatProps) {
-  const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,12 +36,12 @@ export function Chat({
   };
 
   return (
-    <div className="glass p-3 flex flex-col flex-1 min-h-0">
-      {/* Sarlavha — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" modali bilan bir xil
-          uslub (orqaga tugmasi + text-sm font-bold sarlavha), ikkala
-          chat bir xil ko'rinishi uchun. */}
-      <div className="flex items-center gap-3 pb-3 mb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-        {onExit && (
+    <div className="bg-[#050506] p-3 flex flex-col flex-1 min-h-0">
+      {/* Sarlavhasiz, chegarasiz — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" bilan bir
+          xil toza ko'rinish uchun. Faqat funksional tugmalar (chiqish,
+          guruhlar) qoladi, matn/border yo'q. */}
+      <div className="flex items-center justify-between mb-2">
+        {onExit ? (
           <button
             onClick={onExit}
             aria-label="Выйти из чата"
@@ -54,8 +52,7 @@ export function Chat({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-        )}
-        <span className="text-sm font-bold text-[#5e6ad2] truncate flex-1 min-w-0">{t('chat_title')}</span>
+        ) : <span />}
         <RoomsButton user={currentUser} />
       </div>
 

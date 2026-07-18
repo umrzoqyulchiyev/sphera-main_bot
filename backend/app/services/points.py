@@ -170,8 +170,8 @@ async def transfer(from_user_id: int, to_user_id: int, amount: Decimal) -> dict:
     if row is None:
         return {"ok": False, "reason": "insufficient_points"}
 
-    await db.execute(
-        "UPDATE users SET points = points + $2 WHERE id = $1",
+    to_row = await db.fetchrow(
+        "UPDATE users SET points = points + $2 WHERE id = $1 RETURNING points",
         to_user_id,
         amount,
     )
@@ -201,7 +201,12 @@ async def transfer(from_user_id: int, to_user_id: int, amount: Decimal) -> dict:
     await recompute_level(from_user_id)
     await recompute_level(to_user_id)
 
-    return {"ok": True, "points": row["points"]}
+    return {
+        "ok": True,
+        "points": row["points"],
+        "to_user_id": to_user_id,
+        "to_points": to_row["points"],
+    }
 
 
 async def create_request(
@@ -244,6 +249,14 @@ async def decide_request(request_id: int, deciding_user_id: int, approve: bool) 
             "UPDATE points_requests SET status = 'approved', decided_at = NOW() WHERE id = $1",
             request_id,
         )
+        # So'rovni yuborgan (from_user_id) — pointlarni oluvchi, uni WS orqali
+        # xabardor qilish uchun router'ga qaytaramiz.
+        return {
+            "ok": True,
+            "status": "approved",
+            "recipient_user_id": req["from_user_id"],
+            "recipient_points": result["to_points"],
+        }
     else:
         await db.execute(
             "UPDATE points_requests SET status = 'rejected', decided_at = NOW() WHERE id = $1",

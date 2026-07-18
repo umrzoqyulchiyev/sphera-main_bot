@@ -813,15 +813,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
       {showChatModal && (
         <FullScreenModal>
 
-          {/* Header — chiqish tugmalarisiz, faqat sarlavha. Yopish
-              Telegram'ning o'z native chrome/BackButton'i orqali. */}
-          <div className="flex items-center px-4 pt-4 pb-3 border-b"
-            style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-            <div>
-              <span className="text-sm font-bold text-[#8a8f98]">ЧАЙ </span>
-              <span className="text-sm font-bold text-[#5e6ad2]">СВЕРХМОЩНОСТЬ</span>
-            </div>
-          </div>
+          {/* Sarlavhasiz, chegarasiz — toza ko'rinish. Yopish Telegram'ning
+              o'z native chrome/BackButton'i orqali. */}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4" ref={(el) => {

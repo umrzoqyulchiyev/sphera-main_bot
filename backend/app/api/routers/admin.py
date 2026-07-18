@@ -22,6 +22,7 @@ from app.core.models import (
     PaymentSettingsOut,
     PaymentSettingsUpdate,
 )
+from app.core.ws_manager import manager
 from app.services import points as points_service
 
 log = logging.getLogger("admin")
@@ -76,6 +77,16 @@ async def add_points(
     result = await points_service.add_points_admin(payload.user_id, payload.amount)
     if not result["ok"]:
         raise HTTPException(status_code=404, detail=result.get("reason"))
+    # Oluvchini darhol xabardor qilish — 20s poll yoki mini appni qayta
+    # ochishni kutmasin (chat_ws barcha ulanishlarni "global" xonaga
+    # qo'shadi, frontend user_id bo'yicha filtrlaydi).
+    await manager.broadcast(
+        "global",
+        {
+            "type": "points_update",
+            "data": {"user_id": payload.user_id, "points": str(result["points"])},
+        },
+    )
     return OkResponse(detail={"user_id": payload.user_id, "points": str(result["points"])})
 
 

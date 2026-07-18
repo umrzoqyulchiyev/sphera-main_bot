@@ -163,6 +163,7 @@ export type WSMessageType =
   | 'limit_exceeded'
   | 'studio_denied'
   | 'balance'
+  | 'points_update'
   | 'error'
   | 'pong'
   | 'ping';
