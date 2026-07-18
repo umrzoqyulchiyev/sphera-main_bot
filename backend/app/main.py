@@ -133,6 +133,28 @@ app.add_middleware(
 # Request logging
 app.add_middleware(RequestLoggingMiddleware)
 
+
+# Statik javoblar uchun cache sarlavhalari — hech qanday Cache-Control
+# bo'lmasa, mobil WebView'lar (xususan Telegram Mini App ichidagi iOS
+# WKWebView) index.html'ni juda uzoq vaqt keshda saqlab qolishi mumkin,
+# shuning uchun yangi deploy qilingan JS/CSS fayllar ko'rinmay qoladi
+# (foydalanuvchi eski build'ni ko'raverdi). index.html hech qachon
+# keshlanmasin (har doim eng yangi assets/*.js havolasini olib kelsin),
+# assets/* esa fayl nomida hash bo'lgani uchun abadiy keshlansa bo'ladi.
+@app.middleware("http")
+async def _cache_control_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif "cache-control" not in response.headers:
+        # index.html va SPA fallback (client-side routing — yo'l istalgan
+        # bo'lishi mumkin, shuning uchun aniq "/" yoki ".html" bilan
+        # cheklab bo'lmaydi) doim tarmoqdan qayta olinsin.
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # Routers
 app.include_router(auth.router)
 app.include_router(users.router)
