@@ -8,6 +8,7 @@ import { GoLiveButton } from './GoLiveButton';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
+import { useTelegramBackButton } from '../../hooks/useTelegramBackButton';
 import { Toast } from '../ui/Toast';
 import { FullScreenModal } from '../ui/FullScreenModal';
 import { getRadioStatus, getChatHistory, sendOpinionVoice, sendChatMessage, sendVoiceMessage } from '../../lib/api';
@@ -61,6 +62,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
   });
 
   const { send: wsSend } = useWebSocket({ city, onMessage: handleWSMessage });
+
+  // Telegram'ning tabiiy "orqaga" tugmasi — DOM ichidagi tugmalardan farqli
+  // o'laroq, uni Telegram'ning o'zi chizadi va boshqaradi, shuning uchun
+  // ilova tepasidagi native "Закрыть"/menyu paneli bilan hech qachon
+  // to'qnashmaydi (eski klientlarda mavjud bo'lmasa — jim o'tkazib
+  // yuboriladi, pastdagi DOM tugmasi fallback bo'ladi).
+  useTelegramBackButton(showChatModal, () => setShowChatModal(false));
+  useTelegramBackButton(showStreamModal, () => setShowStreamModal(false));
 
   useEffect(() => {
     if (radioStatus?.is_live && audioPlayer.isPlaying) {
@@ -774,6 +783,21 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
             </div>
           </div>
 
+          {/* Pastki "Закрыть" tugmasi — yuqoridagi orqaga tugmasi ba'zi
+              Telegram klientlarida ekranning eng tepasidagi native
+              "Закрыть" paneli bilan to'qnashib, bosilmay qolishi mumkin
+              (native chrome tegishlarni ushlab qolishi). Shu joy — kirish
+              maydoni bilan bir xil, kafolatlangan bosiladigan zona. */}
+          <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+            <button
+              onClick={() => setShowStreamModal(false)}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-[#8a8f98] active:scale-[0.98] transition-transform"
+              style={{ background: 'rgba(94,106,210,0.06)', border: '1px solid rgba(94,106,210,0.12)' }}
+            >
+              Закрыть
+            </button>
+          </div>
+
           <style>{`
             @keyframes wave {
               0%,100% { transform: scaleY(0.4); }
@@ -834,14 +858,27 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
           </div>
 
           {/* Input — asosiy "Живой чат" bilan bir xil komponent (Telegram
-              uslubidagi doira tugma, darhol ko'rinish, galochka statusi) */}
-          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-            <ChatInput
-              onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
-              onSendVoice={handleSendVoiceToChat}
-              onToast={showToast}
-              city={city}
-            />
+              uslubidagi doira tugma, darhol ko'rinish, galochka statusi).
+              Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
+              bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
+              chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
+          <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+            <button
+              onClick={() => setShowChatModal(false)}
+              aria-label="Закрыть чат"
+              className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(94,106,210,0.08)' }}
+            >
+              <X className="w-4 h-4 text-[#8a8f98]" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <ChatInput
+                onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
+                onSendVoice={handleSendVoiceToChat}
+                onToast={showToast}
+                city={city}
+              />
+            </div>
           </div>
         </FullScreenModal>
       )}

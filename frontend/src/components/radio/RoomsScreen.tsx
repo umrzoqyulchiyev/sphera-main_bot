@@ -7,6 +7,7 @@ import { getLang } from '../../lib/i18n';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { FullScreenModal } from '../ui/FullScreenModal';
+import { useTelegramBackButton } from '../../hooks/useTelegramBackButton';
 import type { User, ChatRoom, ChatMessage } from '../../types';
 
 const L: Record<string, Record<string, string>> = {
@@ -93,6 +94,11 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
   useEffect(() => { load(); }, [load]);
 
+  // Telegram'ning tabiiy "orqaga" tugmasi — tepadagi DOM tugmasi ba'zi
+  // klientlarda native "Закрыть" paneli bilan to'qnashib bosilmay
+  // qolishi mumkin, shuning uchun kafolatlangan qo'shimcha yo'l.
+  useTelegramBackButton(true, onClose);
+
   return (
     <FullScreenModal zIndex={500}>
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
@@ -131,6 +137,18 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Pastki "Закрыть" — tepadagi orqaga tugmasi native chrome bilan
+          to'qnashsa ham, bu zona (ekran pastida) doim bosiladi. */}
+      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+        <button
+          onClick={onClose}
+          className="w-full py-3 rounded-xl text-sm font-semibold text-[#8a8f98] active:scale-[0.98] transition-transform"
+          style={{ background: 'rgba(94,106,210,0.06)', border: '1px solid rgba(94,106,210,0.12)' }}
+        >
+          Закрыть
+        </button>
       </div>
 
       {showCreate && (
@@ -225,6 +243,10 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // Telegram'ning tabiiy "orqaga" tugmasi — kafolatlangan qo'shimcha yo'l
+  // (tepadagi DOM tugmasi native chrome bilan to'qnashsa ham ishlaydi).
+  useTelegramBackButton(true, onClose);
+
   // Rooms'da WS yo'q (v1 — polling), shuning uchun "keyingi load() eskirgan
   // optimistik yozuvni asl ro'yxat bilan almashtiradi" prinsipiga tayanamiz —
   // xabar darhol ko'rinadi, xato bo'lsa olib tashlanadi.
@@ -289,13 +311,26 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
         ))}
       </div>
 
-      <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-        <ChatInput
-          onSendMessage={(msg) => handleSendText(msg)}
-          onSendVoice={handleSendVoice}
-          onToast={() => {}}
-          city=""
-        />
+      {/* Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
+          bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
+          chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
+      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+        <button
+          onClick={onClose}
+          aria-label="Закрыть чат"
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(94,106,210,0.08)' }}
+        >
+          <X className="w-4 h-4 text-[#8a8f98]" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <ChatInput
+            onSendMessage={(msg) => handleSendText(msg)}
+            onSendVoice={handleSendVoice}
+            onToast={() => {}}
+            city=""
+          />
+        </div>
       </div>
 
       {pendingClose && (

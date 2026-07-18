@@ -11,6 +11,7 @@ import { MusicScreen } from '../components/music/MusicScreen';
 import { SlotsScreen } from '../components/slots/SlotsScreen';
 import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
+import { useTelegramBackButton } from '../hooks/useTelegramBackButton';
 import { getMe, getPointsHistory } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
@@ -204,6 +205,11 @@ export function Radio() {
   // Chat ekrani — to'liq balandlikda, o'z ichida scroll qiladi (boshqa ekranlar
   // kabi umumiy sahifa scroll'iga bog'lanmaydi)
   const isChat = currentScreen === 'anons';
+
+  // Telegram'ning tabiiy "orqaga" tugmasi — DOM ichidagi chiqish tugmasi
+  // ba'zi klientlarda native "Закрыть" paneli bilan to'qnashib bosilmay
+  // qolishi mumkin, shuning uchun kafolatlangan qo'shimcha yo'l.
+  useTelegramBackButton(isChat, () => handleNavigate(previousScreen));
 
   return (
     <div
