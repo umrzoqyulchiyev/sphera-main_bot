@@ -813,18 +813,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
       {showChatModal && (
         <FullScreenModal>
 
-          {/* Header — faqat bitta chiqish tugmasi (avval bu yerda ikkita
-              bir xil ishlaydigan tugma bor edi — ortiqcha va Telegram'ning
-              o'z "Закрыть" panели bilan birga chalkash ko'rinar edi). */}
+          {/* Header — chiqish tugmalarisiz, faqat sarlavha. Yopish
+              Telegram'ning o'z native chrome/BackButton'i orqali. */}
           <div className="flex items-center px-4 pt-4 pb-3 border-b"
             style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-            <button onClick={() => setShowChatModal(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center mr-3"
-              style={{ background: 'rgba(94,106,210,0.08)' }}>
-              <svg className="w-4 h-4 text-[#5e6ad2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-              </svg>
-            </button>
             <div>
               <span className="text-sm font-bold text-[#8a8f98]">ЧАЙ </span>
               <span className="text-sm font-bold text-[#5e6ad2]">СВЕРХМОЩНОСТЬ</span>
@@ -858,27 +850,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
           </div>
 
           {/* Input — asosiy "Живой чат" bilan bir xil komponent (Telegram
-              uslubidagi doira tugma, darhol ko'rinish, galochka statusi).
-              Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
-              bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
-              chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
-          <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
-            <button
-              onClick={() => setShowChatModal(false)}
-              aria-label="Закрыть чат"
-              className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(94,106,210,0.08)' }}
-            >
-              <X className="w-4 h-4 text-[#8a8f98]" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <ChatInput
-                onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
-                onSendVoice={handleSendVoiceToChat}
-                onToast={showToast}
-                city={city}
-              />
-            </div>
+              uslubidagi doira tugma, darhol ko'rinish, galochka statusi). */}
+          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+            <ChatInput
+              onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
+              onSendVoice={handleSendVoiceToChat}
+              onToast={showToast}
+              city={city}
+            />
           </div>
         </FullScreenModal>
       )}
