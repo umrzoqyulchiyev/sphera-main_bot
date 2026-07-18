@@ -44,7 +44,7 @@ export function Chat({
           shu burchakda bo'lgani uchun, tugmalar shu bilan to'qnashmasin. */}
       <div
         className="flex items-center justify-between mb-2"
-        style={{ paddingTop: 'calc(40px + env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'calc(76px + env(safe-area-inset-top))' }}
       >
         {onExit ? (
           <button

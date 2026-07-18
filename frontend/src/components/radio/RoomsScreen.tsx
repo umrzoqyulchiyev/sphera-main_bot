@@ -101,7 +101,10 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
   return (
     <FullScreenModal zIndex={500}>
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+      {/* Yuqoridan qo'shimcha bo'sh joy — Telegram'ning o'z "⋮ ⌄ ✕" native
+          paneli aynan shu burchakda bo'lgani uchun, tugmalar (ayniqsa
+          "Создать") shu bilan to'qnashib bosilmay qolmasin. */}
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
           <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
         </button>
@@ -285,7 +288,7 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
 
   return (
     <FullScreenModal zIndex={500}>
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
           <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
         </button>
