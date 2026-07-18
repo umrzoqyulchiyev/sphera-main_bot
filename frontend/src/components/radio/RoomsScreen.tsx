@@ -6,6 +6,7 @@ import {
 import { getLang } from '../../lib/i18n';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+import { FullScreenModal } from '../ui/FullScreenModal';
 import type { User, ChatRoom, ChatMessage } from '../../types';
 
 const L: Record<string, Record<string, string>> = {
@@ -93,7 +94,7 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="fixed inset-0 z-[500] flex flex-col" style={{ background: '#050506' }}>
+    <FullScreenModal zIndex={500}>
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
           <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
@@ -139,7 +140,7 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
           onCreated={() => { setShowCreate(false); load(); }}
         />
       )}
-    </div>
+    </FullScreenModal>
   );
 }
 
@@ -261,7 +262,7 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[500] flex flex-col" style={{ background: '#050506' }}>
+    <FullScreenModal zIndex={500}>
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
           <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
@@ -316,6 +317,6 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
           </div>
         </div>
       )}
-    </div>
+    </FullScreenModal>
   );
 }

@@ -9,6 +9,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../ui/Toast';
+import { FullScreenModal } from '../ui/FullScreenModal';
 import { getRadioStatus, getChatHistory, sendOpinionVoice, sendChatMessage, sendVoiceMessage } from '../../lib/api';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -577,15 +578,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
           MODAL: ПОТОК REAL TIME
       ══════════════════════════════════════════════════ */}
       {showStreamModal && (
-        <div
-          className="fixed z-[9999] flex flex-col"
-          style={{
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: '#050506',
-            // Telegram mini app ichida karta orqasidan ko'rinmaslik uchun
-            isolation: 'isolate',
-          }}
-        >
+        <FullScreenModal>
 
           {/* Header */}
           <div className="flex items-center px-4 pt-4 pb-3 border-b"
@@ -787,21 +780,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
               50% { transform: scaleY(1.5); }
             }
           `}</style>
-        </div>
+        </FullScreenModal>
       )}
 
       {/* ══════════════════════════════════════════════════
           MODAL: ЧАТ
       ══════════════════════════════════════════════════ */}
       {showChatModal && (
-        <div
-          className="fixed z-[9999] flex flex-col"
-          style={{
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: '#050506',
-            isolation: 'isolate',
-          }}
-        >
+        <FullScreenModal>
 
           {/* Header */}
           <div className="flex items-center px-4 pt-4 pb-3 border-b"
@@ -860,7 +846,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
               city={city}
             />
           </div>
-        </div>
+        </FullScreenModal>
       )}
 
       {/* ══════════════════════════════════════════════════
