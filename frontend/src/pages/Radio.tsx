@@ -27,6 +27,10 @@ export function Radio() {
   // tushib qolar edi.
   const location = useLocation();
   const [currentScreen, setCurrentScreen] = useState<Screen>((location.state as { screen?: Screen } | null)?.screen || 'anons');
+  // Chat ekranida BottomNav yashiriladi va o'rniga yuqorida chiqish tugmasi
+  // ko'rsatiladi — shu tugma bosilganda foydalanuvchi oxirgi tashrif
+  // buyurgan (chatdan boshqa) ekranga qaytadi.
+  const [previousScreen, setPreviousScreen] = useState<Screen>('efir');
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [pointsNotice, setPointsNotice] = useState<{ text: string; gift: boolean } | null>(null);
@@ -163,6 +167,9 @@ export function Radio() {
 
   const handleNavigate = (newScreen: Screen) => {
     if (newScreen === currentScreen) return;
+    // Chatga kirishdan oldingi ekranni eslab qolamiz — chiqish tugmasi
+    // aynan o'sha ekranga qaytaradi (doim 'efir'ga emas).
+    if (currentScreen !== 'anons') setPreviousScreen(currentScreen);
     setCurrentScreen(newScreen);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
@@ -170,7 +177,13 @@ export function Radio() {
   const renderScreen = (screen: Screen) => {
     switch (screen) {
       case 'anons':
-        return <ChatScreen user={user} onPointsUpdate={handlePointsUpdate} />;
+        return (
+          <ChatScreen
+            user={user}
+            onPointsUpdate={handlePointsUpdate}
+            onExit={() => handleNavigate(previousScreen)}
+          />
+        );
       case 'efir':
         return <EfirScreen user={user} onPointsUpdate={handlePointsUpdate} onNavigate={handleNavigate} />;
       case 'stats':
@@ -217,7 +230,7 @@ export function Radio() {
       >
         <div
           className={`w-full max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pt-3 flex flex-col gap-4 ${
-            isChat ? 'h-full pb-[100px]' : 'pb-[190px]'
+            isChat ? 'h-full pb-[calc(12px+env(safe-area-inset-bottom))]' : 'pb-[190px]'
           }`}
         >
           <TopBar points={user?.points || 0} />
@@ -229,7 +242,9 @@ export function Radio() {
         </div>
       </div>
 
-      <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
+      {/* Chat ekranida BottomNav yashiriladi — chiqish endi Chat sarlavhasidagi
+          tugma orqali (o'sha ekran o'ziga xos "orqaga" navigatsiyasiga ega) */}
+      {!isChat && <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />}
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
       {pointsNotice && (
         <div

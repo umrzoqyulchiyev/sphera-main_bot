@@ -11,6 +11,7 @@ import type { User, ChatMessage } from '../../types';
 interface ChatScreenProps {
   user: User | null;
   onPointsUpdate: (points: number) => void;
+  onExit?: () => void;
 }
 
 interface PendingSend {
@@ -20,7 +21,7 @@ interface PendingSend {
   blobUrl?: string;
 }
 
-export function ChatScreen({ user, onPointsUpdate }: ChatScreenProps) {
+export function ChatScreen({ user, onPointsUpdate, onExit }: ChatScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -190,6 +191,7 @@ export function ChatScreen({ user, onPointsUpdate }: ChatScreenProps) {
         onSendVoice={handleSendVoice}
         onToast={showToast}
         city={city}
+        onExit={onExit}
       />
       <Toast message={message} />
     </div>

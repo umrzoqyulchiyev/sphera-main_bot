@@ -789,7 +789,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
       {showChatModal && (
         <FullScreenModal>
 
-          {/* Header */}
+          {/* Header — faqat bitta chiqish tugmasi (avval bu yerda ikkita
+              bir xil ishlaydigan tugma bor edi — ortiqcha va Telegram'ning
+              o'z "Закрыть" panели bilan birga chalkash ko'rinar edi). */}
           <div className="flex items-center px-4 pt-4 pb-3 border-b"
             style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
             <button onClick={() => setShowChatModal(false)}
@@ -803,11 +805,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate }: EfirScreenProps
               <span className="text-sm font-bold text-[#8a8f98]">ЧАЙ </span>
               <span className="text-sm font-bold text-[#5e6ad2]">СВЕРХМОЩНОСТЬ</span>
             </div>
-            <button onClick={() => setShowChatModal(false)}
-              className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(94,106,210,0.08)' }}>
-              <X className="w-4 h-4 text-[#8a8f98]" />
-            </button>
           </div>
 
           {/* Messages */}
