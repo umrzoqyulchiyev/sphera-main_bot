@@ -319,7 +319,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#F8FAFC] border border-[rgba(249,115,22,0.4)] z-[200]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#F8FAFC] border border-[rgba(148,163,184,0.2)] z-[200]">
           {toast}
         </div>
       )}
@@ -390,7 +390,7 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
   );
 }
 
-const inputCls = 'w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3';
+const inputCls = 'w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(148,163,184,0.16)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3';
 const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#1B1204] text-sm';
 const primaryStyle = { background: 'linear-gradient(135deg, #FB923C, #F97316)' };
 type TX = (k: string) => string;
@@ -495,7 +495,7 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
       <div className="flex flex-col gap-2 mb-3">
         {packages.map((p) => (
           <div key={p.id}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(249,115,22,0.18)] bg-[rgba(15,15,35,0.5)]">
+            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(148,163,184,0.16)] bg-[rgba(15,15,35,0.5)]">
             <span className="font-semibold text-[#F8FAFC]">{p.label}</span>
             <span className="text-[#F97316] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
           </div>
@@ -503,7 +503,7 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
       </div>
       {isManual ? (
         payment?.instructions ? (
-          <div className="rounded-xl px-4 py-3 text-sm text-[#F8FAFC] whitespace-pre-line" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
+          <div className="rounded-xl px-4 py-3 text-sm text-[#F8FAFC] whitespace-pre-line" style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.16)' }}>
             {payment.instructions}
           </div>
         ) : null
@@ -548,7 +548,7 @@ function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; ite
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
         });
         return (
-          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(15,15,35,0.5)] border border-[rgba(249,115,22,0.1)]">
+          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(15,15,35,0.5)] border border-[rgba(148,163,184,0.12)]">
             <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(34,197,94,0.12)] text-[#22C55E]' : 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'}`}>
               <Icon size={16} />
             </div>

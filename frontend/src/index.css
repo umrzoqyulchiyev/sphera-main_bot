@@ -8,8 +8,12 @@
     --card: #1B1B30;
     --card-solid: #1B1B30;
     --card-soft: rgba(27, 27, 48, 0.72);
-    --glass-border: rgba(249, 115, 22, 0.14);
-    --border: rgba(249, 115, 22, 0.14);
+    /* Neutral by default — accent is reserved for the one focal element per
+       screen, not for every card/border (see "quiet premium" direction). */
+    --glass-border: rgba(148, 163, 184, 0.14);
+    --border: rgba(148, 163, 184, 0.14);
+    --border-accent: rgba(249, 115, 22, 0.30);
+    --icon-muted: #8B93A7;
 
     --primary: #1E1B4B;
     --primary2: #312E81;
@@ -17,8 +21,8 @@
     --accent: #F97316;
     --accent2: #EA580C;
     --accent-light: #FB923C;
-    --glow: rgba(249, 115, 22, 0.45);
-    --accent-glow: rgba(249, 115, 22, 0.45);
+    --glow: rgba(249, 115, 22, 0.28);
+    --accent-glow: rgba(249, 115, 22, 0.28);
 
     --live: #22C55E;
     --green: #22C55E;
@@ -44,8 +48,8 @@
 
   html,
   body {
-    background: radial-gradient(1200px 600px at 50% -10%, rgba(249, 115, 22, 0.10), transparent 60%),
-      radial-gradient(800px 500px at 50% 110%, rgba(30, 27, 75, 0.35), transparent 60%), var(--bg);
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(249, 115, 22, 0.05), transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, rgba(30, 27, 75, 0.25), transparent 60%), var(--bg);
     color: var(--text);
     letter-spacing: 0.1px;
     overscroll-behavior: none;
@@ -136,11 +140,11 @@
   }
 
   .text-glow {
-    text-shadow: 0 0 16px var(--glow);
+    text-shadow: 0 0 10px var(--glow);
   }
 
   .text-glow-strong {
-    text-shadow: 0 0 20px rgba(249, 115, 22, 0.7), 0 0 40px rgba(249, 115, 22, 0.35);
+    text-shadow: 0 0 14px rgba(249, 115, 22, 0.4);
   }
 
   /* Glassmorphism navbar (legacy) */
@@ -177,13 +181,13 @@
     transform: scale(0.97);
   }
   .glass-interactive:hover {
-    border-color: rgba(249, 115, 22, 0.4);
+    border-color: rgba(148, 163, 184, 0.28);
   }
 
   /* Elevatsiya shkalasi — chuqurlik hissi uchun izchil soya darajalari */
   .elevate-1 { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
   .elevate-2 { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45); }
-  .elevate-3 { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 32px rgba(249, 115, 22, 0.10); }
+  .elevate-3 { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55); }
 }
 
 /* Animations for Splash page */
@@ -263,19 +267,19 @@
 
 .stitch-card {
   background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
 }
 
 .stitch-card-bordered {
   background: var(--card);
-  border: 1px solid rgba(249, 115, 22, 0.18);
-  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 20px;
 }
 
-/* Warm glow text */
+/* Warm glow text — used sparingly, only on the one hero stat per screen */
 .neon-glow-text {
-  text-shadow: 0 0 20px rgba(249, 115, 22, 0.55);
+  text-shadow: 0 0 12px rgba(249, 115, 22, 0.35);
 }
 
 /* 3-color gradient logo text */
@@ -286,16 +290,17 @@
   color: transparent;
 }
 
-/* Primary gradient button with glow */
+/* Primary CTA button — solid fill carries it, glow kept light so it reads
+   as "the important button" without shouting. */
 .btn-primary-glow {
   background: linear-gradient(135deg, #FB923C, #F97316);
-  color: #0F0F23;
-  box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
+  color: #1B1204;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.22);
   transition: all 0.2s ease;
 }
 .btn-primary-glow:active {
-  transform: scale(0.96);
-  box-shadow: 0 0 35px rgba(249, 115, 22, 0.7);
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.3);
 }
 
 /* Central navigation ORB (breathing animation) */
@@ -310,8 +315,8 @@
   color: #1B1204;
   background: radial-gradient(circle at 38% 32%, #ffe4c4 0%, #fdba8c 22%, #f97316 52%, #ea580c 78%, #c2410c 100%);
   box-shadow:
-    0 0 18px rgba(249, 115, 22, 0.7),
-    0 0 36px rgba(249, 115, 22, 0.35),
+    0 0 10px rgba(249, 115, 22, 0.45),
+    0 0 20px rgba(249, 115, 22, 0.2),
     inset 0 2px 4px rgba(255, 255, 255, 0.5),
     inset 0 -3px 8px rgba(154, 52, 18, 0.5);
   animation: orb-breathe 3.2s ease-in-out infinite alternate;
@@ -334,8 +339,8 @@
   filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.4));
 }
 @keyframes orb-breathe {
-  0% { box-shadow: 0 0 14px rgba(249, 115, 22, 0.6), 0 0 28px rgba(249, 115, 22, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
-  100% { box-shadow: 0 0 26px rgba(249, 115, 22, 1), 0 0 52px rgba(249, 115, 22, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.6), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
+  0% { box-shadow: 0 0 8px rgba(249, 115, 22, 0.4), 0 0 16px rgba(249, 115, 22, 0.16), inset 0 2px 4px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
+  100% { box-shadow: 0 0 14px rgba(249, 115, 22, 0.6), 0 0 26px rgba(249, 115, 22, 0.26), inset 0 2px 4px rgba(255, 255, 255, 0.6), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
 }
 
 /* Active holatda kuchliroq porlash */
@@ -367,12 +372,12 @@
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 2px solid rgba(249, 115, 22, 0.5);
-  box-shadow: 0 0 40px rgba(249, 115, 22, 0.2), inset 0 0 40px rgba(249, 115, 22, 0.2);
+  border: 2px solid rgba(249, 115, 22, 0.35);
+  box-shadow: 0 0 24px rgba(249, 115, 22, 0.12), inset 0 0 24px rgba(249, 115, 22, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(249, 115, 22, 0.06) 0%, transparent 70%);
 }
 .waveform-bar {
   width: 6px;
@@ -380,17 +385,17 @@
   border-radius: 3px;
   margin: 0 3px;
   animation: wave-pulse 1s ease-in-out infinite alternate;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 5px rgba(249, 115, 22, 0.5);
 }
 @keyframes wave-pulse {
   0% { transform: scaleY(0.4); }
   100% { transform: scaleY(1); }
 }
 
-/* Avatar warm glow */
+/* Avatar — quiet ring, not a glow */
 .avatar-glow {
-  box-shadow: 0 0 40px rgba(249, 115, 22, 0.45), inset 0 0 20px rgba(249, 115, 22, 0.18);
-  border: 2px solid rgba(249, 115, 22, 0.75);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(148, 163, 184, 0.25);
 }
 
 /* Warm grid background (language select) */

@@ -21,16 +21,16 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
     <div className="fixed inset-0 bg-[rgba(8,7,20,0.85)] backdrop-blur-sm flex items-center justify-center z-[3000] p-5">
       <div className="w-full max-w-[380px] glass rounded-3xl p-7 relative overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-[radial-gradient(circle,rgba(249,115,22,0.10),transparent_70%)] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-[radial-gradient(circle,rgba(249,115,22,0.06),transparent_70%)] pointer-events-none" />
 
         <div className="relative text-center">
-          {/* Icon */}
+          {/* Icon — the one accented element in this modal */}
           <div className="w-16 h-16 rounded-2xl bg-[rgba(249,115,22,0.12)] flex items-center justify-center mx-auto mb-4">
             <Headphones className="w-8 h-8 text-[var(--accent)]" strokeWidth={1.5} />
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-black text-[var(--text)] mb-5 font-display">
+          <h2 className="text-xl font-bold text-[var(--text)] mb-5 font-display">
             {t('onb_title')}
           </h2>
 
@@ -38,8 +38,8 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
           <div className="flex flex-col gap-3.5 text-left mb-6">
             {steps.map((step, idx) => (
               <div key={idx} className="flex items-center gap-3 glass rounded-xl p-3">
-                <div className="w-9 h-9 rounded-lg bg-[rgba(249,115,22,0.1)] flex items-center justify-center shrink-0">
-                  <step.icon className="w-4.5 h-4.5 text-[var(--accent)]" strokeWidth={1.8} />
+                <div className="w-9 h-9 rounded-lg bg-[rgba(148,163,184,0.1)] flex items-center justify-center shrink-0">
+                  <step.icon className="w-4.5 h-4.5 text-[var(--muted)]" strokeWidth={1.8} />
                 </div>
                 <span className="text-sm text-[var(--text)] leading-snug">{step.text}</span>
               </div>
@@ -52,7 +52,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
             className="w-full py-3.5 rounded-2xl font-bold text-sm text-[#1B1204] transition-all active:scale-[0.97]"
             style={{
               background: 'linear-gradient(135deg, #FB923C, #F97316)',
-              boxShadow: '0 0 24px rgba(249,115,22,0.4)',
+              boxShadow: '0 4px 16px rgba(249,115,22,0.22)',
             }}
           >
             {t('onb_btn')}

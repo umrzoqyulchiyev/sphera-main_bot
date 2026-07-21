@@ -124,8 +124,8 @@ function SlotCard({ slot, lang }: { slot: BroadcastSlot; lang: string }) {
       {/* Host */}
       <div className="flex items-center gap-2 mb-3">
         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(249,115,22,0.1)' }}>
-          <Radio className="w-3 h-3 text-[#F97316]" />
+          style={{ background: 'rgba(148,163,184,0.1)' }}>
+          <Radio className="w-3 h-3 text-[#94A3B8]" />
         </div>
         <span className="text-[11px] text-[#94A3B8]">{tx('host')}: </span>
         <span className="text-[11px] font-semibold text-[#F8FAFC]">{hostName}</span>
@@ -134,35 +134,31 @@ function SlotCard({ slot, lang }: { slot: BroadcastSlot; lang: string }) {
       {/* Countdown (agar live emas va vaqt qolgan bo'lsa) */}
       {!slot.is_live_now && total > 0 && (
         <div className="rounded-xl px-3 py-2.5 mb-3"
-          style={{ background: 'rgba(15,15,35,0.5)', border: '1px solid rgba(249,115,22,0.1)' }}>
+          style={{ background: 'rgba(15,15,35,0.5)', border: '1px solid rgba(148,163,184,0.12)' }}>
           <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-1.5">{tx('countdown')}</div>
           <div className="flex items-baseline gap-3">
             {d > 0 && (
               <div className="text-center">
-                <div className="text-xl font-black text-[#F97316] tabular-nums"
-                  style={{ textShadow: '0 0 15px rgba(249,115,22,0.5)' }}>{d}</div>
+                <div className="text-xl font-black text-[#F8FAFC] tabular-nums">{d}</div>
                 <div className="text-[8px] text-[#94A3B8] uppercase">{tx('days')}</div>
               </div>
             )}
             <div className="text-center">
-              <div className="text-xl font-black text-[#F97316] tabular-nums"
-                style={{ textShadow: '0 0 15px rgba(249,115,22,0.5)' }}>
+              <div className="text-xl font-black text-[#F8FAFC] tabular-nums">
                 {String(h).padStart(2, '0')}
               </div>
               <div className="text-[8px] text-[#94A3B8] uppercase">{tx('hours')}</div>
             </div>
             <div className="text-[#94A3B8] font-bold mb-2">:</div>
             <div className="text-center">
-              <div className="text-xl font-black text-[#F97316] tabular-nums"
-                style={{ textShadow: '0 0 15px rgba(249,115,22,0.5)' }}>
+              <div className="text-xl font-black text-[#F8FAFC] tabular-nums">
                 {String(m).padStart(2, '0')}
               </div>
               <div className="text-[8px] text-[#94A3B8] uppercase">{tx('minutes')}</div>
             </div>
             <div className="text-[#94A3B8] font-bold mb-2">:</div>
             <div className="text-center">
-              <div className="text-xl font-black text-[#F97316] tabular-nums"
-                style={{ textShadow: '0 0 15px rgba(249,115,22,0.5)' }}>
+              <div className="text-xl font-black text-[#F8FAFC] tabular-nums">
                 {String(s).padStart(2, '0')}
               </div>
               <div className="text-[8px] text-[#94A3B8] uppercase">{tx('seconds')}</div>
@@ -175,7 +171,7 @@ function SlotCard({ slot, lang }: { slot: BroadcastSlot; lang: string }) {
       {slot.share_url && (
         <button onClick={shareSlot}
           className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold active:scale-95 transition-transform"
-          style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)', color: '#F97316' }}>
+          style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.14)', color: '#F8FAFC' }}>
           <Share2 className="w-4 h-4" />
           {tx('share')}
         </button>
@@ -221,8 +217,8 @@ export function SlotsScreen({}: Props) {
       <div className="stitch-card p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(249,115,22,0.1)' }}>
-            <Clock className="w-5 h-5 text-[#F97316]" />
+            style={{ background: 'rgba(148,163,184,0.1)' }}>
+            <Clock className="w-5 h-5 text-[#94A3B8]" />
           </div>
           <div>
             <div className="text-base font-black text-[#F8FAFC]">{tx('title')}</div>

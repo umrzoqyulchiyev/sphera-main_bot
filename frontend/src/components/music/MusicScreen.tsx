@@ -176,9 +176,9 @@ export function MusicScreen({ onPointsUpdate }: Props) {
         </div>
         {data.topic && (
           <div className="mt-2 px-3 py-2 rounded-xl text-[11px]"
-            style={{ background: 'rgba(249,115,22,0.07)', border: '1px solid rgba(249,115,22,0.12)' }}>
+            style={{ background: 'rgba(148,163,184,0.07)', border: '1px solid rgba(148,163,184,0.12)' }}>
             <span className="text-[#94A3B8]">{tx('topic')}: </span>
-            <span className="text-[#F97316] font-semibold">{data.topic.title}</span>
+            <span className="text-[#F8FAFC] font-semibold">{data.topic.title}</span>
           </div>
         )}
       </div>
@@ -224,7 +224,7 @@ export function MusicScreen({ onPointsUpdate }: Props) {
               </div>
               <input
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#F8FAFC]"
-                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(249,115,22,0.2)' }}
+                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(148,163,184,0.16)' }}
                 placeholder={tx('track_name')}
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
@@ -232,7 +232,7 @@ export function MusicScreen({ onPointsUpdate }: Props) {
               />
               <input
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#F8FAFC]"
-                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(249,115,22,0.2)' }}
+                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(148,163,184,0.16)' }}
                 placeholder={tx('artist')}
                 value={newArtist}
                 onChange={e => setNewArtist(e.target.value)}
@@ -240,7 +240,7 @@ export function MusicScreen({ onPointsUpdate }: Props) {
               <div className="flex gap-2">
                 <button onClick={() => setShowAdd(false)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-[#94A3B8]"
-                  style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.1)' }}>
+                  style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.12)' }}>
                   {tx('cancel')}
                 </button>
                 <button onClick={handleAddNomination} disabled={submitting || !newTitle.trim()}
@@ -269,7 +269,7 @@ export function MusicScreen({ onPointsUpdate }: Props) {
                 {/* Rank */}
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[11px] font-black"
                   style={{
-                    background: idx === 0 ? 'rgba(234,179,8,0.15)' : idx === 1 ? 'rgba(138,143,152,0.1)' : 'rgba(249,115,22,0.06)',
+                    background: idx === 0 ? 'rgba(234,179,8,0.15)' : idx === 1 ? 'rgba(138,143,152,0.1)' : 'rgba(148,163,184,0.08)',
                     color: idx === 0 ? '#EAB308' : idx === 1 ? '#94A3B8' : '#94A3B8',
                   }}>
                   #{idx + 1}
@@ -287,8 +287,8 @@ export function MusicScreen({ onPointsUpdate }: Props) {
                     disabled={nom.user_voted || voting === nom.id}
                     className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
                     style={{
-                      background: nom.user_voted ? 'rgba(249,115,22,0.05)' : 'rgba(167,139,250,0.15)',
-                      border: `1px solid ${nom.user_voted ? 'rgba(249,115,22,0.1)' : 'rgba(167,139,250,0.3)'}`,
+                      background: nom.user_voted ? 'rgba(148,163,184,0.06)' : 'rgba(167,139,250,0.15)',
+                      border: `1px solid ${nom.user_voted ? 'rgba(148,163,184,0.12)' : 'rgba(167,139,250,0.3)'}`,
                     }}>
                     {voting === nom.id
                       ? <Loader className="w-3.5 h-3.5 text-[#a78bfa] animate-spin" />
@@ -305,7 +305,7 @@ export function MusicScreen({ onPointsUpdate }: Props) {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-sm text-[#F8FAFC] z-50"
-          style={{ background: 'rgba(27,27,48,0.98)', border: '1px solid rgba(249,115,22,0.3)', whiteSpace: 'nowrap' }}>
+          style={{ background: 'rgba(27,27,48,0.98)', border: '1px solid rgba(148,163,184,0.2)', whiteSpace: 'nowrap' }}>
           {toast}
         </div>
       )}

@@ -123,8 +123,8 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
               {slot.share_url && (
                 <a href={slot.share_url} target="_blank" rel="noreferrer"
                   className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(249,115,22,0.08)' }}>
-                  <Share2 className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  style={{ background: 'rgba(148,163,184,0.1)' }}>
+                  <Share2 className="w-3.5 h-3.5 text-[var(--text)]" />
                 </a>
               )}
             </div>
@@ -164,15 +164,15 @@ function FeaturesCard({ features }: { features: FeatureItem[] }) {
         return (
           <div key={idx}>
             <div className="flex items-center gap-3 py-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[rgba(249,115,22,0.1)] flex items-center justify-center shrink-0">
-                <Icon className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.8} />
+              <div className="w-9 h-9 rounded-xl bg-[rgba(148,163,184,0.1)] flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[var(--text)]" strokeWidth={1.8} />
               </div>
               <span className="text-[12px] text-[var(--muted)] leading-relaxed">
                 {feature.text}
               </span>
             </div>
             {!isLast && (
-              <div className="h-px ml-12 bg-[rgba(249,115,22,0.08)]" />
+              <div className="h-px ml-12 bg-[rgba(148,163,184,0.08)]" />
             )}
           </div>
         );

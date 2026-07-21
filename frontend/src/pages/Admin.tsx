@@ -276,8 +276,10 @@ export function Admin() {
       className="bg-[#0F0F23] text-[#F8FAFC] overflow-y-auto overscroll-contain"
       style={{ height: 'var(--app-vh)', WebkitOverflowScrolling: 'touch' }}
     >
-      <div className="max-w-[520px] mx-auto px-3.5 pt-3.5 pb-6 flex flex-col gap-4">
-        <header className="flex items-center gap-3 pt-2">
+      <div className="max-w-[520px] mx-auto px-3.5 pb-6 flex flex-col gap-4">
+        {/* Telegram'ning o'z native "⋮ ⌄ ✕" paneli tepada bo'lgani uchun,
+            orqaga tugmasi shu bilan to'qnashib bosilmay qolmasin. */}
+        <header className="flex items-center gap-3" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top))' }}>
           <button onClick={handleBack} aria-label="Назад" className="glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.92] transition-transform duration-150">
             <ArrowLeft className="w-4.5 h-4.5 text-[#F8FAFC]" />
           </button>

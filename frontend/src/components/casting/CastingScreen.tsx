@@ -210,7 +210,7 @@ export function CastingScreen() {
 
             {pendingBlob && previewUrl ? (
               <div className="rounded-2xl px-3 py-3 flex items-center gap-3"
-                style={{ background: 'rgba(27,27,48,0.9)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                style={{ background: 'rgba(27,27,48,0.9)', border: '1px solid rgba(148,163,184,0.16)' }}>
                 <button onClick={playPreview}
                   className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center active:scale-90"
                   style={{ background: 'linear-gradient(135deg,#FB923C,#F97316)' }}>
@@ -257,14 +257,14 @@ export function CastingScreen() {
               rows={3}
               maxLength={500}
               className="w-full rounded-xl px-3 py-2.5 text-sm text-[#F8FAFC] resize-none outline-none placeholder:text-[#64748B]"
-              style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(249,115,22,0.15)' }}
+              style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(148,163,184,0.16)' }}
             />
 
             <button
               onClick={submit}
               disabled={!pendingBlob || submitting}
               className="w-full h-12 rounded-xl text-sm font-bold text-[#0F0F23] active:scale-95 transition-transform disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: 'linear-gradient(135deg,#FB923C,#F97316)', boxShadow: '0 0 25px rgba(249,115,22,0.4)' }}
+              style={{ background: 'linear-gradient(135deg,#FB923C,#F97316)', boxShadow: '0 4px 14px rgba(249,115,22,0.25)' }}
             >
               {submitting ? <Loader className="w-4 h-4 animate-spin" /> : 'Отправить заявку'}
             </button>

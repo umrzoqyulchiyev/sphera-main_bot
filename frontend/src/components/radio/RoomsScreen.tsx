@@ -104,18 +104,18 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
       {/* Yuqoridan qo'shimcha bo'sh joy — Telegram'ning o'z "⋮ ⌄ ✕" native
           paneli aynan shu burchakda bo'lgani uchun, tugmalar (ayniqsa
           "Создать") shu bilan to'qnashib bosilmay qolmasin. */}
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(249,115,22,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.08)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#F97316]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(148,163,184,0.1)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#F8FAFC]" />
         </button>
         <div className="flex-1 text-sm font-bold text-[#F8FAFC]">{tx('rooms')}</div>
         {canCreate && (
           <button
             onClick={() => setShowCreate(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(249,115,22,0.12)' }}
+            style={{ background: 'rgba(148,163,184,0.1)' }}
           >
-            <Plus className="w-4 h-4 text-[#F97316]" />
+            <Plus className="w-4 h-4 text-[#F8FAFC]" />
           </button>
         )}
       </div>
@@ -144,11 +144,11 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
       {/* Pastki "Закрыть" — tepadagi orqaga tugmasi native chrome bilan
           to'qnashsa ham, bu zona (ekran pastida) doim bosiladi. */}
-      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
+      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
         <button
           onClick={onClose}
           className="w-full py-3 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-[0.98] transition-transform"
-          style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.12)' }}
+          style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
         >
           Закрыть
         </button>
@@ -288,9 +288,9 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
 
   return (
     <FullScreenModal zIndex={500}>
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(249,115,22,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.08)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#F97316]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(148,163,184,0.1)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#F8FAFC]" />
         </button>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-[#F8FAFC] truncate">{room.title}</div>
@@ -317,12 +317,12 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
       {/* Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
           bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
           chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
-      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
+      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
         <button
           onClick={onClose}
           aria-label="Закрыть чат"
           className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(249,115,22,0.08)' }}
+          style={{ background: 'rgba(148,163,184,0.1)' }}
         >
           <X className="w-4 h-4 text-[#94A3B8]" />
         </button>

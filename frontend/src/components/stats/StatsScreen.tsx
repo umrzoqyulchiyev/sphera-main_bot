@@ -91,7 +91,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
     <div className="flex flex-col gap-4 pb-4">
       {/* Level Progress */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[rgba(249,115,22,0.2)] to-[rgba(249,115,22,0.1)] blur-2xl opacity-60" />
+        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[rgba(249,115,22,0.1)] to-[rgba(249,115,22,0.04)] blur-2xl opacity-60" />
         <div className="relative glass p-6 rounded-[24px]">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -100,7 +100,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
                 <span className="text-[#F97316]">{level}</span>
               </div>
             </div>
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FB923C] to-[#F97316] flex items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.5)]">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FB923C] to-[#F97316] flex items-center justify-center shadow-[0_2px_14px_rgba(249,115,22,0.3)]">
               <Award className="w-10 h-10 text-white" />
             </div>
           </div>
@@ -112,7 +112,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
             <div className="h-3 rounded-full bg-[rgba(148,163,184,0.2)] overflow-hidden relative">
               <div
                 className="h-full bg-gradient-to-r from-[#FB923C] to-[#F97316] rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progress}%`, boxShadow: '0 0 20px rgba(249,115,22,0.6)' }}
+                style={{ width: `${progress}%`, boxShadow: '0 0 8px rgba(249,115,22,0.35)' }}
               />
             </div>
           </div>

@@ -402,8 +402,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         <div className="text-[10px] text-[#94A3B8] tracking-widest mb-1">
           ID: {user?.telegram_id || '-----'}
         </div>
-        <div className="text-[15px] font-black tracking-wider text-[#F8FAFC] uppercase leading-tight">
-          {radioStatus?.is_live ? 'АКТИВАЦИЯ ВРЕОСМИСЛА' : 'ОЖИДАНИЕ ПОТОКА'}
+        <div className="text-[15px] font-bold tracking-wide text-[#F8FAFC] leading-tight font-display">
+          {radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
         </div>
         <div className="text-[11px] text-[#94A3B8] mt-1 tracking-wide">
           {broadcasterName}
@@ -413,11 +413,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       {/* ── TIMER ── */}
       <div className="text-center mb-4">
         <div className="text-[28px] font-black text-[#F97316] tabular-nums tracking-widest"
-          style={{ textShadow: '0 0 20px rgba(249,115,22,0.6)' }}>
+          style={{ textShadow: '0 0 10px rgba(249,115,22,0.35)' }}>
           {formatTime(streamDuration)}
         </div>
         <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
-          {audioPlayer.isPlaying ? 'ПОТОК АКТИВЕН' : 'ПАУЗА'}
+          {audioPlayer.isPlaying ? 'Поток активен' : 'Пауза'}
         </div>
       </div>
 
@@ -450,19 +450,20 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 relative transition-all duration-200 active:scale-95"
             style={{
               background: 'rgba(27,27,48,0.8)',
-              border: '1px solid rgba(249,115,22,0.15)',
+              border: '1px solid rgba(148,163,184,0.14)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
             <Coffee className="w-5 h-5 text-[#94A3B8] group-hover:text-[#F97316] transition-colors" strokeWidth={1.8} />
             {messages.length > 0 && (
-              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center text-[9px] font-bold text-[#0F0F23]">
+              <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-[#F8FAFC]"
+                style={{ background: '#2A2A45', border: '1px solid rgba(148,163,184,0.25)' }}>
                 {messages.length > 9 ? '9+' : messages.length}
               </div>
             )}
           </div>
-          <span className="text-[8px] text-[#94A3B8] uppercase tracking-wide text-center leading-tight">
-            ЧАЙ<br/>СВЕРХ<br/>МОЩНОСТЬ
+          <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+            Чай<br/>сверхмощность
           </span>
         </button>
 
@@ -484,10 +485,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                 ? '1px solid rgba(239,68,68,0.5)'
                 : pendingVoice
                 ? '1px solid rgba(34,197,94,0.4)'
-                : '1px solid rgba(249,115,22,0.2)',
+                : '1px solid rgba(148,163,184,0.16)',
               boxShadow: isRecording
-                ? '0 0 20px rgba(239,68,68,0.3), inset 0 1px 0 rgba(255,255,255,0.04)'
-                : '0 0 20px rgba(249,115,22,0.15), inset 0 1px 0 rgba(255,255,255,0.04)',
+                ? '0 0 14px rgba(239,68,68,0.25), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : 'inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
             {isRecording ? (
@@ -495,7 +496,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             ) : pendingVoice ? (
               <Check className="w-6 h-6 text-[#22C55E]" strokeWidth={2} />
             ) : (
-              <svg className="w-7 h-7 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-7 h-7 text-[#94A3B8] group-hover:text-[#F97316] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
               </svg>
@@ -504,9 +505,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
             )}
           </div>
-          <span className="text-[8px] uppercase tracking-wide text-center leading-tight"
-            style={{ color: isRecording ? '#ef4444' : pendingVoice ? '#22C55E' : '#F97316' }}>
-            ГОЛОСОВОЕ<br/>СООБЩЕНИЕ
+          <span className="text-[8px] tracking-wide text-center leading-tight"
+            style={{ color: isRecording ? '#ef4444' : pendingVoice ? '#22C55E' : '#94A3B8' }}>
+            Голосовое<br/>сообщение
           </span>
         </button>
 
@@ -519,18 +520,16 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <div
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95"
             style={{
-              background: pendingVoice ? 'rgba(249,115,22,0.15)' : 'rgba(27,27,48,0.8)',
-              border: pendingVoice ? '1px solid rgba(249,115,22,0.5)' : '1px solid rgba(249,115,22,0.15)',
-              boxShadow: pendingVoice
-                ? '0 0 20px rgba(249,115,22,0.3), inset 0 1px 0 rgba(255,255,255,0.04)'
-                : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+              background: pendingVoice ? 'rgba(249,115,22,0.13)' : 'rgba(27,27,48,0.8)',
+              border: pendingVoice ? '1px solid rgba(249,115,22,0.4)' : '1px solid rgba(148,163,184,0.14)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
             <Send className={`w-5 h-5 transition-colors ${pendingVoice ? 'text-[#F97316]' : 'text-[#94A3B8] group-hover:text-[#F97316]'}`} strokeWidth={1.8} />
           </div>
-          <span className="text-[8px] uppercase tracking-wide text-center leading-tight"
+          <span className="text-[8px] tracking-wide text-center leading-tight"
             style={{ color: pendingVoice ? '#F97316' : '#94A3B8' }}>
-            ОТПРАВИТЬ
+            Отправить
           </span>
         </button>
       </div>
@@ -545,8 +544,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         ) : (
           <button
             onClick={() => onNavigate?.('casting')}
-            className="w-full mb-2 py-3 rounded-2xl font-bold text-sm tracking-wide flex items-center justify-center gap-2 glass active:scale-[0.97] transition-all"
-            style={{ border: '1px solid rgba(249,115,22,0.25)', color: '#FDBA74' }}
+            className="w-full mb-2 py-3 rounded-2xl font-semibold text-sm tracking-wide flex items-center justify-center gap-2 glass active:scale-[0.97] transition-all"
+            style={{ color: '#F8FAFC' }}
           >
             <Sparkles className="w-4 h-4 text-[#F97316]" strokeWidth={1.8} />
             Пройти кастинг — стать ведущим
@@ -555,15 +554,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         <button
           onClick={() => setShowStreamModal(true)}
           className="w-full glass rounded-2xl px-4 py-3 flex items-center justify-between active:scale-[0.98] transition-transform"
-          style={{ border: '1px solid rgba(249,115,22,0.12)' }}
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(249,115,22,0.1)' }}>
-              <Activity className="w-4 h-4 text-[#F97316]" strokeWidth={2} />
+              style={{ background: 'rgba(148,163,184,0.1)' }}>
+              <Activity className="w-4 h-4 text-[#94A3B8]" strokeWidth={2} />
             </div>
             <div>
-              <div className="text-[10px] font-bold tracking-[2px] text-[#F97316] uppercase">ПОТОК REAL TIME</div>
+              <div className="text-[10px] font-bold tracking-[2px] text-[#F8FAFC] uppercase">Поток Real Time</div>
               <div className="text-[9px] text-[#94A3B8]">Статистика потока</div>
             </div>
           </div>
@@ -594,22 +592,22 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       {showStreamModal && (
         <FullScreenModal>
 
-          {/* Header */}
-          <div className="flex items-center px-4 pt-4 pb-3 border-b"
-            style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
+          {/* Header — Telegram'ning tepadagi native paneli bilan to'qnashmasin */}
+          <div className="flex items-center px-4 pb-3 border-b"
+            style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
             <button onClick={() => setShowStreamModal(false)}
               className="w-8 h-8 rounded-lg flex items-center justify-center mr-3"
-              style={{ background: 'rgba(249,115,22,0.08)' }}>
-              <svg className="w-4 h-4 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              style={{ background: 'rgba(148,163,184,0.1)' }}>
+              <svg className="w-4 h-4 text-[#F8FAFC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
               </svg>
             </button>
             <div>
-              <span className="text-sm font-bold text-[#94A3B8]">ПОТОК </span>
-              <span className="text-sm font-bold text-[#F97316]">REAL TIME</span>
+              <span className="text-sm font-bold text-[#94A3B8]">Поток </span>
+              <span className="text-sm font-bold text-[#F97316]">Real Time</span>
             </div>
             <div className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(249,115,22,0.08)' }}>
+              style={{ background: 'rgba(148,163,184,0.1)' }}>
               <svg className="w-4 h-4 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
@@ -621,14 +619,13 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             <div className="flex items-start gap-4 py-4">
               <div>
                 <div className="text-[10px] text-[#94A3B8] uppercase tracking-wide mb-1">POINT</div>
-                <div className="text-3xl font-black text-[#F8FAFC]"
-                  style={{ textShadow: '0 0 20px rgba(249,115,22,0.4)' }}>
+                <div className="text-3xl font-black text-[#F8FAFC]">
                   {Number(user?.points || 0).toFixed(0)}
                 </div>
               </div>
               <div className="flex-1">
                 <div className="text-[10px] text-[#94A3B8] uppercase tracking-wide mb-1">УРОВЕНЬ</div>
-                <div className="text-3xl font-black text-[#F97316] mb-2">{level}</div>
+                <div className="text-3xl font-black text-[#F8FAFC] mb-2">{level}</div>
                 {/* Progress bar */}
                 <div className="h-2 rounded-full overflow-hidden mt-1"
                   style={{ background: 'rgba(249,115,22,0.12)' }}>
@@ -652,8 +649,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <div className="text-[10px] text-[#94A3B8] mb-0.5">
                 ID: {user?.telegram_id || '-----'}
               </div>
-              <div className="text-[16px] font-black text-[#F8FAFC] uppercase tracking-wide">
-                {radioStatus?.is_live ? 'АКТИВАЦИЯ ВРЕОСМИСЛА' : 'ОЖИДАНИЕ ПОТОКА'}
+              <div className="text-[16px] font-bold text-[#F8FAFC] tracking-wide font-display">
+                {radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
               </div>
               <div className="text-[11px] text-[#94A3B8] mt-0.5">
                 {broadcasterName}
@@ -661,8 +658,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             </div>
 
             {/* Waveform */}
-            <div className="glass rounded-2xl px-4 py-4 mb-4"
-              style={{ border: '1px solid rgba(249,115,22,0.1)' }}>
+            <div className="glass rounded-2xl px-4 py-4 mb-4">
               <div className="flex items-center justify-center gap-[4px]" style={{ height: '50px' }}>
                 {waveformBars.map((h, i) => (
                   <div key={i}
@@ -671,7 +667,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                       height: `${h * 1.3}px`,
                       background: 'linear-gradient(180deg, #fff 0%, #F97316 50%, #FB923C 100%)',
                       borderRadius: '3px',
-                      boxShadow: '0 0 6px rgba(249,115,22,0.7)',
+                      boxShadow: '0 0 4px rgba(249,115,22,0.4)',
                       animation: audioPlayer.isPlaying
                         ? `wave ${0.7+(i%3)*0.15}s ease-in-out ${i*0.07}s infinite`
                         : 'none',
@@ -687,11 +683,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <button onClick={() => { setShowStreamModal(false); openChat(); }}
                 className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full h-[58px] rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(249,115,22,0.15)' }}>
+                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(148,163,184,0.14)' }}>
                   <Coffee className="w-5 h-5 text-[#94A3B8]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[8px] text-[#94A3B8] uppercase tracking-wide text-center leading-tight">
-                  ЧАЙ<br/>СВЕРХ<br/>МОЩНОСТЬ
+                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                  Чай<br/>сверхмощность
                 </span>
               </button>
 
@@ -700,27 +696,26 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                 <div className="w-full h-[72px] rounded-2xl flex items-center justify-center"
                   style={{
                     background: 'rgba(27,27,48,0.8)',
-                    border: '1px solid rgba(249,115,22,0.2)',
-                    boxShadow: '0 0 20px rgba(249,115,22,0.15)',
+                    border: '1px solid rgba(148,163,184,0.16)',
                   }}>
-                  <svg className="w-7 h-7 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <svg className="w-7 h-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
                   </svg>
                 </div>
-                <span className="text-[8px] text-[#F97316] uppercase tracking-wide text-center leading-tight">
-                  ГОЛОСОВОЕ<br/>СООБЩЕНИЕ
+                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                  Голосовое<br/>сообщение
                 </span>
               </button>
 
               <button onClick={() => { setShowStreamModal(false); handleSendToStudio(); }}
                 className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full h-[58px] rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(249,115,22,0.15)' }}>
+                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(148,163,184,0.14)' }}>
                   <Send className="w-5 h-5 text-[#94A3B8]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[8px] text-[#94A3B8] uppercase tracking-wide text-center leading-tight">
-                  ОТПРАВИТЬ
+                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                  Отправить
                 </span>
               </button>
             </div>
@@ -728,14 +723,13 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             {/* СТАТИСТИКА ПОТОКА */}
             <div className="mb-3">
               <div className="text-[10px] font-bold tracking-[2px] text-[#94A3B8] uppercase mb-3">
-                СТАТИСТИКА ПОТОКА
+                Статистика потока
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {/* Активность */}
-                <div className="glass rounded-2xl p-3"
-                  style={{ border: '1px solid rgba(249,115,22,0.1)' }}>
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">АКТИВНОСТЬ</div>
-                  <div className="text-xl font-black text-[#F97316]">
+                <div className="glass rounded-2xl p-3">
+                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Активность</div>
+                  <div className="text-xl font-black text-[#F8FAFC]">
                     {radioStatus?.is_live ? '78%' : '0%'}
                   </div>
                   {/* Mini chart */}
@@ -743,7 +737,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                     {[4,6,3,8,5,10,7,12,9,14].map((h, i) => (
                       <div key={i} style={{
                         flex: 1, height: `${h}px`,
-                        background: 'rgba(249,115,22,0.4)',
+                        background: 'rgba(148,163,184,0.3)',
                         borderRadius: '1px',
                       }} />
                     ))}
@@ -751,14 +745,13 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                 </div>
 
                 {/* Энергия */}
-                <div className="glass rounded-2xl p-3"
-                  style={{ border: '1px solid rgba(249,115,22,0.1)' }}>
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">ЭНЕРГИЯ</div>
-                  <div className="text-xl font-black text-[#F97316]">
+                <div className="glass rounded-2xl p-3">
+                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Энергия</div>
+                  <div className="text-xl font-black text-[#F8FAFC]">
                     {radioStatus?.is_live ? 'HIGH' : 'LOW'}
                   </div>
                   <div className="mt-2 h-1.5 rounded-full overflow-hidden"
-                    style={{ background: 'rgba(249,115,22,0.1)' }}>
+                    style={{ background: 'rgba(148,163,184,0.1)' }}>
                     <div className="h-full rounded-full"
                       style={{
                         width: radioStatus?.is_live ? '80%' : '20%',
@@ -768,17 +761,16 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                 </div>
 
                 {/* Сообщений */}
-                <div className="glass rounded-2xl p-3"
-                  style={{ border: '1px solid rgba(249,115,22,0.1)' }}>
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">СООБЩЕНИЙ</div>
-                  <div className="text-xl font-black text-[#F97316]">
+                <div className="glass rounded-2xl p-3">
+                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Сообщений</div>
+                  <div className="text-xl font-black text-[#F8FAFC]">
                     {messages.length}
                   </div>
                   <div className="flex items-end gap-[2px] mt-2" style={{ height: '20px' }}>
                     {[3,7,5,9,6,11,8,13,10,15].map((h, i) => (
                       <div key={i} style={{
                         flex: 1, height: `${h}px`,
-                        background: 'rgba(251,146,60,0.4)',
+                        background: 'rgba(148,163,184,0.3)',
                         borderRadius: '1px',
                       }} />
                     ))}
@@ -793,11 +785,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               "Закрыть" paneli bilan to'qnashib, bosilmay qolishi mumkin
               (native chrome tegishlarni ushlab qolishi). Shu joy — kirish
               maydoni bilan bir xil, kafolatlangan bosiladigan zona. */}
-          <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
+          <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
             <button
               onClick={() => setShowStreamModal(false)}
               className="w-full py-3 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-[0.98] transition-transform"
-              style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.12)' }}
+              style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
             >
               Закрыть
             </button>
@@ -832,7 +824,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.1)' }}>
+                  style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.12)' }}>
                   <Coffee className="w-8 h-8 text-[#94A3B8]" strokeWidth={1.5} />
                 </div>
                 <p className="text-sm text-[#94A3B8]">Чат пуст</p>
@@ -849,7 +841,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
           {/* Input — asosiy "Живой чат" bilan bir xil komponent (Telegram
               uslubidagi doira tugma, darhol ko'rinish, galochka statusi). */}
-          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
+          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
             <ChatInput
               onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
               onSendVoice={handleSendVoiceToChat}
@@ -878,23 +870,23 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             className="w-full max-w-sm rounded-2xl p-5"
             style={{
               background: 'rgba(27,27,48,0.98)',
-              border: '1px solid rgba(249,115,22,0.25)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(249,115,22,0.15)',
+              border: '1px solid rgba(148,163,184,0.16)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(249,115,22,0.12)' }}>
-                <Send className="w-4 h-4 text-[#F97316]" strokeWidth={2} />
+                style={{ background: 'rgba(148,163,184,0.1)' }}>
+                <Send className="w-4 h-4 text-[#94A3B8]" strokeWidth={2} />
               </div>
-              <div className="text-[13px] font-bold tracking-wide text-[#F8FAFC] uppercase">
+              <div className="text-[13px] font-semibold tracking-wide text-[#F8FAFC]">
                 Сообщение для эфира
               </div>
               <button onClick={() => setShowStudioModal(false)}
                 className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(249,115,22,0.08)' }}>
+                style={{ background: 'rgba(148,163,184,0.1)' }}>
                 <X className="w-4 h-4 text-[#94A3B8]" />
               </button>
             </div>
@@ -915,7 +907,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               className="w-full rounded-xl px-3 py-2.5 text-sm text-[#F8FAFC] resize-none outline-none placeholder:text-[#94A3B8]"
               style={{
                 background: 'rgba(15,15,35,0.6)',
-                border: '1px solid rgba(249,115,22,0.2)',
+                border: '1px solid rgba(148,163,184,0.16)',
               }}
             />
 
@@ -924,17 +916,17 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <button
                 onClick={() => setShowStudioModal(false)}
                 className="flex-1 h-11 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-95 transition-transform"
-                style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.12)' }}
+                style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
               >
                 Отмена
               </button>
               <button
                 onClick={submitStudioMessage}
                 disabled={!studioText.trim()}
-                className="flex-1 h-11 rounded-xl text-sm font-bold text-[#0F0F23] active:scale-95 transition-transform disabled:opacity-40"
+                className="flex-1 h-11 rounded-xl text-sm font-bold text-[#1B1204] active:scale-95 transition-transform disabled:opacity-40"
                 style={{
                   background: 'linear-gradient(90deg, #FB923C, #F97316)',
-                  boxShadow: '0 0 20px rgba(249,115,22,0.4)',
+                  boxShadow: '0 2px 10px rgba(249,115,22,0.25)',
                 }}
               >
                 Отправить

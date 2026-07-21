@@ -36,7 +36,7 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
           className="flex justify-around items-center h-[58px] px-2 rounded-[24px] relative"
           style={{
             background: 'rgba(27,27,48,0.92)',
-            border: '1px solid rgba(249,115,22,0.14)',
+            border: '1px solid rgba(148,163,184,0.14)',
             boxShadow: '0 -4px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)',
           }}
         >
@@ -69,8 +69,7 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
                 className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 active:scale-90"
                 style={{
                   color: isActive ? '#F97316' : '#94A3B8',
-                  filter: isActive ? 'drop-shadow(0 0 10px rgba(249,115,22,0.7))' : 'none',
-                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  transform: isActive ? 'scale(1.08)' : 'scale(1)',
                 }}
               >
                 <Icon size={21} fill={isActive ? 'currentColor' : 'none'} strokeWidth={2} />
