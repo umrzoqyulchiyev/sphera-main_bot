@@ -36,7 +36,7 @@ export function Chat({
   };
 
   return (
-    <div className="bg-[#050506] p-3 flex flex-col flex-1 min-h-0">
+    <div className="bg-[var(--bg)] p-3 flex flex-col flex-1 min-h-0">
       {/* Sarlavhasiz, chegarasiz — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" bilan bir
           xil toza ko'rinish uchun. Faqat funksional tugmalar (chiqish,
           guruhlar) qoladi, matn/border yo'q. Yuqoridan qo'shimcha bo'sh joy
@@ -51,9 +51,9 @@ export function Chat({
             onClick={onExit}
             aria-label="Выйти из чата"
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(94,106,210,0.08)' }}
+            style={{ background: 'rgba(249,115,22,0.08)' }}
           >
-            <svg className="w-4 h-4 text-[#5e6ad2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="w-4 h-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>

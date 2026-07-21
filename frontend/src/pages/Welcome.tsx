@@ -56,27 +56,27 @@ export function Welcome() {
   const main = news[0];
 
   return (
-    <div className="min-h-[var(--app-vh)] bg-[#0a0a0c] text-[#d5d6dc] flex flex-col relative overflow-hidden">
-      {/* Cyber grid + ambient glow (Stitch) */}
+    <div className="min-h-[var(--app-vh)] bg-[var(--bg2)] text-[#D5D6DC] flex flex-col relative overflow-hidden">
+      {/* Warm grid + ambient glow */}
       <div className="absolute inset-0 bg-cyber-grid z-0 pointer-events-none opacity-50" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[#5e6ad2]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[var(--accent)]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
 
       {/* ====== STEP 1: TIL TANLASH ====== */}
       {step === 'lang' && (
         <main className="relative z-10 w-full max-w-[390px] mx-auto flex-1 flex flex-col items-center justify-between px-5 py-8">
           {/* Logo */}
           <div className="w-full flex justify-center mt-6">
-            <h1 className="text-[28px] font-extrabold tracking-[2px] uppercase logo-gradient drop-shadow-[0_0_15px_rgba(94,106,210,0.2)]">
+            <h1 className="text-[28px] font-extrabold tracking-[2px] uppercase logo-gradient font-display drop-shadow-[0_0_15px_rgba(249,115,22,0.25)]">
               INTRA GROUP
             </h1>
           </div>
 
           {/* Centerpiece animated orb */}
           <div className="flex-1 flex items-center justify-center relative w-full">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#5e6ad2]/5 to-transparent rounded-full blur-[40px] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--accent)]/5 to-transparent rounded-full blur-[40px] pointer-events-none" />
             <div className="w-32 h-32 rounded-full relative flex items-center justify-center"
               style={{
-                background: 'radial-gradient(circle at 40% 35%, rgba(94,106,210,0.35), rgba(123,133,232,0.12), transparent 70%)',
+                background: 'radial-gradient(circle at 40% 35%, rgba(249,115,22,0.35), rgba(251,146,60,0.12), transparent 70%)',
               }}>
               <div className="orb-nav" style={{ width: 72, height: 72 }} />
             </div>
@@ -84,7 +84,7 @@ export function Welcome() {
 
           {/* Language buttons */}
           <div className="w-full flex flex-col gap-4 pb-2">
-            <p className="text-center text-[13px] text-[#9a9fa8] mb-1">
+            <p className="text-center text-[13px] text-[#9CA3AF] mb-1">
               {WELCOME_TXT.en.choose}
             </p>
             {LANGS.map((l) => (
@@ -93,9 +93,9 @@ export function Welcome() {
                 onClick={() => choose(l.code)}
                 className="group relative w-full flex items-center justify-between p-5 rounded-2xl transition-all duration-300 active:scale-[0.98] overflow-hidden"
                 style={{
-                  background: 'rgba(19,24,36,0.6)',
+                  background: 'rgba(27,27,48,0.65)',
                   backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(94,106,210,0.2)',
+                  border: '1px solid rgba(249,115,22,0.2)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 }}
               >
@@ -103,10 +103,10 @@ export function Welcome() {
                   <span className="text-[30px] leading-none">{l.flag}</span>
                   <div className="flex flex-col items-start">
                     <span className="text-[17px] font-semibold text-white tracking-wide">{l.label}</span>
-                    <span className="text-[11px] text-[#7d818a] font-mono">{l.country}</span>
+                    <span className="text-[11px] text-[#8B8FA3] font-mono">{l.country}</span>
                   </div>
                 </div>
-                <span className="text-[#7d818a] group-active:text-[#5e6ad2] transition-colors relative z-10">
+                <span className="text-[#8B8FA3] group-active:text-[var(--accent)] transition-colors relative z-10">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
@@ -122,16 +122,16 @@ export function Welcome() {
         <>
           <div className="relative z-10 flex-1 px-5 pt-10 pb-4 overflow-y-auto flex flex-col gap-5 max-w-[440px] w-full mx-auto">
             <div className="text-center">
-              <div className="text-2xl font-extrabold tracking-[1.5px] uppercase logo-gradient">
+              <div className="text-2xl font-extrabold tracking-[1.5px] uppercase logo-gradient font-display">
                 INTRA GROUP
               </div>
-              <h2 className="text-xl font-bold text-[#6e78e1] mt-4 neon-glow-text">{txt.welcome} 👋</h2>
+              <h2 className="text-xl font-bold text-[var(--accent-light)] mt-4 neon-glow-text font-display">{txt.welcome} 👋</h2>
             </div>
 
             {loading ? (
               <div className="flex flex-col items-center gap-3 mt-10">
-                <div className="w-9 h-9 rounded-full border-[3px] border-[rgba(123,133,232,0.2)] border-t-[#5e6ad2] animate-spin" />
-                <span className="text-sm text-[#8a8f98]">{txt.loading}</span>
+                <div className="w-9 h-9 rounded-full border-[3px] border-[rgba(249,115,22,0.2)] border-t-[var(--accent)] animate-spin" />
+                <span className="text-sm text-[var(--muted)]">{txt.loading}</span>
               </div>
             ) : (
               <>
@@ -142,28 +142,28 @@ export function Welcome() {
                       style={{
                         background: main.image_url
                           ? `url('${main.image_url}') center/cover`
-                          : 'linear-gradient(135deg, rgba(123,133,232,0.25), rgba(124,92,255,0.25))',
+                          : 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(49,46,129,0.35))',
                       }}
                     >
                       {!main.image_url && (
-                        <Podcast size={48} className="text-[#5e6ad2]" />
+                        <Podcast size={48} className="text-[var(--accent)]" />
                       )}
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-2">
-                        <RadioIcon size={16} className="text-[#7c5cff]" />
-                        <span className="text-[10px] tracking-[2px] text-[#7c5cff] font-bold font-mono">{txt.podcast}</span>
+                        <RadioIcon size={16} className="text-[var(--accent)]" />
+                        <span className="text-[10px] tracking-[2px] text-[var(--accent)] font-bold font-mono">{txt.podcast}</span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2 text-[#d5d6dc]">{main.title}</h3>
-                      <p className="text-sm text-[#9a9fa8] leading-relaxed">{main.body}</p>
+                      <h3 className="text-lg font-bold mb-2 text-[#D5D6DC]">{main.title}</h3>
+                      <p className="text-sm text-[#9CA3AF] leading-relaxed">{main.body}</p>
                     </div>
                   </div>
                 )}
 
                 {news.slice(1).map((n) => (
                   <div key={n.id} className="stitch-card p-4">
-                    <h4 className="text-sm font-semibold text-[#d5d6dc] mb-1">{n.title}</h4>
-                    <p className="text-xs text-[#9a9fa8] leading-relaxed">{n.body}</p>
+                    <h4 className="text-sm font-semibold text-[#D5D6DC] mb-1">{n.title}</h4>
+                    <p className="text-xs text-[#9CA3AF] leading-relaxed">{n.body}</p>
                   </div>
                 ))}
               </>
@@ -173,7 +173,7 @@ export function Welcome() {
           <div className="relative z-10 max-w-[440px] w-full mx-auto px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-2">
             <button
               onClick={enterPlatform}
-              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 btn-primary-glow"
+              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 btn-primary-glow font-display"
             >
               {txt.enter}
               <ArrowRight size={20} />

@@ -30,8 +30,8 @@ export function initTelegramWebApp() {
 
     // Telegram theme colors
     try {
-      if (tg.setHeaderColor) tg.setHeaderColor('#050506');
-      if (tg.setBackgroundColor) tg.setBackgroundColor('#050506');
+      if (tg.setHeaderColor) tg.setHeaderColor('#0F0F23');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#0F0F23');
     } catch (e) {
       /* old versions */
     }

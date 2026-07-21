@@ -2,23 +2,40 @@
 
 @layer base {
   :root {
-    --bg: #050506;
-    --bg2: #0a0a0c;
-    --card: rgba(18,28,48, 0.55);
-    --card-solid: #101014;
-    --glass-border: rgba(110,118,220, 0.18);
-    --accent: #7b85e8;
-    --accent2: #5e6ad2;
-    --glow: rgba(123,133,232, 0.55);
-    --text: #ededef;
-    --muted: #8a8f98;
-    --green: #22e3a5;
-    --red: #ff4d6d;
+    /* === Podcast Dark + Warm — design tokens === */
+    --bg: #0F0F23;
+    --bg2: #14142B;
+    --card: #1B1B30;
+    --card-solid: #1B1B30;
+    --card-soft: rgba(27, 27, 48, 0.72);
+    --glass-border: rgba(249, 115, 22, 0.14);
+    --border: rgba(249, 115, 22, 0.14);
+
+    --primary: #1E1B4B;
+    --primary2: #312E81;
+
+    --accent: #F97316;
+    --accent2: #EA580C;
+    --accent-light: #FB923C;
+    --glow: rgba(249, 115, 22, 0.45);
+    --accent-glow: rgba(249, 115, 22, 0.45);
+
+    --live: #22C55E;
+    --green: #22C55E;
+    --warning: #EAB308;
+    --danger: #EF4444;
+    --danger-soft: rgba(239, 68, 68, 0.15);
+    --red: #EF4444;
+    --ai: #A78BFA;
+
+    --text: #F8FAFC;
+    --muted: #94A3B8;
     --app-vh: 100vh;
-    /* Stitch design tokens */
-    --primary-dim: #6e78e1;
-    --primary-light: #c5c9f5;
-    --secondary-blue: #6670c9;
+
+    /* Legacy Stitch tokens — retargeted so old consumers stay in sync */
+    --primary-dim: #FB923C;
+    --primary-light: #FDBA74;
+    --secondary-blue: #312E81;
   }
 
   * {
@@ -27,19 +44,19 @@
 
   html,
   body {
-    background: radial-gradient(1200px 600px at 50% -10%, rgba(123,133,232, 0.12), transparent 60%),
-      radial-gradient(800px 500px at 50% 110%, rgba(123,133,232, 0.08), transparent 60%), var(--bg);
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(249, 115, 22, 0.10), transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, rgba(30, 27, 75, 0.35), transparent 60%), var(--bg);
     color: var(--text);
-    letter-spacing: 0.3px;
+    letter-spacing: 0.1px;
     overscroll-behavior: none;
     overflow: hidden;          /* body scroll qilmaydi — ichki div qiladi */
     -webkit-text-size-adjust: 100%;
     height: 100%;
-    font-family: 'Sora', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
     position: relative;
   }
 
-  /* Nozik "film grain" tekstura — tekis qora fonga chuqurlik/premium hissi
+  /* Nozik "film grain" tekstura — tekis fonga chuqurlik/premium hissi
      qo'shadi, deyarli sezilmaydi lekin ekranlar "yassi" ko'rinmaydi. */
   body::before {
     content: '';
@@ -63,13 +80,18 @@
     position: relative;
     z-index: 1;   /* body::before grain teksturasi ustidan chiqishi uchun */
   }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  }
+
   input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: var(--accent2);
+    background: var(--accent);
     box-shadow: 0 0 10px var(--glow);
     cursor: pointer;
   }
@@ -78,7 +100,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: var(--accent2);
+    background: var(--accent);
     box-shadow: 0 0 10px var(--glow);
     cursor: pointer;
     border: none;
@@ -86,49 +108,50 @@
 }
 
 @layer utilities {
+  /* Flat, warm card — replaces the old heavy-blur glassmorphism.
+     Dark Mode (OLED) style calls for minimal glow / solid surfaces. */
   .glass {
     background: var(--card);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--border);
     border-radius: 20px;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: inset 0 1px 0 rgba(255,255,255, 0.05), 0 8px 28px rgba(0,0,0, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.4);
   }
-  
-  /* Liquid Glass - enhanced version */
+
+  /* Reserved for true overlays (modal backdrops, sheets) where blur
+     communicates depth over other content. */
   .liquid-glass {
-    background: linear-gradient(135deg, 
-      rgba(15,30,60, 0.7) 0%, 
-      rgba(10,10,12, 0.85) 50%, 
-      rgba(15,30,60, 0.7) 100%
+    background: linear-gradient(135deg,
+      rgba(30, 27, 75, 0.55) 0%,
+      rgba(15, 15, 35, 0.9) 50%,
+      rgba(30, 27, 75, 0.55) 100%
     );
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(94,106,210, 0.15);
-    box-shadow: 
-      0 8px 32px rgba(0,0,0, 0.4),
-      inset 0 1px 0 rgba(255,255,255, 0.1),
-      inset 0 -1px 0 rgba(94,106,210, 0.1),
-      0 0 0 1px rgba(94,106,210, 0.05);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(249, 115, 22, 0.16);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(249, 115, 22, 0.08),
+      0 0 0 1px rgba(249, 115, 22, 0.04);
   }
 
   .text-glow {
     text-shadow: 0 0 16px var(--glow);
   }
-  
+
   .text-glow-strong {
-    text-shadow: 0 0 20px rgba(94,106,210, 0.8), 0 0 40px rgba(94,106,210, 0.4);
+    text-shadow: 0 0 20px rgba(249, 115, 22, 0.7), 0 0 40px rgba(249, 115, 22, 0.35);
   }
-  
+
   /* Glassmorphism navbar (legacy) */
   .glass-nav {
-    background: rgba(10,10,12, 0.8);
-    border: 1px solid rgba(94,106,210, 0.15);
+    background: rgba(15, 15, 35, 0.85);
+    border: 1px solid rgba(249, 115, 22, 0.14);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px rgba(0,0,0, 0.4), inset 0 1px 0 rgba(255,255,255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
-  
+
   /* Scrollbar yashirin — lekin scroll ISHLAYDI (mouse wheel + touch) */
   *::-webkit-scrollbar {
     width: 0px;
@@ -154,13 +177,13 @@
     transform: scale(0.97);
   }
   .glass-interactive:hover {
-    border-color: rgba(94,106,210, 0.35);
+    border-color: rgba(249, 115, 22, 0.4);
   }
 
   /* Elevatsiya shkalasi — chuqurlik hissi uchun izchil soya darajalari */
-  .elevate-1 { box-shadow: 0 2px 12px rgba(0,0,0, 0.35); }
-  .elevate-2 { box-shadow: 0 8px 28px rgba(0,0,0, 0.45); }
-  .elevate-3 { box-shadow: 0 16px 48px rgba(0,0,0, 0.55), 0 0 32px rgba(94,106,210, 0.08); }
+  .elevate-1 { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
+  .elevate-2 { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45); }
+  .elevate-3 { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 32px rgba(249, 115, 22, 0.10); }
 }
 
 /* Animations for Splash page */
@@ -185,10 +208,10 @@
 
 @keyframes liveGlow {
   0%, 100% {
-    box-shadow: 0 0 18px rgba(255,77,109,0.35);
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.35);
   }
   50% {
-    box-shadow: 0 0 32px rgba(255,77,109,0.75);
+    box-shadow: 0 0 32px rgba(239, 68, 68, 0.75);
   }
 }
 
@@ -230,60 +253,34 @@
 }
 
 /* ============================================================
-   STITCH DESIGN SYSTEM — INTRA GROUP
+   SHARED CARD/BRAND PRIMITIVES — "Podcast Dark + Warm"
    ============================================================ */
-
-/* Material Symbols icon font */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-.material-symbols-outlined.fill {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
 
 /* Monospace font (raqamlar, ID, label) */
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Stitch glass-card */
 .stitch-card {
-  background: rgba(255,255,255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255, 0.05);
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 24px;
 }
 
 .stitch-card-bordered {
-  background: rgba(15,19,30, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(110,120,225, 0.2);
+  background: var(--card);
+  border: 1px solid rgba(249, 115, 22, 0.18);
   border-radius: 24px;
 }
 
-/* Neon text glow */
+/* Warm glow text */
 .neon-glow-text {
-  text-shadow: 0 0 20px rgba(110,120,225, 0.6);
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.55);
 }
 
 /* 3-color gradient logo text */
 .logo-gradient {
-  background: linear-gradient(to right, #ffffff 0%, #5e6ad2 50%, #7c5cff 100%);
+  background: linear-gradient(to right, #ffffff 0%, #FDBA74 45%, #F97316 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -291,14 +288,14 @@
 
 /* Primary gradient button with glow */
 .btn-primary-glow {
-  background: linear-gradient(135deg, #6e78e1, #6670c9);
-  color: #050506;
-  box-shadow: 0 0 25px rgba(110,120,225, 0.4);
+  background: linear-gradient(135deg, #FB923C, #F97316);
+  color: #0F0F23;
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
   transition: all 0.2s ease;
 }
 .btn-primary-glow:active {
   transform: scale(0.96);
-  box-shadow: 0 0 35px rgba(110,120,225, 0.7);
+  box-shadow: 0 0 35px rgba(249, 115, 22, 0.7);
 }
 
 /* Central navigation ORB (breathing animation) */
@@ -310,13 +307,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #020203;
-  background: radial-gradient(circle at 38% 32%, #e4e5f7 0%, #c5c9f5 22%, #5e6ad2 52%, #646edc 78%, #4a56b4 100%);
+  color: #1B1204;
+  background: radial-gradient(circle at 38% 32%, #ffe4c4 0%, #fdba8c 22%, #f97316 52%, #ea580c 78%, #c2410c 100%);
   box-shadow:
-    0 0 18px rgba(110,120,225, 0.7),
-    0 0 36px rgba(110,120,225, 0.35),
-    inset 0 2px 4px rgba(255,255,255, 0.6),
-    inset 0 -3px 8px rgba(74,86,180, 0.5);
+    0 0 18px rgba(249, 115, 22, 0.7),
+    0 0 36px rgba(249, 115, 22, 0.35),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 -3px 8px rgba(154, 52, 18, 0.5);
   animation: orb-breathe 3.2s ease-in-out infinite alternate;
 }
 /* Ichki yorqin nuqta (glossy highlight) */
@@ -328,22 +325,22 @@
   width: 14px;
   height: 10px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, transparent 70%);
   pointer-events: none;
 }
 .orb-nav .material-symbols-outlined {
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 1px 1px rgba(255,255,255,0.4));
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.4));
 }
 @keyframes orb-breathe {
-  0% { box-shadow: 0 0 14px rgba(110,120,225, 0.6), 0 0 28px rgba(110,120,225,0.25), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -3px 8px rgba(74,86,180,0.5); }
-  100% { box-shadow: 0 0 26px rgba(110,120,225, 1), 0 0 52px rgba(110,120,225,0.45), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -3px 8px rgba(74,86,180,0.5); }
+  0% { box-shadow: 0 0 14px rgba(249, 115, 22, 0.6), 0 0 28px rgba(249, 115, 22, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
+  100% { box-shadow: 0 0 26px rgba(249, 115, 22, 1), 0 0 52px rgba(249, 115, 22, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.6), inset 0 -3px 8px rgba(154, 52, 18, 0.5); }
 }
 
 /* Active holatda kuchliroq porlash */
 .orb-active {
-  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #dee0f6 20%, #5e6ad2 50%, #646edc 80%, #4a56b4 100%);
+  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #ffd9b0 20%, #f97316 50%, #ea580c 80%, #c2410c 100%);
 }
 
 /* Aylanuvchi tashqi halqa (orb atrofida) */
@@ -356,8 +353,8 @@
   margin: -31px 0 0 -31px;
   border-radius: 50%;
   border: 1.5px solid transparent;
-  border-top-color: rgba(94,106,210, 0.9);
-  border-right-color: rgba(94,106,210, 0.3);
+  border-top-color: rgba(249, 115, 22, 0.9);
+  border-right-color: rgba(249, 115, 22, 0.3);
   animation: orb-spin 2.8s linear infinite;
   pointer-events: none;
 }
@@ -370,38 +367,38 @@
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 2px solid rgba(110,120,225, 0.5);
-  box-shadow: 0 0 40px rgba(110,120,225, 0.2), inset 0 0 40px rgba(110,120,225, 0.2);
+  border: 2px solid rgba(249, 115, 22, 0.5);
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.2), inset 0 0 40px rgba(249, 115, 22, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(110,120,225, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
 }
 .waveform-bar {
   width: 6px;
-  background: linear-gradient(to top, #6670c9, #6e78e1, #c5c9f5);
+  background: linear-gradient(to top, #ea580c, #f97316, #fdba74);
   border-radius: 3px;
   margin: 0 3px;
   animation: wave-pulse 1s ease-in-out infinite alternate;
-  box-shadow: 0 0 10px rgba(110,120,225, 0.8);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
 }
 @keyframes wave-pulse {
   0% { transform: scaleY(0.4); }
   100% { transform: scaleY(1); }
 }
 
-/* Avatar neon glow */
+/* Avatar warm glow */
 .avatar-glow {
-  box-shadow: 0 0 40px rgba(110,120,225, 0.5), inset 0 0 20px rgba(110,120,225, 0.2);
-  border: 2px solid rgba(110,120,225, 0.8);
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.45), inset 0 0 20px rgba(249, 115, 22, 0.18);
+  border: 2px solid rgba(249, 115, 22, 0.75);
 }
 
-/* Cyber grid background (language select) */
+/* Warm grid background (language select) */
 .bg-cyber-grid {
   background-size: 30px 30px;
   background-image:
-    linear-gradient(to right, rgba(110,120,225, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(110,120,225, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(249, 115, 22, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(249, 115, 22, 0.05) 1px, transparent 1px);
   -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
   mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
 }

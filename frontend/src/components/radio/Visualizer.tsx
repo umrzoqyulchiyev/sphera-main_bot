@@ -16,8 +16,8 @@ export function Visualizer({ isPlaying }: VisualizerProps) {
           width: '240px',
           height: '240px',
           borderRadius: '50%',
-          border: '3px solid #5e6ad2',
-          boxShadow: '0 0 30px rgba(94,106,210,0.7), inset 0 0 20px rgba(94,106,210,0.15)',
+          border: '3px solid #F97316',
+          boxShadow: '0 0 30px rgba(249,115,22,0.7), inset 0 0 20px rgba(249,115,22,0.15)',
           animation: 'ringPulse 2.5s ease-in-out infinite',
         }}
       />
@@ -30,9 +30,9 @@ export function Visualizer({ isPlaying }: VisualizerProps) {
             style={{
               width: '5px',
               height: `${h}px`,
-              background: 'linear-gradient(180deg, #ffffff 10%, #5e6ad2 70%, #7b85e8 100%)',
+              background: 'linear-gradient(180deg, #ffffff 10%, #F97316 70%, #FB923C 100%)',
               borderRadius: '4px',
-              boxShadow: '0 0 8px rgba(94,106,210,0.9)',
+              boxShadow: '0 0 8px rgba(249,115,22,0.9)',
               animation: isPlaying ? `wave ${0.8 + (i % 2) * 0.2}s ease-in-out ${i * 0.08}s infinite` : 'none',
               opacity: isPlaying ? 1 : 0.4,
             }}

@@ -22,8 +22,8 @@ export function GoLiveButton({ isLive, remainingSec, onToggle }: GoLiveButtonPro
       onClick={onToggle}
       className={`w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
         isLive
-          ? 'bg-[#ff4d6d] text-white'
-          : 'glass border-[rgba(255,77,109,0.3)] text-[#ff9fb0] hover:border-[rgba(255,77,109,0.5)]'
+          ? 'bg-[#EF4444] text-white'
+          : 'glass border-[rgba(239,68,68,0.3)] text-[#FCA5A5] hover:border-[rgba(239,68,68,0.5)]'
       }`}
       style={
         isLive

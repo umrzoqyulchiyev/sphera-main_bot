@@ -22,7 +22,7 @@ interface FullScreenModalProps {
 // muammolaridan butunlay qochamiz, va ichini ilovaning umumiy
 // max-width kartasi bilan bir xil kenglikka cheklaymiz (desktop'da
 // butun ekranga cho'zilib ketmasin).
-export function FullScreenModal({ children, zIndex = 9999, background = '#050506' }: FullScreenModalProps) {
+export function FullScreenModal({ children, zIndex = 9999, background = '#0F0F23' }: FullScreenModalProps) {
   return createPortal(
     <div
       className="fixed flex flex-col"

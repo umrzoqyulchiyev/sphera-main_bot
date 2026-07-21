@@ -137,7 +137,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-[#8a8f98] text-sm">Loading...</div>
+        <div className="text-[#94A3B8] text-sm">Loading...</div>
       </div>
     );
   }
@@ -152,18 +152,18 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
     <div className="flex flex-col gap-6">
       {/* Balance card — avatar + neon balance (Stitch) */}
       <section className="stitch-card p-8 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#5e6ad2]/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F97316]/5 to-transparent pointer-events-none" />
         <div className="relative z-10 w-full flex flex-col items-center justify-center">
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden avatar-glow bg-[rgba(37,42,53,0.5)] flex items-center justify-center mb-4">
-            <UserIcon size={48} className="text-[#5e6ad2]/50" />
+          <div className="w-28 h-28 rounded-full overflow-hidden avatar-glow bg-[rgba(27,27,48,0.55)] flex items-center justify-center mb-4">
+            <UserIcon size={48} className="text-[#F97316]/50" />
           </div>
-          <h2 className="text-[11px] text-[#9a9fa8] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
+          <h2 className="text-[11px] text-[#94A3B8] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
           <div className="flex items-baseline gap-2">
-            <span className="text-[40px] leading-[48px] font-extrabold text-[#6e78e1] neon-glow-text font-mono">
+            <span className="text-[40px] leading-[48px] font-extrabold text-[#F97316] neon-glow-text font-mono">
               {Number(user.points).toFixed(3)}
             </span>
-            <span className="text-[18px] font-semibold text-[#c5c9f5]">PTS</span>
+            <span className="text-[18px] font-semibold text-[#FDBA74]">PTS</span>
           </div>
         </div>
       </section>
@@ -182,7 +182,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Psixoprofil — mavjud bo'lsa */}
       {(user.focus_of_attention || user.emotional_tone) && (
         <section className="stitch-card p-6 flex flex-col">
-          <div className="text-[11px] font-bold text-[#6e78e1] uppercase tracking-wide mb-2 font-mono">
+          <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide mb-2 font-mono">
             🧠 {lang === 'ru' ? 'Психопрофиль' : lang === 'lt' ? 'Psichotipas' : 'Psychotype'}
           </div>
           {user.focus_of_attention && (
@@ -219,9 +219,9 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Tahrirlash */}
       <button
         onClick={() => setModal('edit')}
-        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#d5d6dc] active:scale-[0.98] transition-transform"
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#F8FAFC] active:scale-[0.98] transition-transform"
       >
-        <Edit size={20} className="text-[#5e6ad2]" />
+        <Edit size={20} className="text-[#F97316]" />
         {tx('edit')}
       </button>
 
@@ -241,35 +241,35 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Tranzaksiyalar tarixi */}
       <button
         onClick={openHistory}
-        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#d5d6dc] active:scale-[0.98] transition-transform"
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#F8FAFC] active:scale-[0.98] transition-transform"
       >
-        <History size={20} className="text-[#5e6ad2]" />
+        <History size={20} className="text-[#F97316]" />
         {tx('history')}
       </button>
 
       {/* Menga kelgan so'rovlar */}
       <div className="flex flex-col gap-2">
-        <div className="text-[11px] font-bold text-[#6e78e1] uppercase tracking-wide font-mono">{tx('requests')}</div>
+        <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide font-mono">{tx('requests')}</div>
         {requests.length === 0 ? (
-          <div className="stitch-card p-4 text-center text-xs text-[#8a8f98]">{tx('no_req')}</div>
+          <div className="stitch-card p-4 text-center text-xs text-[#94A3B8]">{tx('no_req')}</div>
         ) : (
           requests.map((r) => (
             <div key={r.id} className="stitch-card p-3.5">
-              <div className="text-sm text-[#d5d6dc]">
+              <div className="text-sm text-[#F8FAFC]">
                 <b>{r.from_display_name || `#${r.from_user_id}`}</b> {tx('from_you')}{' '}
-                <b className="text-[#6e78e1]">{Number(r.amount).toFixed(3)}</b>
+                <b className="text-[#F97316]">{Number(r.amount).toFixed(3)}</b>
               </div>
-              {r.message && <div className="text-xs text-[#8a8f98] mt-1">{r.message}</div>}
+              {r.message && <div className="text-xs text-[#94A3B8] mt-1">{r.message}</div>}
               <div className="flex gap-2 mt-2.5">
                 <button
                   onClick={() => handleDecide(r.id, true)}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(34,227,165,0.15)] text-[#22e3a5] text-xs font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(34,197,94,0.15)] text-[#22C55E] text-xs font-semibold"
                 >
                   <Check className="w-4 h-4" /> {tx('approve')}
                 </button>
                 <button
                   onClick={() => handleDecide(r.id, false)}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(255,77,109,0.12)] text-[#ff9fb0] text-xs font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(239,68,68,0.12)] text-[#FCA5A5] text-xs font-semibold"
                 >
                   <X className="w-4 h-4" /> {tx('reject')}
                 </button>
@@ -281,7 +281,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 
       {/* Admin link */}
       {user.role === 'admin' && (
-        <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#6e78e1] transition-all">
+        <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#F97316] transition-all">
           {tx('admin')}
         </button>
       )}
@@ -319,7 +319,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#ededef] border border-[rgba(94,106,210,0.4)] z-[200]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#F8FAFC] border border-[rgba(249,115,22,0.4)] z-[200]">
           {toast}
         </div>
       )}
@@ -337,19 +337,19 @@ function StitchRow({ icon: Icon, label, value, highlight, accent, mono, last, cl
       className="flex justify-between items-center py-4"
       style={last ? {} : { borderBottom: '1px solid rgba(255,255,255,0.05)' }}
     >
-      <span className="text-[15px] text-[#9a9fa8] flex items-center gap-3">
-        <Icon size={20} className="text-[#7d818a]" />
+      <span className="text-[15px] text-[#94A3B8] flex items-center gap-3">
+        <Icon size={20} className="text-[#94A3B8]" />
         {label}
       </span>
       <span className="flex items-center gap-1.5">
         {highlight ? (
-          <span className="px-3 py-1 rounded-lg bg-[rgba(94,106,210,0.12)] text-[#5e6ad2] text-[13px] font-bold">{value}</span>
+          <span className="px-3 py-1 rounded-lg bg-[rgba(249,115,22,0.12)] text-[#F97316] text-[13px] font-bold">{value}</span>
         ) : (
-          <span className={`text-[15px] font-semibold ${accent ? 'text-[#aaafe6]' : 'text-[#d5d6dc]'} ${mono ? 'font-mono' : ''}`}>
+          <span className={`text-[15px] font-semibold ${accent ? 'text-[#FDBA74]' : 'text-[#F8FAFC]'} ${mono ? 'font-mono' : ''}`}>
             {value}
           </span>
         )}
-        {clickable && <ChevronRight size={16} className="text-[#5a5f68]" />}
+        {clickable && <ChevronRight size={16} className="text-[#64748B]" />}
       </span>
     </div>
   );
@@ -361,8 +361,8 @@ function StitchAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label:
       onClick={onClick}
       className="stitch-card p-4 flex flex-col items-center justify-center gap-2.5 active:scale-95 transition-transform"
     >
-      <Icon size={28} className="text-[#5e6ad2]" />
-      <span className="text-[11px] text-[#d5d6dc] tracking-wider font-mono">{label}</span>
+      <Icon size={28} className="text-[#F97316]" />
+      <span className="text-[11px] text-[#F8FAFC] tracking-wider font-mono">{label}</span>
     </button>
   );
 }
@@ -371,15 +371,15 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
   return (
     <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-[360px] max-h-[85vh] glass rounded-3xl p-5 bg-[#101014] flex flex-col"
+        className="w-full max-w-[360px] max-h-[85vh] glass rounded-3xl p-5 bg-[#1B1B30] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
-          <h3 className="text-base font-bold text-[#5e6ad2]">{title}</h3>
+          <h3 className="text-base font-bold text-[#F97316]">{title}</h3>
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,255,255,0.06)] text-[#9a9fa8] active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,255,255,0.06)] text-[#94A3B8] active:scale-90 transition-transform"
           >
             <X size={16} />
           </button>
@@ -390,9 +390,9 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
   );
 }
 
-const inputCls = 'w-full bg-[rgba(5,5,6,0.7)] border border-[rgba(110,118,220,0.18)] rounded-xl px-4 py-3 text-sm text-[#ededef] outline-none focus:border-[#5e6ad2] mb-3';
-const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#020203] text-sm';
-const primaryStyle = { background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' };
+const inputCls = 'w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3';
+const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#1B1204] text-sm';
+const primaryStyle = { background: 'linear-gradient(135deg, #FB923C, #F97316)' };
 type TX = (k: string) => string;
 
 function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX; onClose: () => void; onSaved: () => void; onError: () => void }) {
@@ -408,9 +408,9 @@ function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX
   }
   return (
     <ModalShell title={tx('edit')} onClose={onClose}>
-      <label className="text-xs text-[#8a8f98]">{tx('name')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('name')}</label>
       <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
-      <label className="text-xs text-[#8a8f98]">{tx('username')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('username')}</label>
       <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={save} disabled={busy}>{tx('save')}</button>
     </ModalShell>
@@ -430,9 +430,9 @@ function TransferModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =
   }
   return (
     <ModalShell title={tx('give')} onClose={onClose}>
-      <label className="text-xs text-[#8a8f98]">{tx('user_id')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('user_id')}</label>
       <input className={inputCls} value={toId} onChange={(e) => setToId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('give')}</button>
     </ModalShell>
@@ -453,11 +453,11 @@ function RequestModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =>
   }
   return (
     <ModalShell title={tx('request')} onClose={onClose}>
-      <label className="text-xs text-[#8a8f98]">{tx('user_id')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('user_id')}</label>
       <input className={inputCls} value={fromId} onChange={(e) => setFromId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#8a8f98]">{tx('amount')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
-      <label className="text-xs text-[#8a8f98]">{tx('msg')}</label>
+      <label className="text-xs text-[#94A3B8]">{tx('msg')}</label>
       <input className={inputCls} value={msg} onChange={(e) => setMsg(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('request')}</button>
     </ModalShell>
@@ -487,7 +487,7 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
 
   return (
     <ModalShell title={tx('buy')} onClose={onClose}>
-      <p className="text-xs text-[#8a8f98] mb-3 leading-relaxed">
+      <p className="text-xs text-[#94A3B8] mb-3 leading-relaxed">
         {isManual
           ? tx('buy_manual_intro')
           : 'Оплата проходит через бота безопасно (Telegram Payments). Нажмите кнопку — откроется бот с пакетами.'}
@@ -495,15 +495,15 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
       <div className="flex flex-col gap-2 mb-3">
         {packages.map((p) => (
           <div key={p.id}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(110,118,220,0.18)] bg-[rgba(5,5,6,0.5)]">
-            <span className="font-semibold text-[#ededef]">{p.label}</span>
-            <span className="text-[#5e6ad2] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
+            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(249,115,22,0.18)] bg-[rgba(15,15,35,0.5)]">
+            <span className="font-semibold text-[#F8FAFC]">{p.label}</span>
+            <span className="text-[#F97316] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
           </div>
         ))}
       </div>
       {isManual ? (
         payment?.instructions ? (
-          <div className="rounded-xl px-4 py-3 text-sm text-[#ededef] whitespace-pre-line" style={{ background: 'rgba(94,106,210,0.08)', border: '1px solid rgba(110,118,220,0.2)' }}>
+          <div className="rounded-xl px-4 py-3 text-sm text-[#F8FAFC] whitespace-pre-line" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
             {payment.instructions}
           </div>
         ) : null
@@ -533,10 +533,10 @@ const TX_ICON: Record<string, LucideIcon> = {
 
 function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; items: PointsTransaction[]; loading: boolean }) {
   if (loading) {
-    return <div className="py-8 text-center text-xs text-[#8a8f98]">…</div>;
+    return <div className="py-8 text-center text-xs text-[#94A3B8]">…</div>;
   }
   if (items.length === 0) {
-    return <div className="py-8 text-center text-xs text-[#8a8f98]">{tx('no_history')}</div>;
+    return <div className="py-8 text-center text-xs text-[#94A3B8]">{tx('no_history')}</div>;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -548,15 +548,15 @@ function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; ite
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
         });
         return (
-          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(5,5,6,0.5)] border border-[rgba(110,118,220,0.1)]">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(34,227,165,0.12)] text-[#22e3a5]' : 'bg-[rgba(255,77,109,0.1)] text-[#ff9fb0]'}`}>
+          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(15,15,35,0.5)] border border-[rgba(249,115,22,0.1)]">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(34,197,94,0.12)] text-[#22C55E]' : 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'}`}>
               <Icon size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-[#d5d6dc] truncate">{label}</div>
-              <div className="text-[11px] text-[#8a8f98]">{date}</div>
+              <div className="text-[13px] font-semibold text-[#F8FAFC] truncate">{label}</div>
+              <div className="text-[11px] text-[#94A3B8]">{date}</div>
             </div>
-            <div className={`text-[13px] font-bold font-mono shrink-0 ${positive ? 'text-[#22e3a5]' : 'text-[#ff9fb0]'}`}>
+            <div className={`text-[13px] font-bold font-mono shrink-0 ${positive ? 'text-[#22C55E]' : 'text-[#FCA5A5]'}`}>
               {positive ? '+' : ''}{Number(t.amount).toFixed(3)}
             </div>
           </div>

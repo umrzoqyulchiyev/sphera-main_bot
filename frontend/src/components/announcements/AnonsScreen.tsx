@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Headphones, MessageSquare, Mic, Radio, Clock, Share2, ChevronRight } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 import { AnnouncementBanner } from './AnnouncementBanner';
+import { LiveDot } from '../ui/LiveDot';
 import { getAnnouncements, updateLanguage, updateBroadcastLang, getVoiceChatStatus, getUpcomingSlots, type VoiceChatStatus, type BroadcastSlot } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User, Announcements, Language, Screen } from '../../types';
@@ -91,7 +92,7 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
         <div className="flex flex-col gap-2">
           <button
             onClick={() => onNavigate?.('schedule')}
-            className="text-[10px] font-bold tracking-[2px] text-[#8a8f98] uppercase px-1 flex items-center gap-1.5 justify-between"
+            className="text-[10px] font-bold tracking-[2px] text-[var(--muted)] uppercase px-1 flex items-center gap-1.5 justify-between"
           >
             <span className="flex items-center gap-1.5">
               <Clock className="w-3 h-3" />
@@ -104,22 +105,16 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
               style={slot.is_live_now ? { border: '1px solid rgba(239,68,68,0.3)' } : {}}>
               <div className="flex-shrink-0">
                 {slot.is_live_now ? (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-60" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ef4444]" />
-                  </span>
+                  <LiveDot color="#EF4444" />
                 ) : slot.is_soon ? (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f59e0b] opacity-60" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#f59e0b]" />
-                  </span>
+                  <LiveDot color="#EAB308" />
                 ) : (
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8a8f98]" />
+                  <LiveDot color="#94A3B8" pulse={false} />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-bold text-[#ededef] truncate">{slot.title}</div>
-                <div className="text-[10px] text-[#8a8f98]">
+                <div className="text-[12px] font-bold text-[var(--text)] truncate">{slot.title}</div>
+                <div className="text-[10px] text-[var(--muted)]">
                   {slot.is_live_now
                     ? (lang === 'ru' ? '🔴 СЕЙЧАС В ЭФИРЕ' : lang === 'lt' ? '🔴 DABAR ETERYJE' : '🔴 LIVE NOW')
                     : new Date(slot.scheduled_at).toLocaleString()}
@@ -128,8 +123,8 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
               {slot.share_url && (
                 <a href={slot.share_url} target="_blank" rel="noreferrer"
                   className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(94,106,210,0.08)' }}>
-                  <Share2 className="w-3.5 h-3.5 text-[#5e6ad2]" />
+                  style={{ background: 'rgba(249,115,22,0.08)' }}>
+                  <Share2 className="w-3.5 h-3.5 text-[var(--accent)]" />
                 </a>
               )}
             </div>
@@ -169,15 +164,15 @@ function FeaturesCard({ features }: { features: FeatureItem[] }) {
         return (
           <div key={idx}>
             <div className="flex items-center gap-3 py-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[rgba(94,106,210,0.08)] flex items-center justify-center shrink-0">
-                <Icon className="w-4 h-4 text-[#5e6ad2]" strokeWidth={1.8} />
+              <div className="w-9 h-9 rounded-xl bg-[rgba(249,115,22,0.1)] flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[var(--accent)]" strokeWidth={1.8} />
               </div>
-              <span className="text-[12px] text-[#8a8f98] leading-relaxed">
+              <span className="text-[12px] text-[var(--muted)] leading-relaxed">
                 {feature.text}
               </span>
             </div>
             {!isLast && (
-              <div className="h-px ml-12 bg-[rgba(110,118,220,0.08)]" />
+              <div className="h-px ml-12 bg-[rgba(249,115,22,0.08)]" />
             )}
           </div>
         );
@@ -210,18 +205,9 @@ function VoiceChatStatusCard({ status, lang }: { status: VoiceChatStatus | null;
 
   return (
     <div className="glass px-4 py-3 rounded-2xl flex items-center gap-3">
-      <span className="relative flex h-2.5 w-2.5">
-        {isLive ? (
-          <>
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-60" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22c55e]" />
-          </>
-        ) : (
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8a8f98]" />
-        )}
-      </span>
-      <Radio className="w-3.5 h-3.5 text-[#8a8f98]" />
-      <span className="text-[10px] font-bold tracking-[2px] text-[#8a8f98] uppercase">
+      <LiveDot color={isLive ? '#22C55E' : '#94A3B8'} pulse={isLive} />
+      <Radio className="w-3.5 h-3.5 text-[var(--muted)]" />
+      <span className="text-[10px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
         {label}
       </span>
     </div>

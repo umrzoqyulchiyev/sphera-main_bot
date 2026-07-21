@@ -115,7 +115,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
       <div className="flex-1 glass rounded-full px-3 py-2 flex items-center gap-2 min-w-0">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[#8a8f98] hover:text-[#5e6ad2] hover:bg-[rgba(94,106,210,0.08)] transition-all"
+          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[rgba(249,115,22,0.08)] transition-all"
         >
           <Paperclip className="w-4.5 h-4.5" strokeWidth={1.8} />
         </button>
@@ -128,7 +128,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
           onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
           placeholder={t('chat_placeholder')}
           disabled={isRecording}
-          className="flex-1 min-w-0 bg-transparent text-sm text-[#ededef] placeholder-[#4a5568] outline-none disabled:opacity-50"
+          className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text)] placeholder-[#4a5568] outline-none disabled:opacity-50"
         />
       </div>
 
@@ -137,7 +137,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
           urib turadi (button'ning o'zi/ikonkasi hech qachon xira bo'lmaydi). */}
       <div className="relative shrink-0">
         {isRecording && (
-          <span className="absolute inset-0 rounded-full bg-[#ff4d6d] opacity-60 animate-ping" />
+          <span className="absolute inset-0 rounded-full bg-[var(--danger)] opacity-60 animate-ping" />
         )}
         <button
           onClick={handleActionClick}
@@ -145,11 +145,11 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
           className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
           style={{
             background: isRecording
-              ? '#ff4d6d'
-              : 'linear-gradient(135deg, #7b85e8, #5e6ad2)',
+              ? '#EF4444'
+              : 'linear-gradient(135deg, #FB923C, #F97316)',
             boxShadow: isRecording
-              ? '0 0 18px rgba(255,77,109,0.6)'
-              : '0 0 16px rgba(94,106,210,0.4)',
+              ? '0 0 18px rgba(239,68,68,0.6)'
+              : '0 0 16px rgba(249,115,22,0.4)',
           }}
         >
           {hasText && !isRecording ? (

@@ -134,7 +134,7 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <Loader className="w-10 h-10 text-[#6e78e1] animate-spin" />
+        <Loader className="w-10 h-10 text-[#F97316] animate-spin" />
       </div>
     );
   }
@@ -145,10 +145,10 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
     <div className="flex flex-col items-center gap-6">
       {/* Status text (Stitch) */}
       <div className="flex flex-col items-center gap-1 text-center mt-2">
-        <span className="font-mono text-[12px] text-[#9a9fa8]/70 tracking-[0.15em] uppercase">
+        <span className="font-mono text-[12px] text-[#94A3B8]/70 tracking-[0.15em] uppercase">
           {tx('level')} {lvl}
         </span>
-        <span className="font-mono text-[12px] text-[#6e78e1] tracking-[0.15em] uppercase">
+        <span className="font-mono text-[12px] text-[#F97316] tracking-[0.15em] uppercase">
           {tx('stream_active')}
         </span>
       </div>
@@ -169,30 +169,30 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       {/* Mavzu kartasi */}
       {topic ? (
         <div className="stitch-card-bordered p-5 w-full"
-          style={{ background: 'linear-gradient(135deg, rgba(123,133,232,0.1), rgba(124,92,255,0.05))' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(167,139,250,0.05))' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.15)' }}>
-              <Sparkles size={18} className="text-[#6e78e1]" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.15)' }}>
+              <Sparkles size={18} className="text-[#F97316]" />
             </div>
-            <span className="text-[10px] font-bold tracking-[2px] text-[#9a9fa8]/70 uppercase font-mono">{tx('title')}</span>
+            <span className="text-[10px] font-bold tracking-[2px] text-[#94A3B8]/70 uppercase font-mono">{tx('title')}</span>
           </div>
-          <h2 className="text-[19px] font-extrabold text-[#d5d6dc] leading-tight mb-2">{topic.title}</h2>
+          <h2 className="text-[19px] font-extrabold text-[#F8FAFC] leading-tight mb-2">{topic.title}</h2>
           {topic.description && (
-            <p className="text-[13px] text-[#9a9fa8] leading-relaxed mb-3">{topic.description}</p>
+            <p className="text-[13px] text-[#94A3B8] leading-relaxed mb-3">{topic.description}</p>
           )}
-          <div className="flex items-center gap-2 text-[#6e78e1]">
+          <div className="flex items-center gap-2 text-[#F97316]">
             <Users size={16} />
             <span className="text-[12px] font-bold tabular-nums font-mono">{topic.opinion_count}</span>
-            <span className="text-[11px] text-[#7d818a]">{tx('opinions')}</span>
+            <span className="text-[11px] text-[#94A3B8]">{tx('opinions')}</span>
           </div>
         </div>
       ) : (
         <div className="stitch-card p-8 text-center w-full">
-          <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(94,106,210,0.08)' }}>
-            <MessageSquare size={28} className="text-[#7d818a]" />
+          <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(249,115,22,0.08)' }}>
+            <MessageSquare size={28} className="text-[#94A3B8]" />
           </div>
-          <p className="text-sm text-[#d5d6dc] font-semibold">{tx('no_topic')}</p>
-          <p className="text-xs text-[#7d818a] mt-1">{tx('wait')}</p>
+          <p className="text-sm text-[#F8FAFC] font-semibold">{tx('no_topic')}</p>
+          <p className="text-xs text-[#94A3B8] mt-1">{tx('wait')}</p>
         </div>
       )}
 
@@ -200,8 +200,8 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       {topic && (
         <div className="stitch-card p-4 w-full flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wide text-[#6e78e1] uppercase font-mono">{tx('your_opinion')}</span>
-            <span className="text-[9px] text-[#7d818a] font-mono">text: 0.001 · voice: 0.005</span>
+            <span className="text-[11px] font-bold tracking-wide text-[#F97316] uppercase font-mono">{tx('your_opinion')}</span>
+            <span className="text-[9px] text-[#94A3B8] font-mono">text: 0.001 · voice: 0.005</span>
           </div>
 
           <textarea
@@ -209,8 +209,8 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
             onChange={(e) => setText(e.target.value)}
             placeholder={tx('placeholder')}
             rows={3}
-            className="w-full rounded-2xl px-3 py-2.5 text-sm text-[#d5d6dc] resize-none outline-none placeholder:text-[#7d818a]"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(94,106,210,0.2)' }}
+            className="w-full rounded-2xl px-3 py-2.5 text-sm text-[#F8FAFC] resize-none outline-none placeholder:text-[#94A3B8]"
+            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.2)' }}
           />
 
           <div className="flex gap-2">
@@ -220,12 +220,12 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
               className="h-12 w-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform shrink-0"
               style={{
                 background: isRecording ? 'rgba(239,68,68,0.18)' : 'rgba(25,30,45,0.6)',
-                border: `1px solid ${isRecording ? 'rgba(239,68,68,0.5)' : 'rgba(94,106,210,0.2)'}`,
+                border: `1px solid ${isRecording ? 'rgba(239,68,68,0.5)' : 'rgba(249,115,22,0.2)'}`,
               }}
             >
               <Mic
                 size={22}
-                className={isRecording ? 'text-[#ef4444]' : 'text-[#6e78e1]'}
+                className={isRecording ? 'text-[#ef4444]' : 'text-[#F97316]'}
                 style={{ animation: isRecording ? 'pulse-glow 1s infinite' : 'none' }}
               />
             </button>
@@ -247,9 +247,9 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
 
       {/* AI info */}
       <div className="stitch-card px-4 py-3 flex items-center gap-3 w-full"
-        style={{ background: 'rgba(124,92,255,0.06)', border: '1px solid rgba(124,92,255,0.15)' }}>
+        style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
         <Sparkles size={18} className="text-[#a78bfa] shrink-0" />
-        <span className="text-[11px] text-[#9a9fa8] leading-relaxed">{tx('ai_info')}</span>
+        <span className="text-[11px] text-[#94A3B8] leading-relaxed">{tx('ai_info')}</span>
       </div>
 
       <Toast message={message} />

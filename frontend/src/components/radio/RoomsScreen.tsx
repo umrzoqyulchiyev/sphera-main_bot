@@ -52,7 +52,7 @@ export function RoomsButton({ user }: RoomsButtonProps) {
     <>
       <button
         onClick={() => setShowList(true)}
-        className="stitch-card px-3.5 py-2 flex items-center gap-1.5 text-[11px] font-bold text-[#5e6ad2] active:scale-95 transition-transform shrink-0"
+        className="stitch-card px-3.5 py-2 flex items-center gap-1.5 text-[11px] font-bold text-[#F97316] active:scale-95 transition-transform shrink-0"
       >
         <Users size={14} />
         {tx('rooms')}
@@ -104,27 +104,27 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
       {/* Yuqoridan qo'shimcha bo'sh joy — Telegram'ning o'z "⋮ ⌄ ✕" native
           paneli aynan shu burchakda bo'lgani uchun, tugmalar (ayniqsa
           "Создать") shu bilan to'qnashib bosilmay qolmasin. */}
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(249,115,22,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.08)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#F97316]" />
         </button>
-        <div className="flex-1 text-sm font-bold text-[#ededef]">{tx('rooms')}</div>
+        <div className="flex-1 text-sm font-bold text-[#F8FAFC]">{tx('rooms')}</div>
         {canCreate && (
           <button
             onClick={() => setShowCreate(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(94,106,210,0.12)' }}
+            style={{ background: 'rgba(249,115,22,0.12)' }}
           >
-            <Plus className="w-4 h-4 text-[#5e6ad2]" />
+            <Plus className="w-4 h-4 text-[#F97316]" />
           </button>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {loading ? (
-          <div className="text-center text-xs text-[#8a8f98] py-8">…</div>
+          <div className="text-center text-xs text-[#94A3B8] py-8">…</div>
         ) : rooms.length === 0 ? (
-          <div className="text-center text-xs text-[#8a8f98] py-8">{tx('no_rooms')}</div>
+          <div className="text-center text-xs text-[#94A3B8] py-8">{tx('no_rooms')}</div>
         ) : (
           <div className="flex flex-col gap-2">
             {rooms.map((r) => (
@@ -133,9 +133,9 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
                 onClick={() => onOpenRoom(r)}
                 className="glass rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
               >
-                <div className="text-sm font-bold text-[#ededef]">{r.title}</div>
-                {r.description && <div className="text-[11px] text-[#8a8f98] mt-1">{r.description}</div>}
-                <div className="text-[10px] text-[#5e6ad2] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
+                <div className="text-sm font-bold text-[#F8FAFC]">{r.title}</div>
+                {r.description && <div className="text-[11px] text-[#94A3B8] mt-1">{r.description}</div>}
+                <div className="text-[10px] text-[#F97316] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
               </button>
             ))}
           </div>
@@ -144,11 +144,11 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
       {/* Pastki "Закрыть" — tepadagi orqaga tugmasi native chrome bilan
           to'qnashsa ham, bu zona (ekran pastida) doim bosiladi. */}
-      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
         <button
           onClick={onClose}
-          className="w-full py-3 rounded-xl text-sm font-semibold text-[#8a8f98] active:scale-[0.98] transition-transform"
-          style={{ background: 'rgba(94,106,210,0.06)', border: '1px solid rgba(94,106,210,0.12)' }}
+          className="w-full py-3 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-[0.98] transition-transform"
+          style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.12)' }}
         >
           Закрыть
         </button>
@@ -189,10 +189,10 @@ function CreateRoomModal({ tx, onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-[550] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-[#5e6ad2]">{tx('create')}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#9a9fa8]">
+          <h3 className="text-base font-bold text-[#F97316]">{tx('create')}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#94A3B8]">
             <X size={16} />
           </button>
         </div>
@@ -201,20 +201,20 @@ function CreateRoomModal({ tx, onClose, onCreated }: {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={tx('title_ph')}
-          className="w-full bg-[rgba(5,5,6,0.7)] border border-[rgba(110,118,220,0.18)] rounded-xl px-4 py-3 text-sm text-[#ededef] outline-none focus:border-[#5e6ad2] mb-3"
+          className="w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3"
         />
         <input
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
           placeholder={tx('desc_ph')}
-          className="w-full bg-[rgba(5,5,6,0.7)] border border-[rgba(110,118,220,0.18)] rounded-xl px-4 py-3 text-sm text-[#ededef] outline-none focus:border-[#5e6ad2] mb-3"
+          className="w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3"
         />
-        {error && <div className="text-xs text-[#ff9fb0] mb-3">{error}</div>}
+        {error && <div className="text-xs text-[#FCA5A5] mb-3">{error}</div>}
         <button
           onClick={submit}
           disabled={busy || !title.trim()}
           className="w-full py-3 rounded-xl font-bold text-[#020203] text-sm disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #7b85e8, #5e6ad2)' }}
+          style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
         >
           {tx('create')}
         </button>
@@ -288,22 +288,22 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
 
   return (
     <FullScreenModal zIndex={500}>
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(94,106,210,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(94,106,210,0.08)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#5e6ad2]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(249,115,22,0.1)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.08)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#F97316]" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-[#ededef] truncate">{room.title}</div>
-          <div className="text-[10px] text-[#8a8f98]">{tx('by')}: {room.host_display_name || '—'}</div>
+          <div className="text-sm font-bold text-[#F8FAFC] truncate">{room.title}</div>
+          <div className="text-[10px] text-[#94A3B8]">{tx('by')}: {room.host_display_name || '—'}</div>
         </div>
         {isHost && (
           <button
             onClick={() => setPendingClose(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(255,77,109,0.1)' }}
+            style={{ background: 'rgba(239,68,68,0.1)' }}
             aria-label={tx('close_room')}
           >
-            <Lock className="w-4 h-4 text-[#ff9fb0]" />
+            <Lock className="w-4 h-4 text-[#FCA5A5]" />
           </button>
         )}
       </div>
@@ -317,14 +317,14 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
       {/* Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
           bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
           chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
-      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(94,106,210,0.1)' }}>
+      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(249,115,22,0.1)' }}>
         <button
           onClick={onClose}
           aria-label="Закрыть чат"
           className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(94,106,210,0.08)' }}
+          style={{ background: 'rgba(249,115,22,0.08)' }}
         >
-          <X className="w-4 h-4 text-[#8a8f98]" />
+          <X className="w-4 h-4 text-[#94A3B8]" />
         </button>
         <div className="flex-1 min-w-0">
           <ChatInput
@@ -338,16 +338,16 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
 
       {pendingClose && (
         <div className="fixed inset-0 z-[600] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPendingClose(false)}>
-          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#101014]" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm text-[#9a9fa8] mb-5">{tx('confirm_close')}</p>
+          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-[#94A3B8] mb-5">{tx('confirm_close')}</p>
             <div className="flex gap-2.5">
-              <button onClick={() => setPendingClose(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#9a9fa8] glass">
+              <button onClick={() => setPendingClose(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#94A3B8] glass">
                 {tx('cancel')}
               </button>
               <button
                 onClick={async () => { await closeRoom(room.id).catch(() => {}); setPendingClose(false); onClosedRoom(); }}
                 className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #ff6b81, #ef4444)' }}
+                style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)' }}
               >
                 {tx('confirm')}
               </button>

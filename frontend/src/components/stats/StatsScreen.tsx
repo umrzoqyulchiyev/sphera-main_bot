@@ -53,14 +53,14 @@ export function StatsScreen({ user }: StatsScreenProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader className="w-8 h-8 text-[#5e6ad2] animate-spin" />
+        <Loader className="w-8 h-8 text-[#F97316] animate-spin" />
       </div>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="glass p-8 text-center text-[#8a8f98] text-sm rounded-[20px]">
+      <div className="glass p-8 text-center text-[#94A3B8] text-sm rounded-[20px]">
         {lang === 'ru' ? 'Не удалось загрузить статистику' : lang === 'lt' ? 'Nepavyko įkelti statistikos' : 'Failed to load stats'}
       </div>
     );
@@ -72,12 +72,12 @@ export function StatsScreen({ user }: StatsScreenProps) {
   const progress = Math.min(((currentPoints % 100) / 100) * 100, 100);
 
   const statCards = [
-    { icon: MessageSquare, label: tx('msgs'), value: stats.total_messages, color: '#5e6ad2' },
-    { icon: Mic, label: tx('voice'), value: stats.voice_messages, color: '#a855f7' },
-    { icon: Radio, label: tx('studio'), value: stats.studio_messages, color: '#ec4899' },
-    { icon: Star, label: tx('favs'), value: stats.favorite_count, color: '#f59e0b' },
-    { icon: TrendingUp, label: tx('earned'), value: stats.points_earned, color: '#22c55e', suffix: 'PT' },
-    { icon: Calendar, label: tx('days'), value: stats.days_active, color: '#06b6d4' },
+    { icon: MessageSquare, label: tx('msgs'), value: stats.total_messages, color: '#F97316' },
+    { icon: Mic, label: tx('voice'), value: stats.voice_messages, color: '#A78BFA' },
+    { icon: Radio, label: tx('studio'), value: stats.studio_messages, color: '#EC4899' },
+    { icon: Star, label: tx('favs'), value: stats.favorite_count, color: '#EAB308' },
+    { icon: TrendingUp, label: tx('earned'), value: stats.points_earned, color: '#22C55E', suffix: 'PT' },
+    { icon: Calendar, label: tx('days'), value: stats.days_active, color: '#06B6D4' },
   ];
 
   const roleKey = user?.role || 'listener';
@@ -91,28 +91,28 @@ export function StatsScreen({ user }: StatsScreenProps) {
     <div className="flex flex-col gap-4 pb-4">
       {/* Level Progress */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[rgba(94,106,210,0.2)] to-[rgba(94,106,210,0.1)] blur-2xl opacity-60" />
+        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[rgba(249,115,22,0.2)] to-[rgba(249,115,22,0.1)] blur-2xl opacity-60" />
         <div className="relative glass p-6 rounded-[24px]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="text-[10px] tracking-[2px] text-[#8a8f98] uppercase mb-1">{tx('level_title')}</div>
+              <div className="text-[10px] tracking-[2px] text-[#94A3B8] uppercase mb-1">{tx('level_title')}</div>
               <div className="text-4xl font-extrabold text-white">
-                <span className="text-[#5e6ad2]">{level}</span>
+                <span className="text-[#F97316]">{level}</span>
               </div>
             </div>
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#5e6ad2] to-[#5e6ad2] flex items-center justify-center shadow-[0_0_30px_rgba(94,106,210,0.5)]">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FB923C] to-[#F97316] flex items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.5)]">
               <Award className="w-10 h-10 text-white" />
             </div>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-[#8a8f98]">{currentPoints.toFixed(1)} {tx('points_label')}</span>
-              <span className="text-[#5e6ad2] font-bold">{nextLevelPoints} {tx('next_level')} {level + 1} {tx('lvl')}</span>
+              <span className="text-[#94A3B8]">{currentPoints.toFixed(1)} {tx('points_label')}</span>
+              <span className="text-[#F97316] font-bold">{nextLevelPoints} {tx('next_level')} {level + 1} {tx('lvl')}</span>
             </div>
-            <div className="h-3 rounded-full bg-[rgba(138,143,152,0.2)] overflow-hidden relative">
+            <div className="h-3 rounded-full bg-[rgba(148,163,184,0.2)] overflow-hidden relative">
               <div
-                className="h-full bg-gradient-to-r from-[#5e6ad2] to-[#5e6ad2] rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progress}%`, boxShadow: '0 0 20px rgba(94,106,210,0.6)' }}
+                className="h-full bg-gradient-to-r from-[#FB923C] to-[#F97316] rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${progress}%`, boxShadow: '0 0 20px rgba(249,115,22,0.6)' }}
               />
             </div>
           </div>
@@ -126,31 +126,31 @@ export function StatsScreen({ user }: StatsScreenProps) {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(168,85,247,0.3)] to-[rgba(236,72,153,0.2)] flex items-center justify-center">
               <span className="text-lg">🧠</span>
             </div>
-            <div className="text-sm font-bold text-[#5e6ad2]">{tx('psycho')}</div>
+            <div className="text-sm font-bold text-[#F97316]">{tx('psycho')}</div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
-              <div className="text-[9px] tracking-wider text-[#8a8f98] uppercase mb-1">{tx('focus')}</div>
+            <div className="bg-[rgba(15,15,35,0.45)] rounded-xl p-3">
+              <div className="text-[9px] tracking-wider text-[#94A3B8] uppercase mb-1">{tx('focus')}</div>
               <div className="text-xs text-white font-medium">{user.psychotype.focus_of_attention}</div>
             </div>
-            <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
-              <div className="text-[9px] tracking-wider text-[#8a8f98] uppercase mb-1">{tx('tone')}</div>
+            <div className="bg-[rgba(15,15,35,0.45)] rounded-xl p-3">
+              <div className="text-[9px] tracking-wider text-[#94A3B8] uppercase mb-1">{tx('tone')}</div>
               <div className="text-xs text-white font-medium">{user.psychotype.emotional_tone}</div>
             </div>
-            <div className="col-span-2 bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
-              <div className="text-[9px] tracking-wider text-[#8a8f98] uppercase mb-1">{tx('topic')}</div>
+            <div className="col-span-2 bg-[rgba(15,15,35,0.45)] rounded-xl p-3">
+              <div className="text-[9px] tracking-wider text-[#94A3B8] uppercase mb-1">{tx('topic')}</div>
               <div className="text-xs text-white font-medium">{user.psychotype.key_topic}</div>
             </div>
-            <div className="col-span-2 bg-gradient-to-r from-[rgba(94,106,210,0.15)] to-[rgba(168,85,247,0.15)] rounded-xl p-3">
-              <div className="text-[9px] tracking-wider text-[#8a8f98] uppercase mb-1">{tx('priority')}</div>
+            <div className="col-span-2 bg-gradient-to-r from-[rgba(249,115,22,0.15)] to-[rgba(167,139,250,0.15)] rounded-xl p-3">
+              <div className="text-[9px] tracking-wider text-[#94A3B8] uppercase mb-1">{tx('priority')}</div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full bg-[rgba(0,0,0,0.3)] overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#5e6ad2] to-[#a855f7] rounded-full"
+                    className="h-full bg-gradient-to-r from-[#F97316] to-[#A78BFA] rounded-full"
                     style={{ width: `${(user.psychotype.priority_score ?? 5) * 10}%` }}
                   />
                 </div>
-                <span className="text-sm font-bold text-[#5e6ad2]">{user.psychotype.priority_score ?? 5}/10</span>
+                <span className="text-sm font-bold text-[#F97316]">{user.psychotype.priority_score ?? 5}/10</span>
               </div>
             </div>
           </div>
@@ -172,9 +172,9 @@ export function StatsScreen({ user }: StatsScreenProps) {
               <div className="space-y-1">
                 <div className="text-2xl font-extrabold text-white">
                   {card.value}
-                  {card.suffix && <span className="text-xs text-[#8a8f98] ml-1">{card.suffix}</span>}
+                  {card.suffix && <span className="text-xs text-[#94A3B8] ml-1">{card.suffix}</span>}
                 </div>
-                <div className="text-[10px] tracking-wide text-[#8a8f98] uppercase">{card.label}</div>
+                <div className="text-[10px] tracking-wide text-[#94A3B8] uppercase">{card.label}</div>
               </div>
             </div>
           );
@@ -184,7 +184,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
       {/* Role Badge */}
       <div className="glass p-5 rounded-[20px] flex items-center justify-between">
         <div>
-          <div className="text-[10px] tracking-[2px] text-[#8a8f98] uppercase mb-1">{tx('role')}</div>
+          <div className="text-[10px] tracking-[2px] text-[#94A3B8] uppercase mb-1">{tx('role')}</div>
           <div className="text-lg font-bold text-white">{roleLabel}</div>
         </div>
         <div className="text-4xl opacity-30">

@@ -29,14 +29,14 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
       <div
         className="pointer-events-auto max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pb-[calc(6px+env(safe-area-inset-bottom))] pt-2"
         style={{
-          background: 'linear-gradient(180deg, transparent 0%, rgba(5,5,6,0.92) 30%, rgba(5,5,6,0.99) 100%)',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(15,15,35,0.92) 30%, rgba(15,15,35,0.99) 100%)',
         }}
       >
         <div
           className="flex justify-around items-center h-[58px] px-2 rounded-[24px] relative"
           style={{
-            background: 'rgba(10,18,36,0.92)',
-            border: '1px solid rgba(94,106,210,0.12)',
+            background: 'rgba(27,27,48,0.92)',
+            border: '1px solid rgba(249,115,22,0.14)',
             boxShadow: '0 -4px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)',
           }}
         >
@@ -68,8 +68,8 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
                 onClick={() => onNavigate(item.id)}
                 className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 active:scale-90"
                 style={{
-                  color: isActive ? '#5e6ad2' : '#8a8f98',
-                  filter: isActive ? 'drop-shadow(0 0 10px rgba(94,106,210,0.7))' : 'none',
+                  color: isActive ? '#F97316' : '#94A3B8',
+                  filter: isActive ? 'drop-shadow(0 0 10px rgba(249,115,22,0.7))' : 'none',
                   transform: isActive ? 'scale(1.1)' : 'scale(1)',
                 }}
               >

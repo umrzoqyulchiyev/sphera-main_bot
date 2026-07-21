@@ -249,12 +249,12 @@ export function Radio() {
 
   return (
     <div
-      className="bg-[#050506] text-[#ededef] flex flex-col relative"
+      className="bg-[var(--bg)] text-[var(--text)] flex flex-col relative"
       style={{ height: 'var(--app-vh)', overflow: 'hidden' }}
     >
       {/* Background ambient */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse,rgba(94,106,210,0.06)_0%,transparent_70%)]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse,rgba(249,115,22,0.07)_0%,transparent_70%)]" />
       </div>
 
       {/* Asosiy scroll container — mouse wheel + touch ikkalasi ishlaydi */}
@@ -296,12 +296,12 @@ export function Radio() {
         >
           <div
             className="glass rounded-2xl px-4 py-3 flex items-center gap-3 animate-[slideDown_0.25s_ease-out]"
-            style={{ border: '1px solid rgba(34,227,165,0.35)', boxShadow: '0 8px 30px rgba(34,227,165,0.15)' }}
+            style={{ border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 8px 30px rgba(34,197,94,0.15)' }}
           >
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-[rgba(34,227,165,0.15)] text-[#22e3a5]">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-[rgba(34,197,94,0.15)] text-[var(--live)]">
               {pointsNotice.gift ? <Gift size={18} /> : <Sparkles size={18} />}
             </div>
-            <span className="text-sm font-semibold text-[#ededef]">{pointsNotice.text}</span>
+            <span className="text-sm font-semibold text-[var(--text)]">{pointsNotice.text}</span>
           </div>
         </div>
       )}
