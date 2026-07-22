@@ -26,6 +26,9 @@
   "voice_message": "Balso žinutė",
   "go_live": "PRADĖTI TIESIOGINĘ",
   "end_live": "BAIGTI ETERĮ",
+  "broadcast_paused": "Eteris pristabdytas",
+  "slot_ready_now": "Galite pradėti tiesioginę transliaciją",
+  "slot_starts_at": "„{title}“ prasidės {time}",
 
   "points_label": "POINT",
   "points_balance": "Jūsų balansas",

@@ -52,7 +52,7 @@ export function Radio() {
   // mount bo'lganda isLive qaytadan false bo'lib qolar, "band" xatosi
   // chiqib na to'xtatib, na qaytadan boshlab bo'lmasdi).
   const { message: liveToast, showToast: showLiveToast } = useToast();
-  const { isLive, remainingSec: liveRemainingSec, toggleLive } = useLiveBroadcast(city, showLiveToast);
+  const { isLive, remainingSec: liveRemainingSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = useLiveBroadcast(city, showLiveToast);
 
   // Tinglash (audio pleer) holati ham shu darajada — avval EfirScreen
   // ichida edi, shuning uchun boshqa tabga (chat/profil) o'tilganda
@@ -245,6 +245,8 @@ export function Radio() {
             isLive={isLive}
             liveRemainingSec={liveRemainingSec}
             onToggleLive={toggleLive}
+            isLivePaused={isLivePaused}
+            onToggleLivePause={onToggleLivePause}
             radioStatus={radioStatus}
             setRadioStatus={setRadioStatus}
             audioPlayer={audioPlayer}

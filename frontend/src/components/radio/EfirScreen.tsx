@@ -4,14 +4,14 @@ import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
 import { Visualizer } from './Visualizer';
-import { GoLiveButton } from './GoLiveButton';
+import { GoLiveButton, type SlotHint } from './GoLiveButton';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
 import { useTelegramBackButton } from '../../hooks/useTelegramBackButton';
 import { Toast } from '../ui/Toast';
 import { FullScreenModal } from '../ui/FullScreenModal';
-import { getRadioStatus, getChatHistory, sendOpinionVoice, sendChatMessage, sendVoiceMessage } from '../../lib/api';
+import { getRadioStatus, getChatHistory, getMySlots, sendOpinionVoice, sendChatMessage, sendVoiceMessage, type BroadcastSlot } from '../../lib/api';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User, RadioStatus, ChatMessage, Screen } from '../../types';
@@ -32,6 +32,9 @@ interface EfirScreenProps {
   isLive: boolean;
   liveRemainingSec: number | null;
   onToggleLive: () => void;
+  // Efirni vaqtincha to'xtatish (mikrofon jim, sessiya ochiq qoladi).
+  isLivePaused?: boolean;
+  onToggleLivePause?: () => void;
   // Tinglash (audio pleer) holati ham Radio.tsx darajasida — boshqa tabga
   // o'tilganda ham <audio> elementi uzilmasligi uchun. Shu ekran faqat
   // ko'rsatadi/boshqaradi, lekin o'zi yaratmaydi.
@@ -40,7 +43,7 @@ interface EfirScreenProps {
   audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive, isLivePaused, onToggleLivePause, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -59,6 +62,61 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Vediushiyning eng dolzarb bron qilingan sloti — "ЗАПИСАЛСЯ Я ИЛИ НЕТ"
+  // savoliga tugma rangi/podsказka orqali javob berish uchun (faqat
+  // doverenniy/admin uchun kerak — ular efirga chiqa oladi).
+  const canGoLive = user?.role === 'admin' || user?.role === 'doverenniy';
+  const [mySlot, setMySlot] = useState<BroadcastSlot | null>(null);
+  const [, forceTick] = useState(0);
+
+  useEffect(() => {
+    if (!canGoLive) return;
+    let cancelled = false;
+    const load = () => {
+      getMySlots().then((slots) => {
+        if (cancelled) return;
+        const now = Date.now();
+        let best: BroadcastSlot | null = null;
+        let bestDiff = Infinity;
+        for (const s of slots) {
+          if (s.status !== 'scheduled' && s.status !== 'live') continue;
+          const start = new Date(s.scheduled_at).getTime();
+          const end = start + s.duration_min * 60000;
+          if (now < end) {
+            const diff = Math.abs(start - now);
+            // Hozir faol (start<=now<end) bo'lgan slot doim ustuvor;
+            // aks holda eng yaqin kelajakdagisini tanlaymiz.
+            const active = now >= start && now < end;
+            if (active) { best = s; bestDiff = -1; break; }
+            if (diff < bestDiff) { best = s; bestDiff = diff; }
+          }
+        }
+        setMySlot(best);
+      }).catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [canGoLive]);
+
+  // Podsказka har soniyada yangilanib tursin (countdown/"hozir mumkin" o'tishi).
+  useEffect(() => {
+    if (!canGoLive) return;
+    const t = setInterval(() => forceTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [canGoLive]);
+
+  const slotHint: SlotHint | null = (() => {
+    if (!mySlot) return null;
+    const start = new Date(mySlot.scheduled_at).getTime();
+    const end = start + mySlot.duration_min * 60000;
+    const now = Date.now();
+    const ready = now >= start && now < end;
+    if (ready) return { ready: true, text: t('slot_ready_now') };
+    const time = new Date(mySlot.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return { ready: false, text: t('slot_starts_at').replace('{title}', mySlot.title).replace('{time}', time) };
+  })();
 
   const { send: wsSend } = useWebSocket({ city, onMessage: handleWSMessage });
 
@@ -533,7 +591,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         {/* 🔴 LIVE tugmasi — faqat admin/doverenniy uchun, qolganlarga kasting taklifi */}
         {(user?.role === 'admin' || user?.role === 'doverenniy') ? (
           <div className="mb-2">
-            <GoLiveButton isLive={isLive} remainingSec={liveRemainingSec} onToggle={onToggleLive} />
+            <GoLiveButton
+              isLive={isLive}
+              remainingSec={liveRemainingSec}
+              onToggle={onToggleLive}
+              isPaused={isLivePaused}
+              onTogglePause={onToggleLivePause}
+              slot={slotHint}
+            />
           </div>
         ) : (
           <button

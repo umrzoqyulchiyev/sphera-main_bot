@@ -17,6 +17,7 @@ import { useTranslation } from './useTranslation';
 export function useLiveBroadcast(city: string, onToast: (message: string) => void) {
   const { t } = useTranslation();
   const [isLive, setIsLive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -39,6 +40,7 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
   const stopBroadcast = useCallback(async () => {
     liveRef.current = false;
     setIsLive(false);
+    setIsPaused(false);
     stopCountdown();
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch {}
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
@@ -113,6 +115,24 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     }
   };
 
+  // Efirni vaqtincha to'xtatish — masalan vediushiy bir necha daqiqaga
+  // chetlashishi kerak bo'lsa. MediaRecorder.pause()/resume() — chunk
+  // yuborish shunchaki to'xtaydi/davom etadi, /broadcast/stop chaqirilmaydi
+  // (sessiya, slot va countdown butunlay ochiq qoladi, faqat mikrofon
+  // "jim" bo'ladi). Server tomonda hech qanday stale-timeout buni
+  // avtomatik yopib qo'ymaydi (u faqat yangi sessiya ochilganda tekshiriladi).
+  const togglePause = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || !liveRef.current) return;
+    if (recorder.state === 'recording') {
+      recorder.pause();
+      setIsPaused(true);
+    } else if (recorder.state === 'paused') {
+      recorder.resume();
+      setIsPaused(false);
+    }
+  }, []);
+
   const toggleLive = useCallback(async () => {
     if (liveRef.current) {
       await stopBroadcast();
@@ -160,6 +180,7 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
       streamRef.current = stream;
       liveRef.current = true;
       setIsLive(true);
+      setIsPaused(false);
       onToastRef.current('🔴 LIVE!');
       startRecorder(stream);
       if (data.expires_at) startCountdown(data.expires_at);
@@ -170,5 +191,5 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, stopBroadcast]);
 
-  return { isLive, remainingSec, toggleLive };
+  return { isLive, remainingSec, toggleLive, isPaused, togglePause };
 }

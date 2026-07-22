@@ -26,6 +26,9 @@
   "voice_message": "Голосовое сообщение",
   "go_live": "ВЫЙТИ В ПРЯМОЙ ЭФИР",
   "end_live": "ЗАВЕРШИТЬ ЭФИР",
+  "broadcast_paused": "Эфир на паузе",
+  "slot_ready_now": "Можно выходить в эфир",
+  "slot_starts_at": "«{title}» начнётся в {time}",
 
   "points_label": "POINT",
   "points_balance": "Ваш баланс",

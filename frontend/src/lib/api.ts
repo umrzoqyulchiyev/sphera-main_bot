@@ -580,6 +580,14 @@ export async function getUpcomingSlots(): Promise<BroadcastSlot[]> {
   return resp.json();
 }
 
+// Vediushiyning o'z slotlari — GoLiveButton'da "bron qilinganmi?" holatini
+// ko'rsatish uchun (backend GET /slots/my — host_user_id = joriy user).
+export async function getMySlots(): Promise<BroadcastSlot[]> {
+  const resp = await fetch(`${API_URL}/slots/my`, { headers: authHeaders() });
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
 export async function getAllSlots(): Promise<BroadcastSlot[]> {
   const resp = await fetch(`${API_URL}/slots/`, { headers: authHeaders() });
   if (!resp.ok) return [];

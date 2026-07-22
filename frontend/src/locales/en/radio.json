@@ -26,6 +26,9 @@
   "voice_message": "Voice message",
   "go_live": "GO LIVE",
   "end_live": "END BROADCAST",
+  "broadcast_paused": "Broadcast paused",
+  "slot_ready_now": "You can go live now",
+  "slot_starts_at": "\"{title}\" starts at {time}",
 
   "points_label": "POINT",
   "points_balance": "Your balance",

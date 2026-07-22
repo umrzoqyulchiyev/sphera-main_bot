@@ -219,6 +219,17 @@
   }
 }
 
+/* GoLiveButton — bron qilingan slot vaqti kelib, hozir efirga chiqish
+   mumkin bo'lganda (lekin hali boshlanmagan) */
+@keyframes liveGlowGreen {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.55);
+  }
+}
+
 @keyframes pulse-glow {
   0%, 100% {
     opacity: 0.05;
