@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2 } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminSetAdmin, adminAddPoints,
@@ -50,6 +50,8 @@ const L: Record<string, Record<string, string>> = {
     make_admin: 'Сделать админом', revoke_admin: 'Убрать права админа',
     confirm_grant_admin: 'Дать этому пользователю полные права администратора? Он получит доступ ко всей админ-панели, включая выдачу поинтов и прав другим.',
     confirm_revoke_admin: 'Забрать права администратора у этого пользователя?',
+    search_users_placeholder: 'Поиск по ID или @username',
+    search_no_results: 'Никого не найдено',
     aggregate: 'Создать диалог', no_drafts: 'Нет черновиков эфира',
     pending: 'Ожидает', approved: 'В эфире', rejected: 'Отклонён',
     approve: 'Одобрить → Эфир', reject: 'Отклонить', view: 'Смотреть',
@@ -85,6 +87,8 @@ const L: Record<string, Record<string, string>> = {
     make_admin: 'Make admin', revoke_admin: 'Revoke admin',
     confirm_grant_admin: 'Give this user full administrator access? They will get access to the entire admin panel, including granting points and admin rights to others.',
     confirm_revoke_admin: 'Revoke administrator access from this user?',
+    search_users_placeholder: 'Search by ID or @username',
+    search_no_results: 'No one found',
     aggregate: 'Create dialog', no_drafts: 'No broadcast drafts',
     pending: 'Pending', approved: 'On air', rejected: 'Rejected',
     approve: 'Approve → Air', reject: 'Reject', view: 'View',
@@ -120,6 +124,8 @@ const L: Record<string, Record<string, string>> = {
     make_admin: 'Suteikti administratoriaus teises', revoke_admin: 'Atimti administratoriaus teises',
     confirm_grant_admin: 'Suteikti šiam vartotojui pilnas administratoriaus teises? Jis gaus prieigą prie visos admin panelės, įskaitant taškų ir teisių suteikimą kitiems.',
     confirm_revoke_admin: 'Atimti administratoriaus teises iš šio vartotojo?',
+    search_users_placeholder: 'Ieškoti pagal ID arba @username',
+    search_no_results: 'Nieko nerasta',
     aggregate: 'Sukurti dialogą', no_drafts: 'Nėra eterio juodraščių',
     pending: 'Laukia', approved: 'Eteryje', rejected: 'Atmesta',
     approve: 'Patvirtinti → Eterį', reject: 'Atmesti', view: 'Žiūrėti',
@@ -859,6 +865,20 @@ function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
   // To'liq admin huquqi berish/qaytarib olish — bosilishi bilan emas,
   // avval ConfirmModal orqali (yuqori huquq, tasodifan bosilib qolmasin).
   const [adminTarget, setAdminTarget] = useState<{ id: number; name: string; grant: boolean } | null>(null);
+  // ID yoki @username bo'yicha qidiruv — 200 nafar foydalanuvchi ro'yxatida
+  // kerakli odamni topish qiyin bo'lgani uchun.
+  const [search, setSearch] = useState('');
+
+  const filtered = (() => {
+    const q = search.trim().toLowerCase().replace(/^@/, '');
+    if (!q) return users;
+    return users.filter((u: any) =>
+      String(u.telegram_id).includes(q) ||
+      String(u.id) === q ||
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.display_name || '').toLowerCase().includes(q)
+    );
+  })();
 
   if (users.length === 0) return (
     <div className="glass p-8 text-center text-[#94A3B8] text-sm">{tx('no_users')}</div>
@@ -875,7 +895,29 @@ function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
         </div>
       </div>
 
-      {users.map((u: any) => (
+      {/* Qidiruv — ID yoki @username */}
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={tx('search_users_placeholder')}
+          className="w-full rounded-2xl pl-10 pr-9 py-3 text-sm text-[#F8FAFC] outline-none placeholder:text-[#64748B]"
+          style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(148,163,184,0.16)' }}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} aria-label="Очистить"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8]">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="glass p-6 text-center text-[#94A3B8] text-sm">{tx('search_no_results')}</div>
+      )}
+
+      {filtered.map((u: any) => (
         <div key={u.id} className="glass rounded-2xl p-3.5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex-1 min-w-0">
