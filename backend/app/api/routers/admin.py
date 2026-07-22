@@ -14,6 +14,7 @@ from app.core.database import db
 from app.core.dependencies import require_admin
 from app.core.models import (
     AdminAddPointsRequest,
+    AdminSetAdminRequest,
     AdminSetLevelRequest,
     OkResponse,
     PackageCreate,
@@ -66,6 +67,42 @@ async def set_user_level(
         payload.user_id,
     )
     return OkResponse(detail={"user_id": payload.user_id, "level": payload.level, "role": role})
+
+
+@router.post("/users/set-admin", response_model=OkResponse)
+async def set_admin(
+    payload: AdminSetAdminRequest,
+    admin: dict = Depends(require_admin),
+):
+    """[admin] To'liq admin huquqini berish yoki qaytarib olish.
+
+    level 1/2/3 zinapoyasidan alohida — bu doverenniy'dan ham yuqori,
+    cheklovsiz huquq (butun /admin panelga kirish, jumladan boshqa
+    foydalanuvchilarga ham admin bera olish). Faqat mavjud admin bera oladi
+    (require_admin), va o'zini-o'zi qaytarib ololmaydi — aks holda bitta
+    xato bosish bilan hech kim panelga kira olmay qolishi mumkin edi.
+    """
+    if payload.user_id == admin["id"] and not payload.is_admin:
+        raise HTTPException(status_code=400, detail="Cannot revoke your own admin access")
+
+    # Qaytarib olinganda "doverenniy"ga tushadi — bu eng yuqori
+    # admin-bo'lmagan ishonch darajasi, aniqroq fallback yo'q.
+    new_role = "admin" if payload.is_admin else "doverenniy"
+    result = await db.execute(
+        "UPDATE users SET role = $1, level = 3 WHERE id = $2",
+        new_role,
+        payload.user_id,
+    )
+    if result.endswith("0"):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    log.info(
+        "Admin %d %s admin rights for user=%d",
+        admin["id"],
+        "granted" if payload.is_admin else "revoked",
+        payload.user_id,
+    )
+    return OkResponse(detail={"user_id": payload.user_id, "role": new_role})
 
 
 @router.post("/users/add-points", response_model=OkResponse)

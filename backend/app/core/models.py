@@ -226,6 +226,11 @@ class AdminSetLevelRequest(BaseModel):
     level: int  # 1, 2, 3
 
 
+class AdminSetAdminRequest(BaseModel):
+    user_id: int
+    is_admin: bool  # true — to'liq admin huquqi berish, false — qaytarib olish
+
+
 class AdminAddPointsRequest(BaseModel):
     user_id: int
     amount: Decimal

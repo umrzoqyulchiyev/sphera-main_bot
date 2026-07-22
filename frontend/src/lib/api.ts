@@ -378,6 +378,21 @@ export async function adminSetLevel(user_id: number, level: number) {
   return resp.json();
 }
 
+// To'liq admin huquqi berish/qaytarib olish — level 1/2/3 zinapoyasidan
+// alohida, faqat mavjud admin bera oladi.
+export async function adminSetAdmin(user_id: number, is_admin: boolean) {
+  const resp = await fetch(`${API_URL}/admin/users/set-admin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ user_id, is_admin }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to set admin');
+  }
+  return resp.json();
+}
+
 export async function adminAddPoints(user_id: number, amount: number) {
   const resp = await fetch(`${API_URL}/admin/users/add-points`, {
     method: 'POST',

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2 } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
-  getUsers, adminSetLevel, adminAddPoints,
+  getUsers, adminSetLevel, adminSetAdmin, adminAddPoints,
   adminCreateSlot, getAllSlots, adminUpdateSlotStatus,
   getMusicNominations, adminDeleteNomination,
   adminGetPaymentSettings, adminUpdatePaymentSettings,
@@ -47,6 +47,9 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Уровень', access_legend_title: 'Уровни доступа',
     lvl1_desc: '1 — слушает эфир и чат', lvl2_desc: '2 — пишет в чат, переводит поинты',
     lvl3_desc: '3 — доступ к микрофону (эфир)',
+    make_admin: 'Сделать админом', revoke_admin: 'Убрать права админа',
+    confirm_grant_admin: 'Дать этому пользователю полные права администратора? Он получит доступ ко всей админ-панели, включая выдачу поинтов и прав другим.',
+    confirm_revoke_admin: 'Забрать права администратора у этого пользователя?',
     aggregate: 'Создать диалог', no_drafts: 'Нет черновиков эфира',
     pending: 'Ожидает', approved: 'В эфире', rejected: 'Отклонён',
     approve: 'Одобрить → Эфир', reject: 'Отклонить', view: 'Смотреть',
@@ -79,6 +82,9 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Level', access_legend_title: 'Access levels',
     lvl1_desc: '1 — listens to broadcast and chat', lvl2_desc: '2 — writes in chat, transfers points',
     lvl3_desc: '3 — microphone access (broadcast)',
+    make_admin: 'Make admin', revoke_admin: 'Revoke admin',
+    confirm_grant_admin: 'Give this user full administrator access? They will get access to the entire admin panel, including granting points and admin rights to others.',
+    confirm_revoke_admin: 'Revoke administrator access from this user?',
     aggregate: 'Create dialog', no_drafts: 'No broadcast drafts',
     pending: 'Pending', approved: 'On air', rejected: 'Rejected',
     approve: 'Approve → Air', reject: 'Reject', view: 'View',
@@ -111,6 +117,9 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Lygis', access_legend_title: 'Prieigos lygiai',
     lvl1_desc: '1 — klauso eterio ir pokalbio', lvl2_desc: '2 — rašo pokalbyje, perveda taškus',
     lvl3_desc: '3 — mikrofono prieiga (eteris)',
+    make_admin: 'Suteikti administratoriaus teises', revoke_admin: 'Atimti administratoriaus teises',
+    confirm_grant_admin: 'Suteikti šiam vartotojui pilnas administratoriaus teises? Jis gaus prieigą prie visos admin panelės, įskaitant taškų ir teisių suteikimą kitiems.',
+    confirm_revoke_admin: 'Atimti administratoriaus teises iš šio vartotojo?',
     aggregate: 'Sukurti dialogą', no_drafts: 'Nėra eterio juodraščių',
     pending: 'Laukia', approved: 'Eteryje', rejected: 'Atmesta',
     approve: 'Patvirtinti → Eterį', reject: 'Atmesti', view: 'Žiūrėti',
@@ -334,6 +343,10 @@ export function Admin() {
         ) : (
           <UsersTab users={users} tx={tx}
             onSetLevel={async (id: number, lvl: number) => { try { await adminSetLevel(id, lvl); flash('✅'); await loadData(); } catch { flash('❌'); } }}
+            onSetAdmin={async (id: number, isAdmin: boolean) => {
+              try { await adminSetAdmin(id, isAdmin); flash('✅'); await loadData(); }
+              catch (e: any) { flash('❌ ' + (e.message || '')); }
+            }}
             onAddPoints={(u: UserRow) => setAddPointsTarget(u)} />
         )}
       </div>
@@ -842,7 +855,11 @@ function MusicTab({ topics, tx, flash }: any) {
 }
 
 // ── UsersTab (контроль доступа — уровни 1/2/3) ────────────────
-function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
+function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
+  // To'liq admin huquqi berish/qaytarib olish — bosilishi bilan emas,
+  // avval ConfirmModal orqali (yuqori huquq, tasodifan bosilib qolmasin).
+  const [adminTarget, setAdminTarget] = useState<{ id: number; name: string; grant: boolean } | null>(null);
+
   if (users.length === 0) return (
     <div className="glass p-8 text-center text-[#94A3B8] text-sm">{tx('no_users')}</div>
   );
@@ -877,7 +894,7 @@ function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
             </button>
           </div>
           {/* Level tugmalari — raqamli darajalar (1/2/3) */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 mb-1.5">
             {[1, 2, 3].map(lvl => (
               <button key={lvl} onClick={() => onSetLevel(u.id, lvl)}
                 className={`flex-1 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
@@ -889,8 +906,32 @@ function UsersTab({ users, tx, onSetLevel, onAddPoints }: any) {
               </button>
             ))}
           </div>
+          {/* To'liq admin huquqi — level zinapoyasidan alohida, eng yuqori */}
+          <button
+            onClick={() => setAdminTarget({
+              id: u.id,
+              name: u.display_name || u.username || `ID ${u.telegram_id}`,
+              grant: u.role !== 'admin',
+            })}
+            className={`w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+              u.role === 'admin'
+                ? 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'
+                : 'bg-[rgba(234,179,8,0.12)] text-[#EAB308]'
+            }`}
+          >
+            {u.role === 'admin' ? tx('revoke_admin') : `👑 ${tx('make_admin')}`}
+          </button>
         </div>
       ))}
+
+      {adminTarget && (
+        <ConfirmModal
+          tx={tx}
+          message={tx(adminTarget.grant ? 'confirm_grant_admin' : 'confirm_revoke_admin')}
+          onConfirm={() => { onSetAdmin(adminTarget.id, adminTarget.grant); setAdminTarget(null); }}
+          onCancel={() => setAdminTarget(null)}
+        />
+      )}
     </div>
   );
 }
