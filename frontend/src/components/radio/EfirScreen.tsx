@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check } from 'lucide-react';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -32,13 +32,18 @@ interface EfirScreenProps {
   isLive: boolean;
   liveRemainingSec: number | null;
   onToggleLive: () => void;
+  // Tinglash (audio pleer) holati ham Radio.tsx darajasida — boshqa tabga
+  // o'tilganda ham <audio> elementi uzilmasligi uchun. Shu ekran faqat
+  // ko'rsatadi/boshqaradi, lekin o'zi yaratmaydi.
+  radioStatus: RadioStatus | null;
+  setRadioStatus: Dispatch<SetStateAction<RadioStatus | null>>;
+  audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
-  const [radioStatus, setRadioStatus] = useState<RadioStatus | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // O'zimiz optimistik qo'shgan (hali serverdan tasdiqlanmagan) chat
   // xabarlari — asosiy chat ekranidagi bilan bir xil 1/2 galochka mexanizmi.
@@ -54,17 +59,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-
-  const audioPlayer = useAudioPlayer({
-    city,
-    language: lang,
-    // USE_ICECAST=true (server sozlamasi), radioStatus yuklanguncha ham true
-    useIcecast: radioStatus?.use_icecast ?? true,
-    useHls: radioStatus?.use_hls ?? false,
-    // Backend proksi orqali (bir xil origin) — /radio/live/{lang} yoki /radio/hls/...
-    streamUrl: radioStatus?.stream_url,
-    onError: showToast,
-  });
 
   const { send: wsSend } = useWebSocket({ city, onMessage: handleWSMessage });
 

@@ -157,6 +157,17 @@ async def create_slot(
     if not title:
         raise HTTPException(status_code=400, detail="Title required")
 
+    # broadcast_slots.scheduled_at ustuni TIMESTAMP (timezone'siz), lekin
+    # frontend har doim ISO string (masalan "...Z") yuboradi — Pydantic buni
+    # timezone-aware datetime'ga aylantiradi. asyncpg esa timezone-siz
+    # ustunga timezone-aware datetime bersa "can't subtract offset-naive
+    # and offset-aware datetimes" xatosi bilan yiqiladi (500). UTC'ga
+    # normallashtirib, tzinfo'ni olib tashlaymiz — _fmt_slot ham xuddi shu
+    # "DB'dagi naive datetime = UTC" shartnomasiga tayanadi.
+    scheduled_at = payload.scheduled_at
+    if scheduled_at.tzinfo is not None:
+        scheduled_at = scheduled_at.astimezone(UTC).replace(tzinfo=None)
+
     # Ведущий mavjudmi va level 3+ mi?
     host = await db.fetchrow(
         "SELECT id, username, display_name, level, role FROM users WHERE id = $1",
@@ -167,22 +178,16 @@ async def create_slot(
     if host["level"] < 3 and host["role"] not in ("doverenniy", "admin"):
         raise HTTPException(status_code=400, detail="Host must be level 3 (doverenniy) or admin")
 
-    # TZ §3/§9: ведущий слот учун поинт билан tо'lайди — yaratishда darhol yechiladi
+    # TZ §3/§9: ведущий слот учун поинт билан tо'lайди.
     cost_points = (SLOT_COST_PER_HOUR * Decimal(payload.duration_min) / Decimal(60)).quantize(
         Decimal("0.0001")
     )
-    spent = await points_service.spend(payload.host_user_id, "slot_booking", cost_points)
-    if not spent["ok"]:
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "error": "insufficient_points",
-                "required": str(cost_points),
-                "points": str(spent["points"]),
-            },
-        )
 
-    # Share URL — bot orqali
+    # Avval slotni yaratamiz, keyin to'lovni yechamiz (spend() va INSERT
+    # bitta tranzaksiyada emas — spend() birinchi bo'lsa-yu INSERT keyin
+    # muvaffaqiyatsiz tugasa, poinт allaqachon yechilgan bo'lardi-yu, slot
+    # hech qachon yaratilmasdi). Shu tartibda: agar to'lov muvaffaqiyatsiz
+    # bo'lsa, endigina yaratilgan slotni o'chirib, holatni tozalaymiz.
     bot_username = "mybot_12_bot"  # env'dan olish mumkin keyinroq
     row = await db.fetchrow(
         """
@@ -194,11 +199,23 @@ async def create_slot(
         payload.host_user_id,
         title,
         payload.description.strip(),
-        payload.scheduled_at,
+        scheduled_at,
         payload.duration_min,
         admin["id"],
         cost_points,
     )
+
+    spent = await points_service.spend(payload.host_user_id, "slot_booking", cost_points)
+    if not spent["ok"]:
+        await db.execute("DELETE FROM broadcast_slots WHERE id = $1", row["id"])
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "insufficient_points",
+                "required": str(cost_points),
+                "points": str(spent["points"]),
+            },
+        )
 
     # Share URL'ni yangilaymiz
     share_url = f"https://t.me/{bot_username}?start=slot_{row['id']}"

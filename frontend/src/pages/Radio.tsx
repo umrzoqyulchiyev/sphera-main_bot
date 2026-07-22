@@ -15,12 +15,14 @@ import { Toast } from '../components/ui/Toast';
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useLiveBroadcast } from '../hooks/useLiveBroadcast';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useToast } from '../hooks/useToast';
-import { getMe, getPointsHistory } from '../lib/api';
+import { useTranslation } from '../hooks/useTranslation';
+import { getMe, getPointsHistory, getRadioStatus } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
 import { t } from '../lib/i18n';
-import type { Screen, User } from '../types';
+import type { Screen, User, RadioStatus } from '../types';
 
 const ONBOARDING_KEY = 'sfera5_onboarded';
 const POINTS_POLL_MS = 20000;
@@ -51,6 +53,28 @@ export function Radio() {
   // chiqib na to'xtatib, na qaytadan boshlab bo'lmasdi).
   const { message: liveToast, showToast: showLiveToast } = useToast();
   const { isLive, remainingSec: liveRemainingSec, toggleLive } = useLiveBroadcast(city, showLiveToast);
+
+  // Tinglash (audio pleer) holati ham shu darajada — avval EfirScreen
+  // ichida edi, shuning uchun boshqa tabga (chat/profil) o'tilganda
+  // EfirScreen unmount bo'lib, <audio> elementi va oqim uzilib qolardi.
+  // Endi Radio.tsx qayta mount bo'lmagani uchun, eshitish foydalanuvchi
+  // o'zi to'xtatmaguncha davom etadi — qaysi tab ochiq bo'lishidan qat'i nazar.
+  const { lang } = useTranslation();
+  const [radioStatus, setRadioStatus] = useState<RadioStatus | null>(null);
+  const audioPlayer = useAudioPlayer({
+    city,
+    language: lang,
+    // USE_ICECAST=true (server sozlamasi), radioStatus yuklanguncha ham true
+    useIcecast: radioStatus?.use_icecast ?? true,
+    useHls: radioStatus?.use_hls ?? false,
+    // Backend proksi orqali (bir xil origin) — /radio/live/{lang} yoki /radio/hls/...
+    streamUrl: radioStatus?.stream_url,
+    onError: showLiveToast,
+  });
+
+  useEffect(() => {
+    getRadioStatus(city).then(setRadioStatus).catch(console.error);
+  }, [city]);
 
   useEffect(() => {
     async function init() {
@@ -221,6 +245,9 @@ export function Radio() {
             isLive={isLive}
             liveRemainingSec={liveRemainingSec}
             onToggleLive={toggleLive}
+            radioStatus={radioStatus}
+            setRadioStatus={setRadioStatus}
+            audioPlayer={audioPlayer}
           />
         );
       case 'stats':
