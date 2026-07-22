@@ -298,16 +298,16 @@ export function Admin() {
           </div>
         </header>
 
-        {/* Tabs — gorizontal skroll bo'ladigan pill-lar */}
-        <div
-          className="flex gap-2 overflow-x-auto -mx-3.5 px-3.5"
-          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-        >
+        {/* Tabs — hammasi bir vaqtda ko'rinadi (flex-wrap), skroll bilan
+            yashirinib qolmasin: "Доступ" (users) tab aynan shu sababdan
+            topilmay qolgan edi — gorizontal skrollda 6-o'rinda, ekrandan
+            tashqarida edi va hech qanday skroll ishorasi yo'q edi. */}
+        <div className="flex flex-wrap gap-2">
           {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')], ['payment', CreditCard, tx('payment_tab')]] as const).map(([t, Icon, label]) => {
             const active = tab === t;
             return (
               <button key={t} onClick={() => setTab(t as any)}
-                className={`shrink-0 flex items-center gap-1.5 py-2.5 px-4 rounded-full border font-bold text-[11px] transition-all duration-200 active:scale-[0.95] ${
+                className={`flex items-center gap-1.5 py-2.5 px-4 rounded-full border font-bold text-[11px] transition-all duration-200 active:scale-[0.95] ${
                   active ? 'text-[#1B1204] border-transparent' : 'glass text-[#94A3B8] border-[rgba(249,115,22,0.14)]'
                 }`}
                 style={active ? { background: 'linear-gradient(135deg, #FB923C, #F97316)', boxShadow: '0 4px 18px rgba(249,115,22,0.45)' } : undefined}

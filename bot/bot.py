@@ -10,6 +10,7 @@ Foydalanuvchi studiyaga xabar yuborishdan oldin botdan o'tadi:
 TZ §1: /profile — real telegram_id ko'rsatiladi.
 """
 
+import asyncio
 import os
 import re
 import logging
@@ -455,6 +456,14 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # /start
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Shu foydalanuvchining chat-menyu tugmasini ham alohida qayta
+    # tasdiqlaymiz — /start odatda Mini App yopilgandan keyin foydalanuvchi
+    # eng ko'p qaytadigan joy, global default esa ayrim chatlarda
+    # ko'rinmay qolishi mumkin (yuqoridagi izohga qarang).
+    try:
+        await context.bot.set_chat_menu_button(chat_id=update.effective_chat.id, menu_button=_menu_button())
+    except Exception:
+        pass
     # Deep-link: /start buy → to'lov paketlarini ko'rsatamiz
     if context.args and context.args[0] == "buy":
         await buy_cmd(update, context)
@@ -1159,16 +1168,36 @@ async def mute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ============================================================
 # Bot ishga tushirish
 # ============================================================
+def _menu_button() -> MenuButtonWebApp:
+    return MenuButtonWebApp(text="📻 Radio", web_app=WebAppInfo(url=MINI_APP_URL))
+
+
+async def _keep_menu_button_fresh(bot) -> None:
+    """Global menyu tugmasini davriy ravishda qayta tasdiqlaydi.
+
+    Kuzatilgan muammo: Mini App ochib-yopilgandan keyin ba'zi
+    foydalanuvchilarda "📻 Radio" tugmasi Telegram'ning oddiy "☰ Menu"
+    holatiga qaytib qolyapti (aniq sababi Telegram klient-tarafida,
+    reproduksiya qilib bo'lmaydi). Bitta marotaba _post_init'da o'rnatish
+    yetarli emas edi — shu sabab process umri davomida davriy ravishda
+    qayta tasdiqlab turamiz, shunda uzoq muddat noto'g'ri holatda
+    qolib ketmaydi.
+    """
+    while True:
+        await asyncio.sleep(1800)  # 30 daqiqada bir
+        try:
+            await bot.set_chat_menu_button(menu_button=_menu_button())
+        except Exception as exc:
+            log.warning("periodic menu button refresh failed: %s", exc)
+
+
 async def _post_init(application: Application) -> None:
     try:
-        await application.bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(
-                text="📻 Radio", web_app=WebAppInfo(url=MINI_APP_URL)
-            )
-        )
+        await application.bot.set_chat_menu_button(menu_button=_menu_button())
         log.info("Menu button WebApp: %s", MINI_APP_URL)
     except Exception as exc:
         log.warning("menu button failed: %s", exc)
+    asyncio.create_task(_keep_menu_button_fresh(application.bot))
 
 
 def main() -> None:
