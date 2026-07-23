@@ -63,6 +63,26 @@ CREATE TABLE IF NOT EXISTS news (
 
 CREATE INDEX IF NOT EXISTS idx_news_lang ON news(language, is_active, sort_order);
 
+-- point_packages'da bo'lgan xuddi shu xato: pastdagi seed INSERT
+-- unique constraint'siz `ON CONFLICT DO NOTHING` bilan yozilgan edi — bu
+-- hech narsani ushlamaydi, shuning uchun har server restart'ida
+-- (= har Railway deploy'ida) bir xil 6 ta yangilik qayta qo'shilib
+-- kelgan (414 qatorgacha yetgan). Avval dublikatlarni tozalab, keyin
+-- haqiqiy unique constraint qo'yamiz — shundan keyin reseed idempotent.
+DELETE FROM news a USING news b
+WHERE a.id > b.id
+  AND a.language = b.language
+  AND a.title = b.title;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'news_language_title_key'
+    ) THEN
+        ALTER TABLE news ADD CONSTRAINT news_language_title_key UNIQUE (language, title);
+    END IF;
+END $$;
+
 -- ============ Chat xabarlari ============
 CREATE TABLE IF NOT EXISTS chat_messages (
     id              SERIAL PRIMARY KEY,
@@ -191,7 +211,7 @@ INSERT INTO news (language, title, body, sort_order) VALUES
     ('en', 'British Culture & Science', 'The UK gave the world Shakespeare, The Beatles and Newton. British universities remain among the best in the world.', 2),
     ('lt', 'Lietuva šiandien', 'Vilnius — Lietuvos širdis. Senamiestis, Gedimino pilis ir Trakų ežerai laukia svečių iš viso pasaulio. Šiandien šalyje vyksta kultūros festivaliai.', 1),
     ('lt', 'Lietuvos kultūra ir mokslas', 'Lietuva — krepšinio šalis ir Čiurlionio tėvynė. Lietuvių mokslininkai garsėja lazerių technologijomis visame pasaulyje.', 2)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (language, title) DO NOTHING;
 
 
 -- ============ Efir mavzulari (admin yaratadi) ============

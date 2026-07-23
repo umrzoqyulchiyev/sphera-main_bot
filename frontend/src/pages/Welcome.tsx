@@ -56,7 +56,7 @@ export function Welcome() {
   const main = news[0];
 
   return (
-    <div className="min-h-[var(--app-vh)] bg-[var(--bg2)] text-[#D5D6DC] flex flex-col relative overflow-hidden">
+    <div className="h-[var(--app-vh)] bg-[var(--bg2)] text-[#D5D6DC] flex flex-col relative overflow-hidden">
       {/* Warm grid + ambient glow */}
       <div className="absolute inset-0 bg-cyber-grid z-0 pointer-events-none opacity-50" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] bg-[var(--accent)]/5 blur-[120px] rounded-full z-0 pointer-events-none" />
