@@ -279,8 +279,8 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
         )}
       </div>
 
-      {/* Admin link */}
-      {user.role === 'admin' && (
+      {/* Admin link — admin va moderator uchun */}
+      {(user.role === 'admin' || user.role === 'moderator') && (
         <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#F97316] transition-all">
           {tx('admin')}
         </button>

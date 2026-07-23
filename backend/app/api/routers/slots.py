@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_staff
 from app.core.models import OkResponse
 from app.services import points as points_service
 
@@ -150,7 +150,7 @@ async def get_slot(slot_id: int, user: dict = Depends(get_current_user)):
 @router.post("/", response_model=OkResponse)
 async def create_slot(
     payload: SlotCreateRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """[admin] Yangi efir sloti yaratish."""
     title = payload.title.strip()
@@ -246,7 +246,7 @@ async def create_slot(
 async def update_slot_status(
     slot_id: int,
     payload: SlotStatusRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """[admin] Slot statusini o'zgartirish."""
     valid = {"scheduled", "live", "done", "cancelled"}
@@ -266,7 +266,7 @@ async def update_slot_status(
 
 
 @router.delete("/{slot_id}", response_model=OkResponse)
-async def delete_slot(slot_id: int, admin: dict = Depends(require_admin)):
+async def delete_slot(slot_id: int, admin: dict = Depends(require_staff)):
     """[admin] Slotni o'chirish (faqat scheduled holat)."""
     slot = await db.fetchrow("SELECT status FROM broadcast_slots WHERE id = $1", slot_id)
     if not slot:

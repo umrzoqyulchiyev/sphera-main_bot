@@ -378,18 +378,50 @@ export async function adminSetLevel(user_id: number, level: number) {
   return resp.json();
 }
 
-// To'liq admin huquqi berish/qaytarib olish — level 1/2/3 zinapoyasidan
-// alohida, faqat mavjud admin bera oladi.
-export async function adminSetAdmin(user_id: number, is_admin: boolean) {
+// Admin yoki moderator huquqi berish/qaytarib olish — level 1/2/3
+// zinapoyasidan alohida, faqat mavjud admin bera oladi (moderator emas).
+export type StaffRole = 'admin' | 'moderator' | 'none';
+export async function adminSetStaffRole(user_id: number, role: StaffRole) {
   const resp = await fetch(`${API_URL}/admin/users/set-admin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ user_id, is_admin }),
+    body: JSON.stringify({ user_id, role }),
   });
   if (!resp.ok) {
     const e = await resp.json().catch(() => ({}));
-    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to set admin');
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to set role');
   }
+  return resp.json();
+}
+
+// Efir bo'sh paytida jimlik o'rniga chaladigan musiqa (Music tab).
+export async function getDefaultMusic(): Promise<{ name: string | null }> {
+  const resp = await fetch(`${API_URL}/admin/music/default`, { headers: authHeaders() });
+  if (!resp.ok) return { name: null };
+  return resp.json();
+}
+
+export async function uploadDefaultMusic(file: File) {
+  const form = new FormData();
+  form.append('audio_file', file);
+  const resp = await fetch(`${API_URL}/admin/music/default`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to upload music');
+  }
+  return resp.json();
+}
+
+export async function deleteDefaultMusic() {
+  const resp = await fetch(`${API_URL}/admin/music/default`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to delete music');
   return resp.json();
 }
 

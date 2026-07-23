@@ -5,7 +5,7 @@ Yangi TZ: til tanlash, kasr points, level tizimi, transfer/request.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -226,9 +226,13 @@ class AdminSetLevelRequest(BaseModel):
     level: int  # 1, 2, 3
 
 
-class AdminSetAdminRequest(BaseModel):
+class AdminSetStaffRoleRequest(BaseModel):
     user_id: int
-    is_admin: bool  # true — to'liq admin huquqi berish, false — qaytarib olish
+    # 'admin' — to'liq (faqat require_admin qo'riqlaydigan bu endpoint orqali
+    # beriladi), 'moderator' — admin-panelga to'liq kirish lekin
+    # foydalanuvchi status/rolini o'zgartira olmaydi, 'none' — ikkalasini ham
+    # qaytarib olish (doverenniy'ga tushadi).
+    role: Literal["admin", "moderator", "none"]
 
 
 class AdminAddPointsRequest(BaseModel):

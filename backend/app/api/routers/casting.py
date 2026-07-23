@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.core.database import db
-from app.core.dependencies import decode_token, get_current_user, require_admin
+from app.core.dependencies import decode_token, get_current_user, require_staff
 from app.core.models import (
     CastingApplicationOut,
     CastingDecisionRequest,
@@ -166,7 +166,7 @@ async def get_casting_audio(filename: str, token: str = Query(...)):
 @router.get("/admin/list", response_model=list[CastingApplicationOut])
 async def list_casting_applications(
     status: str = "pending",
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """[admin] Kasting arizalari ro'yxati."""
     if status not in ("pending", "approved", "rejected"):
@@ -205,7 +205,7 @@ async def list_casting_applications(
 async def approve_casting(
     application_id: int,
     payload: CastingDecisionRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """[admin] Arizani tasdiqlaydi — foydalanuvchi 'doverenniy' bo'ladi."""
     row = await db.fetchrow(
@@ -241,7 +241,7 @@ async def approve_casting(
 async def reject_casting(
     application_id: int,
     payload: CastingDecisionRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """[admin] Arizani rad etadi."""
     result = await db.execute(

@@ -5,7 +5,7 @@ export interface User {
   username: string | null;
   display_name?: string | null;
   full_name?: string | null;
-  role: 'listener' | 'broadcaster' | 'admin' | 'slusatel' | 'aktivniy' | 'doverenniy';
+  role: 'listener' | 'broadcaster' | 'admin' | 'moderator' | 'slusatel' | 'aktivniy' | 'doverenniy';
   points: number;
   level?: number;
   level_name?: string;

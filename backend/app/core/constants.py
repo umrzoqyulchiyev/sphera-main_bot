@@ -9,7 +9,10 @@ role maydoni:
   'listener'    → level 1 (hali points yo'q yoki kam)
   'aktivniy'    → level 2 (pointlar mavjud: >= AKTIVNIY_MIN_POINTS)
   'doverenniy'  → level 3 (admin qo'lda beradi, efirga chiqish huquqi)
-  'admin'       → barcha huquqlar (ADMIN_IDS da)
+  'moderator'   → admin-panelga to'liq kirish, LEKIN foydalanuvchi
+                  status/rolini o'zgartira olmaydi (faqat require_admin shuni
+                  talab qiladi — qolgan hammasi require_staff, moderator ham o'tadi)
+  'admin'       → barcha huquqlar, jumladan boshqalarga rol berish (ADMIN_IDS da)
 """
 
 # ====== Level nomlari (TZ §1) ======
@@ -24,6 +27,7 @@ ROLE_LEVELS: dict[str, int] = {
     "listener": 1,
     "aktivniy": 2,
     "doverenniy": 3,
+    "moderator": 50,  # admin-panel, lekin rol/status o'zgartirolmaydi
     "admin": 99,  # hammaga ruxsat
 }
 

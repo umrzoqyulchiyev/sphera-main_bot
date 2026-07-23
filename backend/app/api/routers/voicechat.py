@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from app.core.constants import ROLE_LEVELS
 from app.core.database import db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_staff
 from app.services import voicechat
 
 log = logging.getLogger("voicechat.router")
@@ -38,7 +38,7 @@ async def voice_status(user: dict = Depends(get_current_user)):
 
 
 @router.post("/join")
-async def voice_join(payload: AudioUrlRequest, _: dict = Depends(require_admin)):
+async def voice_join(payload: AudioUrlRequest, _: dict = Depends(require_staff)):
     """[admin] Userbot'ni Voice Chat'ga ulaydi (ixtiyoriy audio bilan)."""
     if not voicechat.is_configured():
         raise HTTPException(
@@ -51,7 +51,7 @@ async def voice_join(payload: AudioUrlRequest, _: dict = Depends(require_admin))
 
 
 @router.post("/leave")
-async def voice_leave(_: dict = Depends(require_admin)):
+async def voice_leave(_: dict = Depends(require_staff)):
     """[admin] Userbot'ni Voice Chat'dan chiqaradi."""
     res = await voicechat.leave_call()
     if not res["ok"]:
@@ -60,7 +60,7 @@ async def voice_leave(_: dict = Depends(require_admin)):
 
 
 @router.post("/play")
-async def voice_play(payload: AudioUrlRequest, _: dict = Depends(require_admin)):
+async def voice_play(payload: AudioUrlRequest, _: dict = Depends(require_staff)):
     """[admin] Voice Chat'da audio almashtiradi (yangi stream/fayl)."""
     if not payload.audio_url:
         raise HTTPException(status_code=400, detail="audio_url required")
@@ -71,7 +71,7 @@ async def voice_play(payload: AudioUrlRequest, _: dict = Depends(require_admin))
 
 
 @router.post("/grant-mic")
-async def grant_mic(payload: MicRequest, _: dict = Depends(require_admin)):
+async def grant_mic(payload: MicRequest, _: dict = Depends(require_staff)):
     """[admin/modarator] Ishtirokchiga mikrofon beradi — faqat level >= 2."""
     target = await db.fetchrow(
         "SELECT role, level FROM users WHERE telegram_id = $1", payload.user_telegram_id
@@ -93,7 +93,7 @@ async def grant_mic(payload: MicRequest, _: dict = Depends(require_admin)):
 
 
 @router.post("/revoke-mic")
-async def revoke_mic(payload: MicRequest, _: dict = Depends(require_admin)):
+async def revoke_mic(payload: MicRequest, _: dict = Depends(require_staff)):
     """[admin/modarator] Ishtirokchidan mikrofonni oladi (mute)."""
     res = await voicechat.set_participant_muted(payload.user_telegram_id, muted=True)
     if not res["ok"]:

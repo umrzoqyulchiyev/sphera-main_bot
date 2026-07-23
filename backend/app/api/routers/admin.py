@@ -7,14 +7,14 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_staff
 from app.core.models import (
     AdminAddPointsRequest,
-    AdminSetAdminRequest,
+    AdminSetStaffRoleRequest,
     AdminSetLevelRequest,
     OkResponse,
     PackageCreate,
@@ -70,24 +70,29 @@ async def set_user_level(
 
 
 @router.post("/users/set-admin", response_model=OkResponse)
-async def set_admin(
-    payload: AdminSetAdminRequest,
+async def set_staff_role(
+    payload: AdminSetStaffRoleRequest,
     admin: dict = Depends(require_admin),
 ):
-    """[admin] To'liq admin huquqini berish yoki qaytarib olish.
+    """[FAQAT admin] Admin yoki moderator huquqini berish/qaytarib olish.
 
-    level 1/2/3 zinapoyasidan alohida — bu doverenniy'dan ham yuqori,
-    cheklovsiz huquq (butun /admin panelga kirish, jumladan boshqa
-    foydalanuvchilarga ham admin bera olish). Faqat mavjud admin bera oladi
-    (require_admin), va o'zini-o'zi qaytarib ololmaydi — aks holda bitta
-    xato bosish bilan hech kim panelga kira olmay qolishi mumkin edi.
+    level 1/2/3 zinapoyasidan alohida. 'admin' — cheklovsiz (shu jumladan
+    boshqalarga ham rol bera oladi); 'moderator' — admin-panelga to'liq
+    kirish (require_staff talab qiladigan hamma joy), LEKIN bu endpoint va
+    /users/set-level unga yopiq — moderator hech kimning (o'zining ham)
+    status/rolini o'zgartira olmaydi. Shu ikkalasi qat'iy require_admin'da
+    qolgani ham aynan shuning uchun.
+
+    O'zini-o'zi o'zgartirolmaydi — aks holda bitta xato bosish bilan
+    hech kim panelga kira olmay qolishi (yoki adminlik tarqalib ketishi)
+    mumkin edi.
     """
-    if payload.user_id == admin["id"] and not payload.is_admin:
-        raise HTTPException(status_code=400, detail="Cannot revoke your own admin access")
+    if payload.user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
 
-    # Qaytarib olinganda "doverenniy"ga tushadi — bu eng yuqori
-    # admin-bo'lmagan ishonch darajasi, aniqroq fallback yo'q.
-    new_role = "admin" if payload.is_admin else "doverenniy"
+    # 'none' → doverenniy'ga tushadi (eng yuqori admin-bo'lmagan ishonch
+    # darajasi, aniqroq fallback yo'q).
+    new_role = "doverenniy" if payload.role == "none" else payload.role
     result = await db.execute(
         "UPDATE users SET role = $1, level = 3 WHERE id = $2",
         new_role,
@@ -97,9 +102,9 @@ async def set_admin(
         raise HTTPException(status_code=404, detail="User not found")
 
     log.info(
-        "Admin %d %s admin rights for user=%d",
+        "Admin %d set role=%s for user=%d",
         admin["id"],
-        "granted" if payload.is_admin else "revoked",
+        new_role,
         payload.user_id,
     )
     return OkResponse(detail={"user_id": payload.user_id, "role": new_role})
@@ -108,7 +113,7 @@ async def set_admin(
 @router.post("/users/add-points", response_model=OkResponse)
 async def add_points(
     payload: AdminAddPointsRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     """Admin: foydalanuvchiga point qo'shish."""
     result = await points_service.add_points_admin(payload.user_id, payload.amount)
@@ -128,7 +133,7 @@ async def add_points(
 
 
 @router.get("/users", response_model=list)
-async def list_users(admin: dict = Depends(require_admin)):
+async def list_users(admin: dict = Depends(require_staff)):
     """Barcha foydalanuvchilar ro'yxati."""
     rows = await db.fetch(
         """
@@ -146,7 +151,7 @@ async def list_users(admin: dict = Depends(require_admin)):
 # (Telegram Stars orqali avtomatik, yoki qo'lda/kontakt orqali)
 # ============================================================
 @router.get("/settings/payment", response_model=PaymentSettingsOut)
-async def get_payment_settings(admin: dict = Depends(require_admin)):
+async def get_payment_settings(admin: dict = Depends(require_staff)):
     rows = await db.fetch(
         "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
     )
@@ -160,7 +165,7 @@ async def get_payment_settings(admin: dict = Depends(require_admin)):
 @router.put("/settings/payment", response_model=PaymentSettingsOut)
 async def update_payment_settings(
     payload: PaymentSettingsUpdate,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_staff),
 ):
     if payload.method not in ("stars", "manual"):
         raise HTTPException(status_code=400, detail="method must be 'stars' or 'manual'")
@@ -187,7 +192,7 @@ async def update_payment_settings(
 # Point paketlari — narx/miqdor/faollik admin tomonidan boshqariladi
 # ============================================================
 @router.get("/packages", response_model=list[PackageOut])
-async def admin_list_packages(admin: dict = Depends(require_admin)):
+async def admin_list_packages(admin: dict = Depends(require_staff)):
     rows = await db.fetch(
         "SELECT id, points_amount, price_eur, label, is_active FROM point_packages ORDER BY price_eur"
     )
@@ -195,7 +200,7 @@ async def admin_list_packages(admin: dict = Depends(require_admin)):
 
 
 @router.post("/packages", response_model=PackageOut)
-async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_admin)):
+async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_staff)):
     row = await db.fetchrow(
         """
         INSERT INTO point_packages (points_amount, price_eur, label, is_active)
@@ -212,7 +217,7 @@ async def admin_create_package(payload: PackageCreate, admin: dict = Depends(req
 
 @router.put("/packages/{package_id}", response_model=PackageOut)
 async def admin_update_package(
-    package_id: int, payload: PackageUpdate, admin: dict = Depends(require_admin)
+    package_id: int, payload: PackageUpdate, admin: dict = Depends(require_staff)
 ):
     row = await db.fetchrow(
         """
@@ -233,7 +238,7 @@ async def admin_update_package(
 
 
 @router.delete("/packages/{package_id}", response_model=OkResponse)
-async def admin_delete_package(package_id: int, admin: dict = Depends(require_admin)):
+async def admin_delete_package(package_id: int, admin: dict = Depends(require_staff)):
     result = await db.execute("DELETE FROM point_packages WHERE id = $1", package_id)
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="Package not found")
@@ -249,7 +254,7 @@ class TopicCreateRequest(BaseModel):
 
 
 @router.post("/topics")
-async def create_topic(payload: TopicCreateRequest, admin: dict = Depends(require_admin)):
+async def create_topic(payload: TopicCreateRequest, admin: dict = Depends(require_staff)):
     """[admin] Yangi efir mavzusi yaratadi. Eski faollarni 'closed' qiladi."""
     title = payload.title.strip()
     if not title:
@@ -273,7 +278,7 @@ async def create_topic(payload: TopicCreateRequest, admin: dict = Depends(requir
 
 
 @router.get("/topics")
-async def list_topics(admin: dict = Depends(require_admin)):
+async def list_topics(admin: dict = Depends(require_staff)):
     """[admin] Barcha mavzular ro'yxati (fikrlar soni bilan)."""
     rows = await db.fetch(
         """
@@ -290,7 +295,7 @@ async def list_topics(admin: dict = Depends(require_admin)):
 
 
 @router.post("/topics/{topic_id}/close", response_model=OkResponse)
-async def close_topic(topic_id: int, admin: dict = Depends(require_admin)):
+async def close_topic(topic_id: int, admin: dict = Depends(require_staff)):
     """[admin] Mavzuni yopadi (fikr yig'ish to'xtaydi)."""
     result = await db.execute("UPDATE topics SET status = 'closed' WHERE id = $1", topic_id)
     if result.endswith("0"):
@@ -299,7 +304,7 @@ async def close_topic(topic_id: int, admin: dict = Depends(require_admin)):
 
 
 @router.get("/topics/{topic_id}/opinions")
-async def topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
+async def topic_opinions(topic_id: int, admin: dict = Depends(require_staff)):
     """[admin] Mavzudagi barcha fikrlar (moderatsiya/ko'rish uchun)."""
     rows = await db.fetch(
         """
@@ -324,7 +329,7 @@ async def topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
 
 
 @router.post("/topics/{topic_id}/aggregate")
-async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_admin)):
+async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_staff)):
     """[admin] Mavzu bo'yicha fikrlarni yig'ib, 3 pozitsiya va dialog yaratadi.
 
     Boshliqning asosiy g'oyasi:
@@ -358,7 +363,7 @@ async def aggregate_topic_opinions(topic_id: int, admin: dict = Depends(require_
 
 
 @router.get("/drafts")
-async def list_drafts(admin: dict = Depends(require_admin)):
+async def list_drafts(admin: dict = Depends(require_staff)):
     """[admin] Barcha broadcast drafts (pending/approved/rejected)."""
     rows = await db.fetch(
         """
@@ -373,7 +378,7 @@ async def list_drafts(admin: dict = Depends(require_admin)):
 
 
 @router.get("/drafts/{draft_id}")
-async def get_draft(draft_id: int, admin: dict = Depends(require_admin)):
+async def get_draft(draft_id: int, admin: dict = Depends(require_staff)):
     """[admin] Draft to'liq (dialog matni + META)."""
     from app.services.opinion_aggregator import get_draft_dialog
 
@@ -384,7 +389,7 @@ async def get_draft(draft_id: int, admin: dict = Depends(require_admin)):
 
 
 @router.post("/drafts/{draft_id}/approve")
-async def approve_draft(draft_id: int, admin: dict = Depends(require_admin)):
+async def approve_draft(draft_id: int, admin: dict = Depends(require_staff)):
     """[admin] Dilaogni tasdiqlaydi va MediaMTX efirga yuboradi.
 
     Zanjir: draft.script (dialog) → TTS (3 til) → continuous navbatiga → efir.
@@ -413,7 +418,7 @@ async def approve_draft(draft_id: int, admin: dict = Depends(require_admin)):
 
 
 @router.post("/drafts/{draft_id}/reject")
-async def reject_draft(draft_id: int, admin: dict = Depends(require_admin)):
+async def reject_draft(draft_id: int, admin: dict = Depends(require_staff)):
     """[admin] Dialogni rad etadi."""
     result = await db.execute(
         "UPDATE broadcast_drafts SET status = 'rejected' WHERE id = $1", draft_id
@@ -456,3 +461,78 @@ async def _broadcast_dialog(draft: dict) -> None:
                 log.warning("[broadcast_dialog] %s TTS bo'sh chiqdi", lang)
         except Exception as exc:
             log.error("[broadcast_dialog] %s TTS xato: %s", lang, exc)
+
+
+# ============================================================
+# Default musiqa — navbat bo'sh (AI segment ham, jonli efir ham yo'q)
+# bo'lganda jimlik o'rniga shu chaladi (continuous.py)
+# ============================================================
+_DEFAULT_MUSIC_BASENAME = "default_music_src"
+
+
+@router.get("/music/default")
+async def get_default_music(admin: dict = Depends(require_staff)):
+    """[admin/moderator] Hozir o'rnatilgan default musiqa nomi (bo'lmasa — null)."""
+    row = await db.fetchrow("SELECT value FROM app_settings WHERE key = 'default_music_name'")
+    return {"name": row["value"] if row and row["value"] else None}
+
+
+@router.post("/music/default", response_model=OkResponse)
+async def upload_default_music(
+    audio_file: UploadFile = File(...),
+    admin: dict = Depends(require_staff),
+):
+    """[admin/moderator] Efir bo'sh paytida jimlik o'rniga chaladigan musiqani o'rnatadi."""
+    import os
+
+    from app.core.config import settings
+    from app.services import continuous
+
+    content = await audio_file.read()
+    if len(content) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large")
+    if len(content) < 1000:
+        raise HTTPException(status_code=400, detail="File too short")
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    ext = os.path.splitext(audio_file.filename or "")[1].lower() or ".mp3"
+    raw_path = os.path.join(settings.upload_dir, f"{_DEFAULT_MUSIC_BASENAME}{ext}")
+    with open(raw_path, "wb") as f:
+        f.write(content)
+
+    ok = await continuous.load_default_music(raw_path)
+    if not ok:
+        raise HTTPException(
+            status_code=400, detail="Could not process audio file (unsupported/corrupt format?)"
+        )
+
+    display_name = audio_file.filename or "music.mp3"
+    await db.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at) VALUES ('default_music_path', $1, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+        """,
+        raw_path,
+    )
+    await db.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at) VALUES ('default_music_name', $1, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+        """,
+        display_name,
+    )
+    log.info("Admin %d default music o'rnatdi: %s", admin["id"], display_name)
+    return OkResponse(detail={"name": display_name})
+
+
+@router.delete("/music/default", response_model=OkResponse)
+async def delete_default_music(admin: dict = Depends(require_staff)):
+    """[admin/moderator] Default musiqani o'chiradi — navbat bo'sh bo'lganda yana jimlik chaladi."""
+    from app.services import continuous
+
+    continuous.clear_default_music()
+    await db.execute(
+        "DELETE FROM app_settings WHERE key IN ('default_music_path', 'default_music_name')"
+    )
+    log.info("Admin %d default music'ni o'chirdi", admin["id"])
+    return OkResponse(detail={"name": None})

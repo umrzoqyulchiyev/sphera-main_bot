@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.constants import SUPPORTED_LANGUAGES
 from app.core.database import db
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_staff
 from app.core.models import AdminNewsCreate, NewsOut, OkResponse
 
 log = logging.getLogger("news")
@@ -40,7 +40,7 @@ async def get_news(language: str):
     return [NewsOut(**dict(r)) for r in rows]
 
 
-@router.post("", response_model=OkResponse, dependencies=[Depends(require_admin)])
+@router.post("", response_model=OkResponse, dependencies=[Depends(require_staff)])
 async def create_news(payload: AdminNewsCreate):
     """Admin: yangilik qo'shish."""
     if payload.language not in SUPPORTED_LANGUAGES:
@@ -59,7 +59,7 @@ async def create_news(payload: AdminNewsCreate):
     return OkResponse(detail={"message": "News created"})
 
 
-@router.delete("/{news_id}", response_model=OkResponse, dependencies=[Depends(require_admin)])
+@router.delete("/{news_id}", response_model=OkResponse, dependencies=[Depends(require_staff)])
 async def delete_news(news_id: int):
     """Admin: yangilikni o'chirish (soft delete)."""
     await db.execute("UPDATE news SET is_active = false WHERE id = $1", news_id)

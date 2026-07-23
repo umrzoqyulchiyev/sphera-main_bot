@@ -40,6 +40,7 @@ SAMPLE_RATE = 44100
 CHANNELS = 2
 BITRATE = "128k"
 SILENCE_CHUNK_SEC = 2.0  # bo'sh paytda yoziladigan jimlik bo'lagi uzunligi
+DEFAULT_MUSIC_CHUNK_SEC = 4.0  # default musiqa qanday bo'laklarga bo'linadi
 PIPE_BLOCK = 16384  # pipe'ga blok-blok yozish (pauza'ni tez sezish uchun)
 
 _queues: dict[str, asyncio.Queue] = {}
@@ -47,6 +48,14 @@ _workers: dict[str, asyncio.Task] = {}
 _procs: dict[str, subprocess.Popen] = {}
 _started = False
 _silence_mp3: bytes = b""
+
+# Navbat bo'sh bo'lganda jimlik o'rniga aylanadigan "default musiqa" —
+# admin yuklaydi (Music tab). Bo'laklarga bo'lib xotirada saqlanadi, har
+# til mustaqil pozitsiyadan aylantiradi (segment/jonli efir orasida
+# to'xtagan joyidan davom etadi, chunki pozitsiya faqat shu bo'lak
+# haqiqatan efirga chiqqanda oshiriladi).
+_default_chunks: list[bytes] = []
+_default_idx: dict[str, int] = {}
 
 _paused: dict[str, bool] = {}
 
@@ -179,6 +188,85 @@ async def _transcode_uniform(mp3_path: str) -> bytes:
     return data or b""
 
 
+async def load_default_music(path: str) -> bool:
+    """Admin yuklagan faylni DEFAULT_MUSIC_CHUNK_SEC'lik bir xil formatdagi
+    bo'laklarga bo'lib xotirada saqlaydi (fayl darajasida emas — shu
+    tufayli navbatga yozishda _transcode_uniform kabi har safar butun
+    faylni qayta kodlash shart emas). Muvaffaqiyatsiz bo'lsa eski
+    holat (agar bo'lsa) saqlanib qoladi, jimlikka tushib qolmaydi shart emas.
+    """
+    import glob
+    import tempfile
+
+    if not os.path.isfile(path):
+        log.warning("[continuous] default music fayl topilmadi: %s", path)
+        return False
+
+    with tempfile.TemporaryDirectory() as tmp:
+        pattern = os.path.join(tmp, "chunk_%04d.mp3")
+        cmd = [
+            _ffmpeg_bin(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            path,
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            BITRATE,
+            "-ar",
+            str(SAMPLE_RATE),
+            "-ac",
+            str(CHANNELS),
+            "-write_xing",
+            "0",
+            "-id3v2_version",
+            "0",
+            "-f",
+            "segment",
+            "-segment_time",
+            str(DEFAULT_MUSIC_CHUNK_SEC),
+            pattern,
+        ]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
+
+        chunk_paths = sorted(glob.glob(os.path.join(tmp, "chunk_*.mp3")))
+        if not chunk_paths:
+            log.warning("[continuous] default music: ffmpeg bo'laklarga bo'lolmadi (%s)", path)
+            return False
+
+        chunks: list[bytes] = []
+        for p in chunk_paths:
+            with open(p, "rb") as f:
+                data = f.read()
+            if data:
+                chunks.append(data)
+
+    if not chunks:
+        return False
+
+    global _default_chunks
+    _default_chunks = chunks
+    for lang in LANGS:
+        _default_idx[lang] = 0
+    log.info("[continuous] default music yuklandi: %d bo'lak", len(chunks))
+    return True
+
+
+def clear_default_music() -> None:
+    global _default_chunks
+    _default_chunks = []
+    _default_idx.clear()
+
+
+def has_default_music() -> bool:
+    return bool(_default_chunks)
+
+
 def _spawn_ffmpeg(lang: str) -> subprocess.Popen:
     """Til uchun DOIMIY ffmpeg: pipe:0 (mp3) → Icecast/MediaMTX mount. Bir marta ulanadi."""
     if USE_ICECAST:
@@ -253,6 +341,17 @@ async def _write_blocks(lang: str, data: bytes) -> bool:
     return True
 
 
+def _next_filler(lang: str) -> bytes:
+    """Navbat bo'sh bo'lganda nima chalinishi kerak — default musiqa
+    o'rnatilgan bo'lsa navbatdagi bo'lak (pozitsiya shu tilda oshiriladi,
+    boshqa til/segment unga ta'sir qilmaydi), aks holda jimlik."""
+    if not _default_chunks:
+        return _silence_mp3
+    idx = _default_idx.get(lang, 0) % len(_default_chunks)
+    _default_idx[lang] = (idx + 1) % len(_default_chunks)
+    return _default_chunks[idx]
+
+
 async def _worker(lang: str) -> None:
     """Til uchun uzluksiz oqim: bitta ffmpeg, navbat bor — segment, yo'q — jimlik."""
     q = _queues[lang]
@@ -289,9 +388,9 @@ async def _worker(lang: str) -> None:
                     else:
                         log.info("[continuous] %s segment efirga: %s", lang, os.path.basename(mp3))
                 else:
-                    data = _silence_mp3
+                    data = _next_filler(lang)
             except asyncio.QueueEmpty:
-                data = _silence_mp3
+                data = _next_filler(lang)
 
             ok = await _write_blocks(lang, data)
             if not ok and not _paused.get(lang, False):
@@ -330,6 +429,18 @@ async def start() -> None:
         _workers[lang] = asyncio.create_task(_worker(lang))
     _started = True
     log.info("[continuous] Persistent multiyazык oqim ishga tushdi (ru/lt/en)")
+
+    # Admin oldin default musiqa o'rnatgan bo'lsa — har deploy/restart'dan
+    # keyin ham qayta tiklaymiz (app_settings'da saqlanadi).
+    try:
+        from app.core.database import db
+
+        path = await db.fetchval("SELECT value FROM app_settings WHERE key = 'default_music_path'")
+        if path:
+            ok = await load_default_music(path)
+            log.info("[continuous] default music tiklandi: %s (%s)", path, "ok" if ok else "xato")
+    except Exception as exc:
+        log.warning("[continuous] default music tiklab bo'lmadi: %s", exc)
 
 
 async def stop() -> None:

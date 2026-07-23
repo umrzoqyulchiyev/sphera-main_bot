@@ -112,10 +112,24 @@ def require_role(min_role: str):
 
 
 async def require_admin(user: dict = Depends(get_current_user)) -> dict:
-    """Admin-only access."""
+    """Admin-only access. Foydalanuvchi status/rolini o'zgartiradigan
+    endpointlar FAQAT shu bilan qo'riqlanadi — moderator bu yerdan o'tolmaydi."""
     if user["telegram_id"] not in ADMIN_IDS and user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
+        )
+    return user
+
+
+async def require_staff(user: dict = Depends(get_current_user)) -> dict:
+    """Admin yoki moderator — admin-panelning deyarli barcha funksiyalari
+    uchun (mavzular, efir, kasting, slotlar, musiqa, to'lov, poinт berish).
+    Foydalanuvchi status/rolini o'zgartirish esa faqat require_admin talab
+    qiladi — moderator boshqa hech kimning rolini o'zgartira olmaydi."""
+    if user["telegram_id"] not in ADMIN_IDS and user["role"] not in ("admin", "moderator"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or moderator access required",
         )
     return user

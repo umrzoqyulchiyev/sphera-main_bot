@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_staff
 from app.core.models import OkResponse
 from app.services import points as points_service
 
@@ -241,7 +241,7 @@ async def get_winner(topic_id: int, user: dict = Depends(get_current_user)):
 
 
 @router.delete("/nominations/{nomination_id}", response_model=OkResponse)
-async def delete_nomination(nomination_id: int, admin: dict = Depends(require_admin)):
+async def delete_nomination(nomination_id: int, admin: dict = Depends(require_staff)):
     """[admin] Nomzodni o'chirish (spam/nomaqbul nomzodlarni tozalash)."""
     row = await db.fetchrow("SELECT id FROM music_nominations WHERE id = $1", nomination_id)
     if not row:

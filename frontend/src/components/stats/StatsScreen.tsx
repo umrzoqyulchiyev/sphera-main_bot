@@ -15,7 +15,7 @@ const L: Record<string, Record<string, string>> = {
     tone: 'Эмоц. тон', topic: 'Ключевая тема', priority: 'Приоритет',
     msgs: 'Сообщений', voice: 'Голосовых', studio: 'В Студию', favs: 'Избранное',
     earned: 'Заработано', days: 'Дней активен', loading: 'Загрузка...',
-    listener: '🎧 Слушатель', aktivniy: '⚡ Активный', doverenniy: '🎙 Доверенный', admin: '👑 Администратор',
+    listener: '🎧 Слушатель', aktivniy: '⚡ Активный', doverenniy: '🎙 Доверенный', admin: '👑 Администратор', moderator: '🛡 Модератор',
   },
   en: {
     level_title: 'Current Level', points_label: 'points', next_level: 'for',
@@ -23,7 +23,7 @@ const L: Record<string, Record<string, string>> = {
     tone: 'Emotional Tone', topic: 'Key Topic', priority: 'Priority',
     msgs: 'Messages', voice: 'Voice', studio: 'To Studio', favs: 'Favorites',
     earned: 'Earned', days: 'Days Active', loading: 'Loading...',
-    listener: '🎧 Listener', aktivniy: '⚡ Active', doverenniy: '🎙 Trusted', admin: '👑 Administrator',
+    listener: '🎧 Listener', aktivniy: '⚡ Active', doverenniy: '🎙 Trusted', admin: '👑 Administrator', moderator: '🛡 Moderator',
   },
   lt: {
     level_title: 'Dabartinis Lygis', points_label: 'taškai', next_level: 'iki',
@@ -31,7 +31,7 @@ const L: Record<string, Record<string, string>> = {
     tone: 'Emocinis tonas', topic: 'Pagrindinė tema', priority: 'Prioritetas',
     msgs: 'Žinučių', voice: 'Balso', studio: 'Į studiją', favs: 'Parankiniai',
     earned: 'Uždirbta', days: 'Dienų aktyvus', loading: 'Kraunama...',
-    listener: '🎧 Klausytojas', aktivniy: '⚡ Aktyvus', doverenniy: '🎙 Patikimas', admin: '👑 Administratorius',
+    listener: '🎧 Klausytojas', aktivniy: '⚡ Aktyvus', doverenniy: '🎙 Patikimas', admin: '👑 Administratorius', moderator: '🛡 Moderatorius',
   },
 };
 
@@ -83,7 +83,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
   const roleKey = user?.role || 'listener';
   const roleMap: Record<string, string> = {
     listener: 'listener', slusatel: 'listener', aktivniy: 'aktivniy',
-    doverenniy: 'doverenniy', admin: 'admin', broadcaster: 'doverenniy',
+    doverenniy: 'doverenniy', admin: 'admin', broadcaster: 'doverenniy', moderator: 'moderator',
   };
   const roleLabel = tx(roleMap[roleKey] || 'listener');
 
@@ -188,7 +188,7 @@ export function StatsScreen({ user }: StatsScreenProps) {
           <div className="text-lg font-bold text-white">{roleLabel}</div>
         </div>
         <div className="text-4xl opacity-30">
-          {roleKey === 'admin' ? '👑' : roleKey === 'doverenniy' ? '🎙' : roleKey === 'aktivniy' ? '⚡' : '🎧'}
+          {roleKey === 'admin' ? '👑' : roleKey === 'moderator' ? '🛡' : roleKey === 'doverenniy' ? '🎙' : roleKey === 'aktivniy' ? '⚡' : '🎧'}
         </div>
       </div>
     </div>

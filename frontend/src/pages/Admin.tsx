@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search, Upload } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
-  getUsers, adminSetLevel, adminSetAdmin, adminAddPoints,
+  getUsers, adminSetLevel, adminSetStaffRole, adminAddPoints, getMe,
   adminCreateSlot, getAllSlots, adminUpdateSlotStatus,
   getMusicNominations, adminDeleteNomination,
   adminGetPaymentSettings, adminUpdatePaymentSettings,
   adminListPackages, adminCreatePackage, adminUpdatePackage, adminDeletePackage,
-  type BroadcastSlot, type MusicNomination,
+  getDefaultMusic, uploadDefaultMusic, deleteDefaultMusic,
+  type BroadcastSlot, type MusicNomination, type StaffRole,
 } from '../lib/api';
+import type { User } from '../types';
 import { authHeaders, getToken } from '../lib/auth';
 import { API_URL } from '../lib/config';
 import { getLang } from '../lib/i18n';
@@ -47,11 +49,14 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Уровень', access_legend_title: 'Уровни доступа',
     lvl1_desc: '1 — слушает эфир и чат', lvl2_desc: '2 — пишет в чат, переводит поинты',
     lvl3_desc: '3 — доступ к микрофону (эфир)',
-    make_admin: 'Сделать админом', revoke_admin: 'Убрать права админа',
-    confirm_grant_admin: 'Дать этому пользователю полные права администратора? Он получит доступ ко всей админ-панели, включая выдачу поинтов и прав другим.',
-    confirm_revoke_admin: 'Забрать права администратора у этого пользователя?',
+    make_moderator: 'Сделать модератором', revoke_moderator: 'Убрать модератора',
+    moderator_badge: 'Модератор', main_admin_badge: 'Главный админ',
+    confirm_grant_admin: 'Сделать этого пользователя модератором? Он получит доступ ко всей админ-панели (темы, эфир, кастинг, слоты, музыка, оплата, поинты), но не сможет менять уровни и роли других пользователей.',
+    confirm_revoke_admin: 'Убрать у этого пользователя права модератора?',
     search_users_placeholder: 'Поиск по ID или @username',
     search_no_results: 'Никого не найдено',
+    default_music_title: 'Музыка по умолчанию', default_music_none: 'Не задано — играет тишина',
+    default_music_upload: 'Загрузить трек', default_music_replace: 'Заменить трек',
     aggregate: 'Создать диалог', no_drafts: 'Нет черновиков эфира',
     pending: 'Ожидает', approved: 'В эфире', rejected: 'Отклонён',
     approve: 'Одобрить → Эфир', reject: 'Отклонить', view: 'Смотреть',
@@ -84,11 +89,14 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Level', access_legend_title: 'Access levels',
     lvl1_desc: '1 — listens to broadcast and chat', lvl2_desc: '2 — writes in chat, transfers points',
     lvl3_desc: '3 — microphone access (broadcast)',
-    make_admin: 'Make admin', revoke_admin: 'Revoke admin',
-    confirm_grant_admin: 'Give this user full administrator access? They will get access to the entire admin panel, including granting points and admin rights to others.',
-    confirm_revoke_admin: 'Revoke administrator access from this user?',
+    make_moderator: 'Make moderator', revoke_moderator: 'Revoke moderator',
+    moderator_badge: 'Moderator', main_admin_badge: 'Main admin',
+    confirm_grant_admin: 'Make this user a moderator? They will get access to the entire admin panel (topics, broadcast, casting, slots, music, payment, points), but cannot change other users\' levels or roles.',
+    confirm_revoke_admin: 'Revoke moderator access from this user?',
     search_users_placeholder: 'Search by ID or @username',
     search_no_results: 'No one found',
+    default_music_title: 'Default music', default_music_none: 'Not set — silence plays',
+    default_music_upload: 'Upload track', default_music_replace: 'Replace track',
     aggregate: 'Create dialog', no_drafts: 'No broadcast drafts',
     pending: 'Pending', approved: 'On air', rejected: 'Rejected',
     approve: 'Approve → Air', reject: 'Reject', view: 'View',
@@ -121,11 +129,14 @@ const L: Record<string, Record<string, string>> = {
     level_label: 'Lygis', access_legend_title: 'Prieigos lygiai',
     lvl1_desc: '1 — klauso eterio ir pokalbio', lvl2_desc: '2 — rašo pokalbyje, perveda taškus',
     lvl3_desc: '3 — mikrofono prieiga (eteris)',
-    make_admin: 'Suteikti administratoriaus teises', revoke_admin: 'Atimti administratoriaus teises',
-    confirm_grant_admin: 'Suteikti šiam vartotojui pilnas administratoriaus teises? Jis gaus prieigą prie visos admin panelės, įskaitant taškų ir teisių suteikimą kitiems.',
-    confirm_revoke_admin: 'Atimti administratoriaus teises iš šio vartotojo?',
+    make_moderator: 'Suteikti moderatoriaus teises', revoke_moderator: 'Atimti moderatoriaus teises',
+    moderator_badge: 'Moderatorius', main_admin_badge: 'Pagrindinis adminas',
+    confirm_grant_admin: 'Padaryti šį vartotoją moderatoriumi? Jis gaus prieigą prie visos admin panelės (temos, eteris, atranka, slotai, muzika, mokėjimas, taškai), bet negalės keisti kitų vartotojų lygių ar rolių.',
+    confirm_revoke_admin: 'Atimti moderatoriaus teises iš šio vartotojo?',
     search_users_placeholder: 'Ieškoti pagal ID arba @username',
     search_no_results: 'Nieko nerasta',
+    default_music_title: 'Numatytoji muzika', default_music_none: 'Nenustatyta — skamba tyla',
+    default_music_upload: 'Įkelti dainą', default_music_replace: 'Pakeisti dainą',
     aggregate: 'Sukurti dialogą', no_drafts: 'Nėra eterio juodraščių',
     pending: 'Laukia', approved: 'Eteryje', rejected: 'Atmesta',
     approve: 'Patvirtinti → Eterį', reject: 'Atmesti', view: 'Žiūrėti',
@@ -209,6 +220,7 @@ export function Admin() {
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
   const [tab, setTab] = useState<'topics' | 'users' | 'drafts' | 'slots' | 'music' | 'casting' | 'payment'>('topics');
+  const [me, setMe] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -227,6 +239,9 @@ export function Admin() {
   const [aggregating, setAggregating] = useState<number | null>(null);
 
   useEffect(() => { loadData(); }, [tab]);
+  // Panelning o'zi kim ekanini bilishi kerak — faqat "haqiqiy" admin
+  // boshqa foydalanuvchilarning rolini o'zgartira oladi, moderator emas.
+  useEffect(() => { getMe().then(setMe).catch(() => {}); }, []);
 
   async function loadData() {
     setLoading(true);
@@ -347,10 +362,10 @@ export function Admin() {
         ) : tab === 'payment' ? (
           <PaymentTab tx={tx} settings={paymentSettings} packages={packages} flash={flash} onReload={loadData} />
         ) : (
-          <UsersTab users={users} tx={tx}
+          <UsersTab users={users} tx={tx} isFullAdmin={me?.role === 'admin'}
             onSetLevel={async (id: number, lvl: number) => { try { await adminSetLevel(id, lvl); flash('✅'); await loadData(); } catch { flash('❌'); } }}
-            onSetAdmin={async (id: number, isAdmin: boolean) => {
-              try { await adminSetAdmin(id, isAdmin); flash('✅'); await loadData(); }
+            onSetRole={async (id: number, role: StaffRole) => {
+              try { await adminSetStaffRole(id, role); flash('✅'); await loadData(); }
               catch (e: any) { flash('❌ ' + (e.message || '')); }
             }}
             onAddPoints={(u: UserRow) => setAddPointsTarget(u)} />
@@ -645,7 +660,7 @@ function SlotsTab({ slots, users, onReload, flash }: any) {
     catch { flash('❌'); }
   }
 
-  const trustedUsers = users.filter((u: any) => ['doverenniy', 'admin'].includes(u.role));
+  const trustedUsers = users.filter((u: any) => ['doverenniy', 'moderator', 'admin'].includes(u.role));
 
   return (
     <div className="flex flex-col gap-3">
@@ -670,7 +685,7 @@ function SlotsTab({ slots, users, onReload, flash }: any) {
             <option value="">Выбрать ведущего (уровень 3)...</option>
             {trustedUsers.map((u: any) => (
               <option key={u.id} value={u.id}>
-                {u.display_name || u.username || `ID ${u.telegram_id}`} — {u.role === 'admin' ? 'ADMIN' : `Уровень ${u.level}`}
+                {u.display_name || u.username || `ID ${u.telegram_id}`} — {u.role === 'admin' ? 'ADMIN' : u.role === 'moderator' ? 'MODERATOR' : `Уровень ${u.level}`}
               </option>
             ))}
           </select>
@@ -783,6 +798,28 @@ function MusicTab({ topics, tx, flash }: any) {
   const [noms, setNoms] = useState<MusicNomination[]>([]);
   const [loading, setLoading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
+  const [defaultMusicName, setDefaultMusicName] = useState<string | null>(null);
+  const [defaultMusicLoading, setDefaultMusicLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    getDefaultMusic().then((r) => setDefaultMusicName(r.name)).finally(() => setDefaultMusicLoading(false));
+  }, []);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const res = await uploadDefaultMusic(file);
+      setDefaultMusicName(res.detail?.name ?? file.name);
+      flash('✅');
+    } catch (e: any) { flash('❌ ' + (e.message || '')); }
+    finally { setUploading(false); }
+  }
+
+  async function handleDeleteDefault() {
+    try { await deleteDefaultMusic(); setDefaultMusicName(null); flash('✅'); }
+    catch { flash('❌'); }
+  }
 
   useEffect(() => {
     if (topics.length === 0) return;
@@ -808,10 +845,42 @@ function MusicTab({ topics, tx, flash }: any) {
     catch { flash('❌'); }
   }
 
-  if (topics.length === 0) return <div className="glass p-8 text-center text-[#94A3B8] text-sm">{tx('no_topics')}</div>;
-
   return (
     <div className="flex flex-col gap-3">
+      {/* Дefolt musiqa — efirda navbatda AI-segment yoki jonli efir yo'q
+          paytda jimlik o'rniga shu trek chalinadi (topic tanlanishidan
+          mustaqil, global sozlama). */}
+      <div className="glass rounded-2xl p-4">
+        <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide mb-2">{tx('default_music_title')}</div>
+        {defaultMusicLoading ? (
+          <div className="flex justify-center py-2"><Loader className="w-4 h-4 text-[#F97316] animate-spin" /></div>
+        ) : (
+          <>
+            <div className="text-sm text-[#F8FAFC] mb-3">
+              {defaultMusicName ? `🎵 ${defaultMusicName}` : <span className="text-[#94A3B8]">{tx('default_music_none')}</span>}
+            </div>
+            <div className="flex gap-2">
+              <label className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#1B1204] cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}>
+                {uploading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {defaultMusicName ? tx('default_music_replace') : tx('default_music_upload')}
+                <input type="file" accept="audio/*" className="hidden" disabled={uploading}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
+              </label>
+              {defaultMusicName && (
+                <button onClick={handleDeleteDefault} className="p-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] text-[#FCA5A5] shrink-0">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {topics.length === 0 ? (
+        <div className="glass p-8 text-center text-[#94A3B8] text-sm">{tx('no_topics')}</div>
+      ) : (
+      <>
       <select
         className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#F8FAFC]"
         style={{ background: 'rgba(15,15,35,0.7)', border: '1px solid rgba(249,115,22,0.18)' }}
@@ -856,15 +925,19 @@ function MusicTab({ topics, tx, flash }: any) {
           onCancel={() => setPendingDelete(null)}
         />
       )}
+      </>
+      )}
     </div>
   );
 }
 
-// ── UsersTab (контроль доступа — уровни 1/2/3) ────────────────
-function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
-  // To'liq admin huquqi berish/qaytarib olish — bosilishi bilan emas,
+// ── UsersTab (контроль доступа — уровни 1/2/3 + модератор) ────
+function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints }: any) {
+  // Moderator huquqi berish/qaytarib olish — bosilishi bilan emas,
   // avval ConfirmModal orqali (yuqori huquq, tasodifan bosilib qolmasin).
-  const [adminTarget, setAdminTarget] = useState<{ id: number; name: string; grant: boolean } | null>(null);
+  // Faqat haqiqiy admin (isFullAdmin) ko'radi/bosa oladi — moderator boshqa
+  // hech kimning darajasi yoki rolini o'zgartira olmaydi.
+  const [roleTarget, setRoleTarget] = useState<{ id: number; name: string; role: StaffRole; grant: boolean } | null>(null);
   // ID yoki @username bo'yicha qidiruv — 200 nafar foydalanuvchi ro'yxatida
   // kerakli odamni topish qiyin bo'lgani uchun.
   const [search, setSearch] = useState('');
@@ -923,7 +996,8 @@ function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-[#F8FAFC] truncate">
                 {u.display_name || u.username || `ID ${u.telegram_id}`}
-                {u.role === 'admin' && <span className="ml-1.5 text-[10px] font-bold text-[#EAB308]">👑 ADMIN</span>}
+                {u.role === 'admin' && <span className="ml-1.5 text-[10px] font-bold text-[#EAB308]">👑 {tx('main_admin_badge')}</span>}
+                {u.role === 'moderator' && <span className="ml-1.5 text-[10px] font-bold text-[#38BDF8]">🛡 {tx('moderator_badge')}</span>}
               </div>
               <div className="text-[10px] text-[#94A3B8]">
                 <span className="font-semibold text-[#F97316]">{tx('level_label')} {u.level}</span>
@@ -935,9 +1009,10 @@ function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
               +pts
             </button>
           </div>
-          {/* Level tugmalari — raqamli darajalar (1/2/3) */}
+          {/* Level tugmalari — raqamli darajalar (1/2/3). Moderator buni
+              ko'radi, lekin faqat rasm sifatida — bosib bo'lmaydi. */}
           <div className="flex gap-1.5 mb-1.5">
-            {[1, 2, 3].map(lvl => (
+            {[1, 2, 3].map(lvl => isFullAdmin ? (
               <button key={lvl} onClick={() => onSetLevel(u.id, lvl)}
                 className={`flex-1 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
                   u.level === lvl
@@ -946,32 +1021,49 @@ function UsersTab({ users, tx, onSetLevel, onSetAdmin, onAddPoints }: any) {
                 }`}>
                 {tx(`lvl${lvl}`)}
               </button>
+            ) : (
+              <div key={lvl} className={`flex-1 py-1.5 rounded-xl text-[12px] font-bold text-center ${
+                  u.level === lvl
+                    ? 'bg-gradient-to-r from-[#FB923C] to-[#F97316] text-[#1B1204]'
+                    : 'glass text-[#94A3B8] opacity-50'
+                }`}>
+                {tx(`lvl${lvl}`)}
+              </div>
             ))}
           </div>
-          {/* To'liq admin huquqi — level zinapoyasidan alohida, eng yuqori */}
-          <button
-            onClick={() => setAdminTarget({
-              id: u.id,
-              name: u.display_name || u.username || `ID ${u.telegram_id}`,
-              grant: u.role !== 'admin',
-            })}
-            className={`w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-              u.role === 'admin'
-                ? 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'
-                : 'bg-[rgba(234,179,8,0.12)] text-[#EAB308]'
-            }`}
-          >
-            {u.role === 'admin' ? tx('revoke_admin') : `👑 ${tx('make_admin')}`}
-          </button>
+          {/* Moderator huquqi — faqat haqiqiy admin bera/qaytarib ola oladi.
+              Yagona role==='admin' (egasi) uchun hech qanday tugma yo'q —
+              hattoki o'zi ham bu yerdan o'z rolini o'zgartira olmaydi. */}
+          {u.role === 'admin' ? null : isFullAdmin ? (
+            <button
+              onClick={() => setRoleTarget({
+                id: u.id,
+                name: u.display_name || u.username || `ID ${u.telegram_id}`,
+                role: u.role === 'moderator' ? 'none' : 'moderator',
+                grant: u.role !== 'moderator',
+              })}
+              className={`w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                u.role === 'moderator'
+                  ? 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'
+                  : 'bg-[rgba(56,189,248,0.12)] text-[#38BDF8]'
+              }`}
+            >
+              {u.role === 'moderator' ? tx('revoke_moderator') : `🛡 ${tx('make_moderator')}`}
+            </button>
+          ) : u.role === 'moderator' ? (
+            <div className="w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 bg-[rgba(56,189,248,0.08)] text-[#38BDF8] opacity-60">
+              🛡 {tx('moderator_badge')}
+            </div>
+          ) : null}
         </div>
       ))}
 
-      {adminTarget && (
+      {roleTarget && (
         <ConfirmModal
           tx={tx}
-          message={tx(adminTarget.grant ? 'confirm_grant_admin' : 'confirm_revoke_admin')}
-          onConfirm={() => { onSetAdmin(adminTarget.id, adminTarget.grant); setAdminTarget(null); }}
-          onCancel={() => setAdminTarget(null)}
+          message={tx(roleTarget.grant ? 'confirm_grant_admin' : 'confirm_revoke_admin')}
+          onConfirm={() => { onSetRole(roleTarget.id, roleTarget.role); setRoleTarget(null); }}
+          onCancel={() => setRoleTarget(null)}
         />
       )}
     </div>

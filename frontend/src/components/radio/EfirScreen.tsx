@@ -66,7 +66,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   // Vediushiyning eng dolzarb bron qilingan sloti — "ЗАПИСАЛСЯ Я ИЛИ НЕТ"
   // savoliga tugma rangi/podsказka orqali javob berish uchun (faqat
   // doverenniy/admin uchun kerak — ular efirga chiqa oladi).
-  const canGoLive = user?.role === 'admin' || user?.role === 'doverenniy';
+  const canGoLive = user?.role === 'admin' || user?.role === 'moderator' || user?.role === 'doverenniy';
   const [mySlot, setMySlot] = useState<BroadcastSlot | null>(null);
   const [, forceTick] = useState(0);
 
@@ -589,7 +589,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       {/* ── ПОТОК REAL TIME кнопка (иконка для второго экрана) ── */}
       <div className="px-4 pb-2">
         {/* 🔴 LIVE tugmasi — faqat admin/doverenniy uchun, qolganlarga kasting taklifi */}
-        {(user?.role === 'admin' || user?.role === 'doverenniy') ? (
+        {(user?.role === 'admin' || user?.role === 'moderator' || user?.role === 'doverenniy') ? (
           <div className="mb-2">
             <GoLiveButton
               isLive={isLive}
