@@ -170,7 +170,7 @@ export function Welcome() {
             )}
           </div>
 
-          <div className="relative z-10 max-w-[440px] w-full mx-auto px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-2">
+          <div className="relative z-10 max-w-[440px] w-full mx-auto px-5 pb-[calc(40px+env(safe-area-inset-bottom))] pt-2">
             <button
               onClick={enterPlatform}
               className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 btn-primary-glow font-display"
