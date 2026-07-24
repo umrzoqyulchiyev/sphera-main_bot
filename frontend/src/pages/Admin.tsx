@@ -390,7 +390,7 @@ export function Admin() {
             onApprove={async (id: number, note: string) => { try { await adminApproveCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }}
             onReject={async (id: number, note: string) => { try { await adminRejectCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }} />
         ) : tab === 'slots' ? (
-          <SlotsTab slots={slots} users={users} pricing={pricing} onReload={loadData} flash={flash} />
+          <SlotsTab slots={slots} users={users} pricing={pricing} isFullAdmin={isFullAdmin} onReload={loadData} flash={flash} />
         ) : tab === 'music' ? (
           <MusicTab topics={topics} tx={tx} flash={flash} />
         ) : tab === 'payment' && isFullAdmin ? (
@@ -652,7 +652,7 @@ function CastingTab({ apps, tx, onApprove, onReject }: any) {
   );
 }
 
-function SlotsTab({ slots, users, pricing, onReload, flash }: any) {
+function SlotsTab({ slots, users, pricing, isFullAdmin, onReload, flash }: any) {
   const pricePerHour = pricing ? parseFloat(pricing.price_slot_per_hour) : 200;
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -699,7 +699,10 @@ function SlotsTab({ slots, users, pricing, onReload, flash }: any) {
 
   return (
     <div className="flex flex-col gap-3">
-      {!showCreate ? (
+      {/* Slot ochish — resurs (vaqt + poinт xarajati) taqsimlash qarori,
+          shuning uchun FAQAT haqiqiy admin. Moderator pastdagi ro'yxatni
+          ko'radi va statusni boshqaradi, lekin yangi slot ocha olmaydi. */}
+      {!isFullAdmin ? null : !showCreate ? (
         <button onClick={() => setShowCreate(true)}
           className="glass rounded-2xl py-3 flex items-center justify-center gap-2 text-sm font-bold text-[#F97316] active:scale-[0.98]">
           <Plus className="w-4 h-4" /> Новый слот эфира

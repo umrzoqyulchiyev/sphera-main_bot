@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.dependencies import get_current_user, require_staff
+from app.core.dependencies import get_current_user, require_admin, require_staff
 from app.core.models import OkResponse
 from app.services import points as points_service
 from app.services import pricing
@@ -150,7 +150,11 @@ async def get_slot(slot_id: int, user: dict = Depends(get_current_user)):
 @router.post("/", response_model=OkResponse)
 async def create_slot(
     payload: SlotCreateRequest,
-    admin: dict = Depends(require_staff),
+    # Slot ochish (ведущийga vaqt va poinт xarajatini belgilash) — resurs
+    # taqsimoti qarori, FAQAT admin. Moderator status/live/cancel bilan
+    # ishlashda davom etadi (require_staff, pastda), lekin yangi slot
+    # ochа olmaydi.
+    admin: dict = Depends(require_admin),
 ):
     """[admin] Yangi efir sloti yaratish."""
     title = payload.title.strip()
