@@ -7,7 +7,6 @@ Telegram resursi ishlatiladi — fayl serverga yuklanmaydi, faqat file_id saqlan
 import logging
 import os
 import uuid
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -16,13 +15,12 @@ from app.core.config import settings
 from app.core.database import db
 from app.core.dependencies import get_current_user
 from app.services import points as points_service
+from app.services import pricing
 
 log = logging.getLogger("opinions")
 
 router = APIRouter(prefix="/opinions", tags=["opinions"])
 
-COST_TEXT = Decimal("0.001")
-COST_VOICE = Decimal("0.005")
 _ALLOWED_AUDIO = {".webm", ".ogg", ".mp3", ".m4a", ".wav", ".oga"}
 
 
@@ -48,7 +46,11 @@ async def save_opinion(
 ):
     """Mneniya (fikr) saqlaydi. Matn yoki ovoz (file_id). Point yechiladi."""
     # Narx aniqlash
-    cost = COST_VOICE if payload.kind == "voice" else COST_TEXT
+    cost = (
+        pricing.get("price_voice_message")
+        if payload.kind == "voice"
+        else pricing.get("price_text_message")
+    )
 
     # Point yechish (atomik)
     spent = await points_service.spend(user["id"], f"opinion_{payload.kind}", cost)
@@ -128,7 +130,8 @@ async def save_voice_opinion(
     if ext not in _ALLOWED_AUDIO:
         raise HTTPException(status_code=400, detail="Unsupported audio format")
 
-    spent = await points_service.spend(user["id"], "opinion_voice", COST_VOICE)
+    voice_cost = pricing.get("price_voice_message")
+    spent = await points_service.spend(user["id"], "opinion_voice", voice_cost)
     if not spent["ok"]:
         raise HTTPException(
             status_code=402,
@@ -159,7 +162,7 @@ async def save_voice_opinion(
         user["id"],
         topic_id,
         fname,
-        COST_VOICE,
+        voice_cost,
     )
     log.info("[opinions] voice #%s user=%s topic=%s", row["id"], user["id"], topic_id)
     return {"ok": True, "opinion_id": row["id"], "points": str(spent["points"])}

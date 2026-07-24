@@ -8,8 +8,9 @@ import {
   getMusicNominations, adminDeleteNomination,
   adminGetPaymentSettings, adminUpdatePaymentSettings,
   adminListPackages, adminCreatePackage, adminUpdatePackage, adminDeletePackage,
+  adminGetPricing, adminUpdatePricing,
   getDefaultMusic, uploadDefaultMusic, deleteDefaultMusic,
-  type BroadcastSlot, type MusicNomination, type StaffRole,
+  type BroadcastSlot, type MusicNomination, type StaffRole, type Pricing,
 } from '../lib/api';
 import type { User } from '../types';
 import { authHeaders, getToken } from '../lib/auth';
@@ -77,6 +78,9 @@ const L: Record<string, Record<string, string>> = {
     add_pts_submit: 'Начислить', add_pts_hint: 'Баланс админа не меняется — поинты берутся не с вашего счёта',
     mode_add: 'Начислить', mode_deduct: 'Списать', deduct_pts_submit: 'Списать',
     cancel: 'Отмена', confirm: 'Подтвердить', confirm_delete_title: 'Подтверждение',
+    pricing_title: 'Стоимость услуг', pricing_hint: 'Сколько поинтов списывается у пользователя за каждое действие. Изменения применяются сразу.',
+    pricing_text: 'Текстовое сообщение', pricing_voice: 'Голосовое сообщение', pricing_slot: 'Час эфира (слот)',
+    pricing_saved: 'Цены сохранены',
   },
   en: {
     title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
@@ -117,6 +121,9 @@ const L: Record<string, Record<string, string>> = {
     add_pts_submit: 'Add', add_pts_hint: "Your own balance is untouched — points aren't taken from your account",
     mode_add: 'Add', mode_deduct: 'Deduct', deduct_pts_submit: 'Deduct',
     cancel: 'Cancel', confirm: 'Confirm', confirm_delete_title: 'Confirm',
+    pricing_title: 'Service pricing', pricing_hint: 'How many points are deducted from a user for each action. Changes apply immediately.',
+    pricing_text: 'Text message', pricing_voice: 'Voice message', pricing_slot: 'Broadcast hour (slot)',
+    pricing_saved: 'Prices saved',
   },
   lt: {
     title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
@@ -157,6 +164,9 @@ const L: Record<string, Record<string, string>> = {
     add_pts_submit: 'Pridėti', add_pts_hint: 'Jūsų balansas nekeičiamas — taškai neimami iš jūsų sąskaitos',
     mode_add: 'Pridėti', mode_deduct: 'Nurašyti', deduct_pts_submit: 'Nurašyti',
     cancel: 'Atšaukti', confirm: 'Patvirtinti', confirm_delete_title: 'Patvirtinimas',
+    pricing_title: 'Paslaugų kainos', pricing_hint: 'Kiek taškų nurašoma iš vartotojo už kiekvieną veiksmą. Pakeitimai taikomi iš karto.',
+    pricing_text: 'Teksto žinutė', pricing_voice: 'Balso žinutė', pricing_slot: 'Eterio valanda (slotas)',
+    pricing_saved: 'Kainos išsaugotos',
   },
 };
 
@@ -228,6 +238,7 @@ export function Admin() {
   const [castingApps, setCastingApps] = useState<CastingApp[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [packages, setPackages] = useState<AdminPackage[]>([]);
+  const [pricing, setPricing] = useState<Pricing | null>(null);
   const [addPointsTarget, setAddPointsTarget] = useState<UserRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -248,12 +259,19 @@ export function Admin() {
     try {
       if (tab === 'topics') setTopics(await adminGetTopics());
       else if (tab === 'users') setUsers(await getUsers());
-      else if (tab === 'slots') { setSlots(await getAllSlots()); setUsers(await getUsers()); }
+      else if (tab === 'slots') {
+        setSlots(await getAllSlots());
+        setUsers(await getUsers());
+        // Slotni yaratishda narx taxminini ko'rsatish uchun — moderator ham
+        // slot yarata oladi, shuning uchun bu o'qish require_staff'da.
+        adminGetPricing().then(setPricing).catch(() => {});
+      }
       else if (tab === 'music') setTopics(await adminGetTopics());
       else if (tab === 'casting') setCastingApps(await adminGetCasting('pending'));
       else if (tab === 'payment') {
         setPaymentSettings(await adminGetPaymentSettings());
         setPackages(await adminListPackages());
+        setPricing(await adminGetPricing());
       }
       else setDrafts(await adminGetDrafts());
     } catch (e) { console.error(e); }
@@ -301,6 +319,20 @@ export function Admin() {
     navigate('/radio', { replace: true, state: { screen: from || 'profile' } });
   }
 
+  // "Оплата" — faqat haqiqiy admin ko'radi. Moderator bu yerga kirmasligi
+  // kerak: to'lov usuli, paketlar va xizmat narxlarini FAQAT admin belgilaydi.
+  const isFullAdmin = me?.role === 'admin';
+  type TabDef = readonly [string, typeof MessageSquare, string];
+  const tabDefs: TabDef[] = [
+    ['topics', MessageSquare, tx('topics_tab')],
+    ['drafts', Sparkles, tx('drafts_tab')],
+    ['casting', Mic, tx('casting_tab')],
+    ['slots', Calendar, tx('slots_tab')],
+    ['music', Music, tx('music_tab')],
+    ['users', Users, tx('users_tab')],
+    ...(isFullAdmin ? [['payment', CreditCard, tx('payment_tab')] as TabDef] : []),
+  ];
+
   return (
     <div
       className="bg-[#0F0F23] text-[#F8FAFC] overflow-y-auto overscroll-contain"
@@ -324,7 +356,7 @@ export function Admin() {
             topilmay qolgan edi — gorizontal skrollda 6-o'rinda, ekrandan
             tashqarida edi va hech qanday skroll ishorasi yo'q edi. */}
         <div className="flex flex-wrap gap-2">
-          {([['topics', MessageSquare, tx('topics_tab')], ['drafts', Sparkles, tx('drafts_tab')], ['casting', Mic, tx('casting_tab')], ['slots', Calendar, tx('slots_tab')], ['music', Music, tx('music_tab')], ['users', Users, tx('users_tab')], ['payment', CreditCard, tx('payment_tab')]] as const).map(([t, Icon, label]) => {
+          {tabDefs.map(([t, Icon, label]) => {
             const active = tab === t;
             return (
               <button key={t} onClick={() => setTab(t as any)}
@@ -356,13 +388,13 @@ export function Admin() {
             onApprove={async (id: number, note: string) => { try { await adminApproveCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }}
             onReject={async (id: number, note: string) => { try { await adminRejectCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }} />
         ) : tab === 'slots' ? (
-          <SlotsTab slots={slots} users={users} onReload={loadData} flash={flash} />
+          <SlotsTab slots={slots} users={users} pricing={pricing} onReload={loadData} flash={flash} />
         ) : tab === 'music' ? (
           <MusicTab topics={topics} tx={tx} flash={flash} />
-        ) : tab === 'payment' ? (
-          <PaymentTab tx={tx} settings={paymentSettings} packages={packages} flash={flash} onReload={loadData} />
+        ) : tab === 'payment' && isFullAdmin ? (
+          <PaymentTab tx={tx} settings={paymentSettings} packages={packages} pricing={pricing} flash={flash} onReload={loadData} />
         ) : (
-          <UsersTab users={users} tx={tx} isFullAdmin={me?.role === 'admin'}
+          <UsersTab users={users} tx={tx} isFullAdmin={isFullAdmin}
             onSetLevel={async (id: number, lvl: number) => { try { await adminSetLevel(id, lvl); flash('✅'); await loadData(); } catch { flash('❌'); } }}
             onSetRole={async (id: number, role: StaffRole) => {
               try { await adminSetStaffRole(id, role); flash('✅'); await loadData(); }
@@ -618,7 +650,8 @@ function CastingTab({ apps, tx, onApprove, onReject }: any) {
   );
 }
 
-function SlotsTab({ slots, users, onReload, flash }: any) {
+function SlotsTab({ slots, users, pricing, onReload, flash }: any) {
+  const pricePerHour = pricing ? parseFloat(pricing.price_slot_per_hour) : 200;
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -726,7 +759,7 @@ function SlotsTab({ slots, users, onReload, flash }: any) {
             </div>
           </div>
           <div className="text-[10px] text-[#94A3B8] text-center">
-            Со счёта ведущего спишется ≈ {((parseInt(form.duration_min) || 60) / 60 * 200).toFixed(0)} поинтов за слот
+            Со счёта ведущего спишется ≈ {((parseInt(form.duration_min) || 60) / 60 * pricePerHour).toFixed(0)} поинтов за слот
           </div>
           <button onClick={handleCreate} disabled={creating || !form.title.trim() || !form.host_user_id || !form.scheduled_at}
             className="w-full py-3 rounded-xl font-bold text-sm text-[#1B1204] disabled:opacity-40"
@@ -1071,8 +1104,8 @@ function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints }
 }
 
 // ── PaymentTab — admin поинт оплатасини қандай ишлашини белгилайди ──
-function PaymentTab({ tx, settings, packages, flash, onReload }: {
-  tx: any; settings: PaymentSettings | null; packages: AdminPackage[];
+function PaymentTab({ tx, settings, packages, pricing, flash, onReload }: {
+  tx: any; settings: PaymentSettings | null; packages: AdminPackage[]; pricing: Pricing | null;
   flash: (m: string) => void; onReload: () => Promise<void>;
 }) {
   const [method, setMethod] = useState<'stars' | 'manual'>(settings?.method || 'stars');
@@ -1145,6 +1178,8 @@ function PaymentTab({ tx, settings, packages, flash, onReload }: {
       </div>
 
       <PackagesEditor tx={tx} packages={packages} flash={flash} onReload={onReload} />
+
+      <PricingEditor tx={tx} pricing={pricing} flash={flash} onReload={onReload} />
     </div>
   );
 }
@@ -1269,6 +1304,69 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
           onCancel={() => setPendingDelete(null)}
         />
       )}
+    </div>
+  );
+}
+
+// ── PricingEditor — xizmatlar narxi (matn/ovoz xabar, efir soati).
+// FAQAT haqiqiy admin ko'radi (PaymentTab shu tarzda ekaniga ishonch hosil
+// qilingan) — "сколько поинтов будет сниматься... это решает только админ".
+function PricingEditor({ tx, pricing, flash, onReload }: {
+  tx: any; pricing: Pricing | null; flash: (m: string) => void; onReload: () => Promise<void>;
+}) {
+  const [text, setText] = useState(pricing?.price_text_message ?? '');
+  const [voice, setVoice] = useState(pricing?.price_voice_message ?? '');
+  const [slot, setSlot] = useState(pricing?.price_slot_per_hour ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setText(pricing?.price_text_message ?? '');
+    setVoice(pricing?.price_voice_message ?? '');
+    setSlot(pricing?.price_slot_per_hour ?? '');
+  }, [pricing]);
+
+  async function save() {
+    const t = parseFloat(text), v = parseFloat(voice), s = parseFloat(slot);
+    if (!(t >= 0) || !(v >= 0) || !(s >= 0)) return;
+    setSaving(true);
+    try {
+      await adminUpdatePricing({ price_text_message: t, price_voice_message: v, price_slot_per_hour: s });
+      flash('✅ ' + tx('pricing_saved'));
+      await onReload();
+    } catch { flash('❌'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide mb-1">{tx('pricing_title')}</div>
+      <div className="text-[11px] text-[#94A3B8] mb-3">{tx('pricing_hint')}</div>
+      <div className="flex flex-col gap-2.5">
+        {([
+          ['text', text, setText, tx('pricing_text')],
+          ['voice', voice, setVoice, tx('pricing_voice')],
+          ['slot', slot, setSlot, tx('pricing_slot')],
+        ] as const).map(([key, value, setValue, label]) => (
+          <div key={key} className="flex items-center gap-3">
+            <label className="flex-1 text-sm text-[#F8FAFC]">{label}</label>
+            <input
+              inputMode="decimal"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="w-24 rounded-lg px-3 py-2 text-sm text-right text-[#F8FAFC] outline-none"
+              style={{ background: 'rgba(15,15,35,0.7)', border: '1px solid rgba(249,115,22,0.18)' }}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={save}
+        disabled={saving}
+        className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold text-[#1B1204] disabled:opacity-50"
+        style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
+      >
+        {saving ? <Loader className="w-3.5 h-3.5 animate-spin mx-auto" /> : tx('save')}
+      </button>
     </div>
   );
 }

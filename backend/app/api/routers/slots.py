@@ -23,14 +23,14 @@ from app.core.database import db
 from app.core.dependencies import get_current_user, require_staff
 from app.core.models import OkResponse
 from app.services import points as points_service
+from app.services import pricing
 
 log = logging.getLogger("slots")
 
 router = APIRouter(prefix="/slots", tags=["slots"])
 
-# TZ §3/§9/§12: ведущий эфир учун поинт билан tо'lайди (3-5$/soat, taxminiy).
-# Aniq narx biznes qaroriga bog'liq — hozircha soatiga 200 point.
-SLOT_COST_PER_HOUR = Decimal("200")
+# TZ §3/§9/§12: ведущий эфир учун поинт билан tо'lайди — soatiga narx admin
+# panelidan sozlanadi (app.services.pricing, "price_slot_per_hour").
 
 
 class SlotCreateRequest(BaseModel):
@@ -179,9 +179,9 @@ async def create_slot(
         raise HTTPException(status_code=400, detail="Host must be level 3 (doverenniy) or admin")
 
     # TZ §3/§9: ведущий слот учун поинт билан tо'lайди.
-    cost_points = (SLOT_COST_PER_HOUR * Decimal(payload.duration_min) / Decimal(60)).quantize(
-        Decimal("0.0001")
-    )
+    cost_points = (
+        pricing.get("price_slot_per_hour") * Decimal(payload.duration_min) / Decimal(60)
+    ).quantize(Decimal("0.0001"))
 
     # Avval slotni yaratamiz, keyin to'lovni yechamiz (spend() va INSERT
     # bitta tranzaksiyada emas — spend() birinchi bo'lsa-yu INSERT keyin

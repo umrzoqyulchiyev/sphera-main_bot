@@ -486,6 +486,34 @@ export async function adminDeletePackage(id: number) {
   return resp.json();
 }
 
+// ============ Admin: xizmat narxlari (FAQAT haqiqiy admin) ============
+export interface Pricing {
+  price_text_message: string;
+  price_voice_message: string;
+  price_slot_per_hour: string;
+}
+
+export async function adminGetPricing(): Promise<Pricing> {
+  const resp = await fetch(`${API_URL}/admin/pricing`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error('Failed to fetch pricing');
+  return resp.json();
+}
+
+export async function adminUpdatePricing(data: {
+  price_text_message: number; price_voice_message: number; price_slot_per_hour: number;
+}): Promise<Pricing> {
+  const resp = await fetch(`${API_URL}/admin/pricing`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to update pricing');
+  }
+  return resp.json();
+}
+
 // Eski drafts API — v3'da yo'q (stub, Admin sahifa buzilmasligi uchun)
 export async function getDrafts(_status = 'pending'): Promise<any[]> {
   return [];

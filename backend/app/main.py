@@ -57,6 +57,11 @@ async def lifespan(app: FastAPI):
     # 3. Redis (graceful fallback)
     await redis_client.connect()
 
+    # 3.5 Xizmat narxlari (xabar/efir uchun point narxlari) — app_settings'dan
+    from app.services import pricing
+
+    await pricing.reload()
+
     # 4. Uzluksiz MediaMTX oqimi (USE_MEDIAMTX=true bo'lsa) — har til uchun worker
     from app.services import continuous
 

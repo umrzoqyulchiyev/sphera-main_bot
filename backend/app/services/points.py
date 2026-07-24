@@ -5,28 +5,36 @@ TZ §1 Rol modeli:
   Level 2 (aktivniy)    — points > 0 → chat + studiya
   Level 3 (doverenniy)  — FAQAT admin beradi (efirga chiqish)
 
-Point narxlari (xabar yuborishda sarflanadi):
-  chat matn   : -0.001
-  chat ovoz   : -0.005
-  studiya matn: -0.001
-  studiya ovoz: -0.005
+Point narxlari (xabar yuborishda sarflanadi) — endi qattiq yozilmagan,
+admin panel orqali sozlanadi (app.services.pricing, faqat require_admin).
 """
 
 import logging
 from decimal import Decimal
 
-from app.core.constants import COST_TEXT_MESSAGE, COST_VOICE_MESSAGE, level_for_points
+from app.core.constants import level_for_points
 from app.core.database import db
+from app.services import pricing
 
 log = logging.getLogger("points")
 
-# COST xaritasi — messages router import qiladi
-COST: dict[str, Decimal] = {
-    "chat": Decimal("0.001"),
-    "chat_voice": Decimal("0.005"),
-    "studio": Decimal("0.001"),
-    "studio_voice": Decimal("0.005"),
-}
+
+class _CostMap:
+    """`COST["studio"]` kabi eski subscript sintaksisini saqlab qoladi,
+    lekin har chaqiriqda admin sozlagan joriy narxni qaytaradi."""
+
+    _KEY_MAP = {
+        "chat": "price_text_message",
+        "studio": "price_text_message",
+        "chat_voice": "price_voice_message",
+        "studio_voice": "price_voice_message",
+    }
+
+    def __getitem__(self, event: str) -> Decimal:
+        return pricing.get(self._KEY_MAP[event])
+
+
+COST = _CostMap()
 
 
 async def get_balance(user_id: int) -> Decimal:
@@ -105,11 +113,11 @@ async def spend(user_id: int, event_type: str, cost: Decimal) -> dict:
 
 
 async def spend_text(user_id: int) -> dict:
-    return await spend(user_id, "text_message", Decimal(str(COST_TEXT_MESSAGE)))
+    return await spend(user_id, "text_message", pricing.get("price_text_message"))
 
 
 async def spend_voice(user_id: int) -> dict:
-    return await spend(user_id, "voice_message", Decimal(str(COST_VOICE_MESSAGE)))
+    return await spend(user_id, "voice_message", pricing.get("price_voice_message"))
 
 
 async def award(user_id: int, event_type: str, amount: int) -> dict:

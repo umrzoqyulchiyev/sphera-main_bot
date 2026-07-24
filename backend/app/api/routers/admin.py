@@ -22,9 +22,12 @@ from app.core.models import (
     PackageUpdate,
     PaymentSettingsOut,
     PaymentSettingsUpdate,
+    PricingOut,
+    PricingUpdate,
 )
 from app.core.ws_manager import manager
 from app.services import points as points_service
+from app.services import pricing
 
 log = logging.getLogger("admin")
 
@@ -151,7 +154,7 @@ async def list_users(admin: dict = Depends(require_staff)):
 # (Telegram Stars orqali avtomatik, yoki qo'lda/kontakt orqali)
 # ============================================================
 @router.get("/settings/payment", response_model=PaymentSettingsOut)
-async def get_payment_settings(admin: dict = Depends(require_staff)):
+async def get_payment_settings(admin: dict = Depends(require_admin)):
     rows = await db.fetch(
         "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
     )
@@ -165,7 +168,7 @@ async def get_payment_settings(admin: dict = Depends(require_staff)):
 @router.put("/settings/payment", response_model=PaymentSettingsOut)
 async def update_payment_settings(
     payload: PaymentSettingsUpdate,
-    admin: dict = Depends(require_staff),
+    admin: dict = Depends(require_admin),
 ):
     if payload.method not in ("stars", "manual"):
         raise HTTPException(status_code=400, detail="method must be 'stars' or 'manual'")
@@ -192,7 +195,7 @@ async def update_payment_settings(
 # Point paketlari — narx/miqdor/faollik admin tomonidan boshqariladi
 # ============================================================
 @router.get("/packages", response_model=list[PackageOut])
-async def admin_list_packages(admin: dict = Depends(require_staff)):
+async def admin_list_packages(admin: dict = Depends(require_admin)):
     rows = await db.fetch(
         "SELECT id, points_amount, price_eur, label, is_active FROM point_packages ORDER BY price_eur"
     )
@@ -200,7 +203,7 @@ async def admin_list_packages(admin: dict = Depends(require_staff)):
 
 
 @router.post("/packages", response_model=PackageOut)
-async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_staff)):
+async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_admin)):
     row = await db.fetchrow(
         """
         INSERT INTO point_packages (points_amount, price_eur, label, is_active)
@@ -217,7 +220,7 @@ async def admin_create_package(payload: PackageCreate, admin: dict = Depends(req
 
 @router.put("/packages/{package_id}", response_model=PackageOut)
 async def admin_update_package(
-    package_id: int, payload: PackageUpdate, admin: dict = Depends(require_staff)
+    package_id: int, payload: PackageUpdate, admin: dict = Depends(require_admin)
 ):
     row = await db.fetchrow(
         """
@@ -238,11 +241,47 @@ async def admin_update_package(
 
 
 @router.delete("/packages/{package_id}", response_model=OkResponse)
-async def admin_delete_package(package_id: int, admin: dict = Depends(require_staff)):
+async def admin_delete_package(package_id: int, admin: dict = Depends(require_admin)):
     result = await db.execute("DELETE FROM point_packages WHERE id = $1", package_id)
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="Package not found")
     return OkResponse(detail={"package_id": package_id})
+
+
+# ============================================================
+# Xizmat narxlari (matn/ovoz xabar, efir soati) — FAQAT admin.
+# Moderator admin-panelning boshqa hamma joyiga kira oladi, lekin
+# to'lov/narx qanday ishlashini FAQAT haqiqiy admin belgilaydi.
+# ============================================================
+@router.get("/pricing", response_model=PricingOut)
+async def get_pricing(admin: dict = Depends(require_staff)):
+    """O'qish — staff (moderator ham) ko'ra oladi, masalan slot narxini
+    ko'rsatish uchun. O'zgartirish esa pastdagi PUT — faqat require_admin."""
+    p = pricing.get_all()
+    return PricingOut(
+        price_text_message=p["price_text_message"],
+        price_voice_message=p["price_voice_message"],
+        price_slot_per_hour=p["price_slot_per_hour"],
+    )
+
+
+@router.put("/pricing", response_model=PricingOut)
+async def update_pricing(payload: PricingUpdate, admin: dict = Depends(require_admin)):
+    await pricing.set_price("price_text_message", payload.price_text_message)
+    await pricing.set_price("price_voice_message", payload.price_voice_message)
+    await pricing.set_price("price_slot_per_hour", payload.price_slot_per_hour)
+    log.info(
+        "Admin %d narxlarni o'zgartirdi: text=%s voice=%s slot/soat=%s",
+        admin["id"],
+        payload.price_text_message,
+        payload.price_voice_message,
+        payload.price_slot_per_hour,
+    )
+    return PricingOut(
+        price_text_message=payload.price_text_message,
+        price_voice_message=payload.price_voice_message,
+        price_slot_per_hour=payload.price_slot_per_hour,
+    )
 
 
 # ============================================================

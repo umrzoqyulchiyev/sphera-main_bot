@@ -55,9 +55,8 @@ def level_for_points(points_val) -> int:
 # ====== Tillar ======
 SUPPORTED_LANGUAGES = {"ru", "en", "lt"}
 
-# ====== Point narxlari (kasr) ======
-COST_TEXT_MESSAGE = 0.001  # 1 ta matn xabar studiyaga
-COST_VOICE_MESSAGE = 0.005  # 1 ta ovozli xabar
+# Point narxlari endi qattiq yozilmagan — app.services.pricing'da
+# (app_settings orqali admin sozlaydi).
 
 # ====== Boshlang'ich point (ro'yxatdan o'tganda) ======
 # TZ: birinchi odam uchun 0 bo'lishi kerak

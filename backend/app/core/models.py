@@ -240,6 +240,19 @@ class AdminAddPointsRequest(BaseModel):
     amount: Decimal
 
 
+# ============ Pricing (xizmat narxlari — FAQAT admin) ============
+class PricingOut(BaseModel):
+    price_text_message: Decimal
+    price_voice_message: Decimal
+    price_slot_per_hour: Decimal
+
+
+class PricingUpdate(BaseModel):
+    price_text_message: Decimal = Field(ge=0)
+    price_voice_message: Decimal = Field(ge=0)
+    price_slot_per_hour: Decimal = Field(ge=0)
+
+
 class AdminNewsCreate(BaseModel):
     language: str  # ru | en | lt
     title: str
