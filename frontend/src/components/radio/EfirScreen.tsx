@@ -57,7 +57,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   const [showStreamModal, setShowStreamModal] = useState(false);
   const [showStudioModal, setShowStudioModal] = useState(false);
   const [studioText, setStudioText] = useState('');
-  const [streamDuration, setStreamDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [pendingVoice, setPendingVoice] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -127,15 +126,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   // yuboriladi, pastdagi DOM tugmasi fallback bo'ladi).
   useTelegramBackButton(showChatModal, () => setShowChatModal(false));
   useTelegramBackButton(showStreamModal, () => setShowStreamModal(false));
-
-  useEffect(() => {
-    if (radioStatus?.is_live && audioPlayer.isPlaying) {
-      const interval = setInterval(() => setStreamDuration(prev => prev + 1), 1000);
-      return () => clearInterval(interval);
-    } else {
-      setStreamDuration(0);
-    }
-  }, [radioStatus?.is_live, audioPlayer.isPlaying]);
 
   useEffect(() => {
     async function loadData() {
@@ -462,16 +452,21 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         </div>
       </div>
 
-      {/* ── TIMER ── */}
-      <div className="text-center mb-4">
-        <div className="text-[28px] font-black text-[#F97316] tabular-nums tracking-widest"
-          style={{ textShadow: '0 0 10px rgba(249,115,22,0.35)' }}>
-          {formatTime(streamDuration)}
+      {/* ── TIMER — faqat efirga chiqa oladiganlar (admin/moderator/
+          doverenniy) uchun, va faqat o'zi hozir jonli bo'lganda: qolgan
+          vaqtini ko'rsatadi. Oddiy tinglovchiga umuman ko'rinmaydi — avval
+          hammaga statik "00:00" ko'rsatilardi, ma'nosiz edi. */}
+      {canGoLive && isLive && (
+        <div className="text-center mb-4">
+          <div className="text-[28px] font-black text-[#F97316] tabular-nums tracking-widest"
+            style={{ textShadow: '0 0 10px rgba(249,115,22,0.35)' }}>
+            {formatTime(liveRemainingSec ?? 0)}
+          </div>
+          <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
+            {isLivePaused ? 'Пауза' : 'Поток активен'}
+          </div>
         </div>
-        <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
-          {audioPlayer.isPlaying ? 'Поток активен' : 'Пауза'}
-        </div>
-      </div>
+      )}
 
       {/* ── Группы — ведущий эфир вақтида ҳам guruh chatlariga kira oladi ── */}
       <div className="px-4 mb-3 flex justify-end">
