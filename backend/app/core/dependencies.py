@@ -122,12 +122,18 @@ async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     return user
 
 
+def is_staff(user: dict) -> bool:
+    """Admin yoki moderator ekanini tekshiradi (dependency emas — oddiy
+    bool, masalan guruh a'zoligi kabi shartli logikalar uchun)."""
+    return user["telegram_id"] in ADMIN_IDS or user["role"] in ("admin", "moderator")
+
+
 async def require_staff(user: dict = Depends(get_current_user)) -> dict:
     """Admin yoki moderator — admin-panelning deyarli barcha funksiyalari
     uchun (mavzular, efir, kasting, slotlar, musiqa, to'lov, poinт berish).
     Foydalanuvchi status/rolini o'zgartirish esa faqat require_admin talab
     qiladi — moderator boshqa hech kimning rolini o'zgartira olmaydi."""
-    if user["telegram_id"] not in ADMIN_IDS and user["role"] not in ("admin", "moderator"):
+    if not is_staff(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin or moderator access required",

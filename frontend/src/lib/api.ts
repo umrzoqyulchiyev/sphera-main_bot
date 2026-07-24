@@ -725,7 +725,53 @@ export async function closeRoom(roomId: number) {
 
 export async function getRoomMessages(roomId: number): Promise<ChatMessage[]> {
   const resp = await fetch(`${API_URL}/rooms/${roomId}/messages`, { headers: authHeaders(), cache: 'no-store' });
-  if (!resp.ok) throw new Error('Failed to fetch room messages');
+  if (!resp.ok) {
+    // status prikrepiladi — RoomChatModal buni ishlatib, guruhdan chetlatilgan
+    // (403) foydalanuvchini avtomatik chiqarib yuboradi (kutilmagan xato emas).
+    const err: any = new Error('Failed to fetch room messages');
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
+}
+
+export interface RoomMember {
+  user_id: number;
+  telegram_id: number;
+  username: string | null;
+  display_name: string | null;
+  is_host: boolean;
+}
+
+export async function getRoomMembers(roomId: number): Promise<RoomMember[]> {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/members`, { headers: authHeaders(), cache: 'no-store' });
+  if (!resp.ok) throw new Error('Failed to fetch room members');
+  return resp.json();
+}
+
+export async function inviteToRoom(roomId: number, telegramId: number) {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ telegram_id: telegramId }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to invite user');
+  }
+  return resp.json();
+}
+
+export async function kickFromRoom(roomId: number, userId: number) {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}/kick`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to remove user');
+  }
   return resp.json();
 }
 

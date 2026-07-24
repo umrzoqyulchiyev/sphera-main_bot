@@ -108,6 +108,25 @@ CREATE TABLE IF NOT EXISTS chat_rooms (
 -- Guruh xabarlari xuddi shu chat_messages jadvalida saqlanadi — room_id
 -- NULL bo'lsa umumiy chat, aks holda shu guruhga tegishli.
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS room_id INTEGER REFERENCES chat_rooms(id) ON DELETE CASCADE;
+
+-- Guruh a'zoligi — guruhlar YOPIQ: faqat shu jadvaldagi (yoki xost/staff)
+-- foydalanuvchi o'qiy/yoza oladi. Xost taklif/chetlatish qiladi, admin va
+-- moderator ham (har qanday guruhga).
+CREATE TABLE IF NOT EXISTS room_members (
+    room_id     INTEGER NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    added_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    added_at    TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (room_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
+
+-- Mavjud guruhlar uchun bitta martalik migratsiya — avval a'zolik yo'q edi,
+-- endi yopiq bo'lgani uchun kamida xostni a'zo qilib qo'yamiz (composite PK
+-- ON CONFLICT bilan xavfsiz — har deploy'da qayta ishlaydi, dublikat bo'lmaydi).
+INSERT INTO room_members (room_id, user_id, added_by)
+SELECT id, host_user_id, host_user_id FROM chat_rooms WHERE host_user_id IS NOT NULL
+ON CONFLICT (room_id, user_id) DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id, created_at);
 
 -- ============ Studiya/efir zayavkalari (AI agregator + moderator uchun) ============

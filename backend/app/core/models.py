@@ -180,6 +180,22 @@ class RoomMessageRequest(BaseModel):
     message: str
 
 
+class RoomInviteRequest(BaseModel):
+    telegram_id: int  # profilda ko'rsatiladigan ID — points transfer bilan bir xil shartnoma
+
+
+class RoomKickRequest(BaseModel):
+    user_id: int  # ichki users.id — a'zolar ro'yxatidan olinadi
+
+
+class RoomMemberOut(BaseModel):
+    user_id: int
+    telegram_id: int
+    username: str | None = None
+    display_name: str | None = None
+    is_host: bool = False
+
+
 # ============ Radio / Broadcast ============
 class RadioStatus(BaseModel):
     is_live: bool
