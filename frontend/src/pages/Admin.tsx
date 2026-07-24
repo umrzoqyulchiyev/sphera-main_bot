@@ -319,14 +319,16 @@ export function Admin() {
     navigate('/radio', { replace: true, state: { screen: from || 'profile' } });
   }
 
-  // "Оплата" — faqat haqiqiy admin ko'radi. Moderator bu yerga kirmasligi
-  // kerak: to'lov usuli, paketlar va xizmat narxlarini FAQAT admin belgilaydi.
+  // "Оплата" va "Кастинг" — faqat haqiqiy admin ko'radi. Moderator bu yerga
+  // kirmasligi kerak: to'lov/narxlar hamda kastingni tasdiqlash (bu ham
+  // aslida foydalanuvchini 'doverenniy' qiladi — status o'zgartirish bilan
+  // barobar) FAQAT admin qaroriga tegishli.
   const isFullAdmin = me?.role === 'admin';
   type TabDef = readonly [string, typeof MessageSquare, string];
   const tabDefs: TabDef[] = [
     ['topics', MessageSquare, tx('topics_tab')],
     ['drafts', Sparkles, tx('drafts_tab')],
-    ['casting', Mic, tx('casting_tab')],
+    ...(isFullAdmin ? [['casting', Mic, tx('casting_tab')] as TabDef] : []),
     ['slots', Calendar, tx('slots_tab')],
     ['music', Music, tx('music_tab')],
     ['users', Users, tx('users_tab')],
@@ -383,7 +385,7 @@ export function Admin() {
             onAggregate={handleAggregate} />
         ) : tab === 'drafts' ? (
           <DraftsTab drafts={drafts} tx={tx} onView={handleViewDraft} onApprove={handleApproveDraft} onReject={handleRejectDraft} />
-        ) : tab === 'casting' ? (
+        ) : tab === 'casting' && isFullAdmin ? (
           <CastingTab apps={castingApps} tx={tx}
             onApprove={async (id: number, note: string) => { try { await adminApproveCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }}
             onReject={async (id: number, note: string) => { try { await adminRejectCasting(id, note); flash('✅'); await loadData(); } catch { flash('❌'); } }} />
