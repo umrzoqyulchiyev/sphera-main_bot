@@ -188,8 +188,29 @@ export function CastingScreen() {
         </div>
       )}
 
-      {/* Apply form — shown when not applied, or previously rejected (re-apply) */}
-      {!status?.already_doverenniy && (!status?.applied || status.status === 'rejected') && (
+      {/* Odatda ariza tasdiqlansa role='doverenniy' bo'lib qoladi va
+          already_doverenniy=true'ga tushadi — lekin admin keyinchalik
+          darajani pasaytirib qo'ysa (level 1/2'ga), role o'zgaradi-yu,
+          eski ariza yozuvi hali ham status='approved' bo'lib qoladi. Bu
+          holat quyidagi 3 blokning hech biriga tushmay, ekran butunlay
+          bo'sh ko'rinardi ("нельзя записаться" xabarining aslida shu edi). */}
+      {!status?.already_doverenniy && status?.applied && status.status === 'approved' && (
+        <div className="glass rounded-[24px] p-5 space-y-2"
+          style={{ border: '1px solid rgba(148,163,184,0.2)' }}>
+          <div className="flex items-center gap-2">
+            <XCircle className="w-5 h-5 text-[#94A3B8]" />
+            <span className="text-sm font-bold text-[#F8FAFC]">Право на эфир отозвано</span>
+          </div>
+          <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+            Ранее заявка была одобрена, но статус ведущего был снят администратором. Вы можете подать заявку заново.
+          </p>
+        </div>
+      )}
+
+      {/* Apply form — ko'rsatiladi: hali ariza bo'lmagan, rad etilgan yoki
+          tasdiqlangan-u keyin huquq olib qo'yilgan bo'lsa. Faqat "ko'rib
+          chiqilmoqda" (pending) holatidagina yashiriladi. */}
+      {!status?.already_doverenniy && !(status?.applied && status.status === 'pending') && (
         <>
           {/* Steps */}
           <div className="grid grid-cols-3 gap-2">
