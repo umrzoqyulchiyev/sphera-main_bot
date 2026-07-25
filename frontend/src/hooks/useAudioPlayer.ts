@@ -23,6 +23,7 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
   const wantPlayingRef = useRef(false);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const streamUrlRef = useRef(streamUrl);
   const languageRef = useRef(language);
@@ -166,6 +167,34 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     };
     const onPause = () => {
       setIsPlaying(false);
+      // Tashqi sabab bilan to'xtagan bo'lishi mumkin — masalan chat/studiyaga
+      // ovozli xabar yozish uchun getUserMedia() chaqirilganda ba'zi
+      // WebView'lar (ayniqsa iOS) butun audio session'ni pauza qiladi va
+      // mikrofon bo'shagach o'zi qayta ulanmaydi. Foydalanuvchi hali
+      // tinglashni xohlasa (wantPlayingRef hali true — haqiqiy STOP tugmasi
+      // buni pauzadan OLDIN false qiladi), mikrofon bo'shagandan keyin
+      // jimgina (xatosiz) qayta urinamiz: avval yengil audio.play(),
+      // bir necha marta o'tmasa — to'liq qayta ulanish (stream uzilgan
+      // bo'lishi ham mumkin).
+      if (resumeRetryTimerRef.current) {
+        clearTimeout(resumeRetryTimerRef.current);
+        resumeRetryTimerRef.current = null;
+      }
+      if (!wantPlayingRef.current) return;
+      let attempts = 0;
+      const tryResume = () => {
+        resumeRetryTimerRef.current = null;
+        if (!wantPlayingRef.current || !audio.paused) return;
+        attempts += 1;
+        if (attempts <= 3) {
+          audio.play().catch(() => {
+            resumeRetryTimerRef.current = setTimeout(tryResume, 1200);
+          });
+        } else {
+          connectRef.current();
+        }
+      };
+      resumeRetryTimerRef.current = setTimeout(tryResume, 500);
     };
     const onCanPlay = () => {
       if (wantPlayingRef.current && audio.paused) {
@@ -191,6 +220,11 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
     audio.addEventListener('stalled', onStreamError);
 
     return () => {
+      wantPlayingRef.current = false;
+      if (resumeRetryTimerRef.current) {
+        clearTimeout(resumeRetryTimerRef.current);
+        resumeRetryTimerRef.current = null;
+      }
       audio.pause();
       audio.src = '';
       clearLoadingTimeout();
