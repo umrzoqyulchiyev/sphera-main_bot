@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search, Upload } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search, Upload, UserPlus } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminSetStaffRole, adminAddPoints, getMe,
@@ -81,6 +81,9 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Стоимость услуг', pricing_hint: 'Сколько поинтов списывается у пользователя за каждое действие. Изменения применяются сразу.',
     pricing_text: 'Текстовое сообщение', pricing_voice: 'Голосовое сообщение', pricing_slot: 'Час эфира (слот)',
     pricing_saved: 'Цены сохранены',
+    grant_access: 'Дать доступ к панели', grant_access_title: 'Доступ к админ-панели',
+    grant_access_pick: 'Выбрать', grant_access_hint: 'Выберите пользователя и дайте ему доступ к админ-панели (модератор).',
+    no_candidates: 'Некому давать доступ',
   },
   en: {
     title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
@@ -124,6 +127,9 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Service pricing', pricing_hint: 'How many points are deducted from a user for each action. Changes apply immediately.',
     pricing_text: 'Text message', pricing_voice: 'Voice message', pricing_slot: 'Broadcast hour (slot)',
     pricing_saved: 'Prices saved',
+    grant_access: 'Grant panel access', grant_access_title: 'Admin panel access',
+    grant_access_pick: 'Select', grant_access_hint: 'Pick a user and give them admin panel access (moderator).',
+    no_candidates: 'No one to grant access to',
   },
   lt: {
     title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
@@ -167,6 +173,9 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Paslaugų kainos', pricing_hint: 'Kiek taškų nurašoma iš vartotojo už kiekvieną veiksmą. Pakeitimai taikomi iš karto.',
     pricing_text: 'Teksto žinutė', pricing_voice: 'Balso žinutė', pricing_slot: 'Eterio valanda (slotas)',
     pricing_saved: 'Kainos išsaugotos',
+    grant_access: 'Suteikti prieigą prie panelės', grant_access_title: 'Prieiga prie admin panelės',
+    grant_access_pick: 'Pasirinkti', grant_access_hint: 'Pasirinkite vartotoją ir suteikite jam admin panelės prieigą (moderatorius).',
+    no_candidates: 'Nėra kam suteikti prieigą',
   },
 };
 
@@ -248,6 +257,7 @@ export function Admin() {
   const [toast, setToast] = useState('');
   const [activeDraft, setActiveDraft] = useState<Draft | null>(null);
   const [aggregating, setAggregating] = useState<number | null>(null);
+  const [showGrantAccess, setShowGrantAccess] = useState(false);
 
   useEffect(() => { loadData(); }, [tab]);
   // Panelning o'zi kim ekanini bilishi kerak — faqat "haqiqiy" admin
@@ -347,10 +357,22 @@ export function Admin() {
           <button onClick={handleBack} aria-label="Назад" className="glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.92] transition-transform duration-150">
             <ArrowLeft className="w-4.5 h-4.5 text-[#F8FAFC]" />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-[20px] font-extrabold tracking-[3px] logo-gradient leading-tight truncate">INTRA GROUP</div>
             <div className="text-[9px] tracking-[4px] text-[#94A3B8] mt-1 font-semibold">{tx('title')}</div>
           </div>
+          {/* Admin-panelga kirish huquqini berish — FAQAT haqiqiy admin
+              ko'radi. Moderator (kimga bu huquq berilgan bo'lsa ham) bu
+              tugmani ko'rmaydi — u boshqa hech kimga huquq bera olmaydi. */}
+          {isFullAdmin && (
+            <button
+              onClick={() => setShowGrantAccess(true)}
+              aria-label={tx('grant_access')}
+              className="glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.92] transition-transform duration-150"
+            >
+              <UserPlus className="w-4.5 h-4.5 text-[#F97316]" />
+            </button>
+          )}
         </header>
 
         {/* Tabs — hammasi bir vaqtda ko'rinadi (flex-wrap), skroll bilan
@@ -429,6 +451,16 @@ export function Admin() {
       {activeDraft && (
         <DraftModal draft={activeDraft} tx={tx} onClose={() => setActiveDraft(null)}
           onApprove={handleApproveDraft} onReject={handleRejectDraft} />
+      )}
+
+      {/* Admin-panelga kirish huquqi berish — header'dagi tez tugma */}
+      {showGrantAccess && (
+        <GrantAccessModal
+          tx={tx}
+          onClose={() => setShowGrantAccess(false)}
+          flash={flash}
+          onGranted={() => { if (tab === 'users') loadData(); }}
+        />
       )}
 
       {toast && (
@@ -1461,6 +1493,131 @@ function AddPointsModal({ user, tx, onClose, onSubmit }: {
           {busy ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : mode === 'deduct' ? tx('deduct_pts_submit') : tx('add_pts_submit')}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── GrantAccessModal — header'dagi tez tugma: qidirish → tanlash →
+// "Выбрать" → tasdiqlash (ConfirmModal). Faqat isFullAdmin ko'radi (tugma
+// o'zi header'da shunga qarab yashiringan), backend ham require_admin.
+function GrantAccessModal({ tx, onClose, flash, onGranted }: {
+  tx: any; onClose: () => void; flash: (m: string) => void; onGranted: () => void;
+}) {
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<UserRow | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [granting, setGranting] = useState(false);
+
+  useEffect(() => {
+    getUsers().then(setUsers).catch(() => setUsers([])).finally(() => setLoading(false));
+  }, []);
+
+  // Haqiqiy admin (yagona) ro'yxatda ko'rsatilmaydi — unga huquq berish
+  // ma'nosiz (u allaqachon hammasiga ega).
+  const candidates = users.filter((u: any) => u.role !== 'admin');
+  const filtered = (() => {
+    const q = search.trim().toLowerCase().replace(/^@/, '');
+    if (!q) return candidates;
+    return candidates.filter((u: any) =>
+      String(u.telegram_id).includes(q) ||
+      String(u.id) === q ||
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.display_name || '').toLowerCase().includes(q)
+    );
+  })();
+
+  async function handleConfirm() {
+    if (!selected) return;
+    setGranting(true);
+    try {
+      await adminSetStaffRole(selected.id, 'moderator');
+      flash('✅');
+      onGranted();
+      onClose();
+    } catch (e: any) {
+      flash('❌ ' + (e.message || ''));
+      setConfirming(false);
+    } finally {
+      setGranting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-[400px] max-h-[80vh] flex flex-col glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <h3 className="text-base font-bold text-[#F97316]">{tx('grant_access_title')}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#94A3B8]">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="text-[11px] text-[#94A3B8] mb-3 shrink-0">{tx('grant_access_hint')}</p>
+
+        <div className="relative mb-3 shrink-0">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={tx('search_users_placeholder')}
+            className="w-full rounded-2xl pl-10 pr-9 py-2.5 text-sm text-[#F8FAFC] outline-none placeholder:text-[#64748B]"
+            style={{ background: 'rgba(15,15,35,0.7)', border: '1px solid rgba(148,163,184,0.16)' }}
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+          {loading ? (
+            <div className="text-center text-xs text-[#94A3B8] py-6">…</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center text-xs text-[#94A3B8] py-6">
+              {candidates.length === 0 ? tx('no_candidates') : tx('search_no_results')}
+            </div>
+          ) : filtered.map((u: any) => {
+            const isSelected = selected?.id === u.id;
+            return (
+              <button
+                key={u.id}
+                onClick={() => setSelected(u)}
+                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-all"
+                style={{
+                  background: isSelected ? 'rgba(249,115,22,0.12)' : 'rgba(15,15,35,0.5)',
+                  border: isSelected ? '1px solid rgba(249,115,22,0.4)' : '1px solid transparent',
+                }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-[#F8FAFC] truncate">
+                    {u.display_name || u.username || `ID ${u.telegram_id}`}
+                  </div>
+                  <div className="text-[10px] text-[#94A3B8]">
+                    {tx('level_label')} {u.level}
+                    {u.role === 'moderator' && <span className="ml-1.5 text-[#38BDF8]">🛡 {tx('moderator_badge')}</span>}
+                  </div>
+                </div>
+                {isSelected && <CheckCircle className="w-4 h-4 text-[#F97316] shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => selected && setConfirming(true)}
+          disabled={!selected}
+          className="w-full mt-3 py-3 rounded-xl font-bold text-sm text-[#1B1204] disabled:opacity-40 shrink-0"
+          style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
+        >
+          {tx('grant_access_pick')}
+        </button>
+      </div>
+
+      {confirming && selected && (
+        <ConfirmModal
+          tx={tx}
+          message={tx('confirm_grant_admin')}
+          onConfirm={handleConfirm}
+          onCancel={() => !granting && setConfirming(false)}
+        />
+      )}
     </div>
   );
 }
