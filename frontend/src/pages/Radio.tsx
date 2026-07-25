@@ -27,7 +27,14 @@ import type { Screen, User, RadioStatus } from '../types';
 const ONBOARDING_KEY = 'sfera5_onboarded';
 const POINTS_POLL_MS = 20000;
 
-export function Radio() {
+interface RadioProps {
+  // App.tsx darajasida ushlanadi (Router'dan ham yuqorida) — /radio va
+  // /admin orasida almashish Radio.tsx'ni butunlay qayta mount qiladi,
+  // shuning uchun bu holat shu yerda emas, yanada yuqorida yashaydi.
+  liveBroadcast: ReturnType<typeof useLiveBroadcast>;
+}
+
+export function Radio({ liveBroadcast }: RadioProps) {
   // Admin panelidan "Orqaga" bosilganda qaysi tabga qaytish kerakligi
   // location.state orqali keladi (masalan { screen: 'profile' }) — aks holda
   // Radio har safar remount bo'lganda tab holati yo'qolib, doim 'anons'ga
@@ -46,13 +53,11 @@ export function Radio() {
   const lastTxIdRef = useRef<number | null>(null);
   const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Efir (mikrofon) holati shu darajada — Radio.tsx hech qachon qayta
-  // mount bo'lmagani uchun, vediushiy chatga o'tib qaytsa ham efir
-  // uzilmaydi va tugma holati chalkashmaydi (ilgari EfirScreen qayta
-  // mount bo'lganda isLive qaytadan false bo'lib qolar, "band" xatosi
-  // chiqib na to'xtatib, na qaytadan boshlab bo'lmasdi).
+  // Efir (mikrofon) holati App.tsx'dan prop sifatida keladi — /radio va
+  // /admin orasida almashganda ham uzilmasligi uchun (quyida shu holatni
+  // faqat iste'mol qilamiz, hook'ni o'zi bu yerda chaqirilmaydi).
+  const { isLive, remainingSec: liveRemainingSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = liveBroadcast;
   const { message: liveToast, showToast: showLiveToast } = useToast();
-  const { isLive, remainingSec: liveRemainingSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = useLiveBroadcast(city, showLiveToast);
 
   // Tinglash (audio pleer) holati ham shu darajada — avval EfirScreen
   // ichida edi, shuning uchun boshqa tabga (chat/profil) o'tilganda
