@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, X, Plus, ArrowLeft, Lock, UserPlus, Crown } from 'lucide-react';
+import { Users, X, Plus, ArrowLeft, Lock, UserPlus, Crown, Trash2 } from 'lucide-react';
 import {
-  getRooms, createRoom, closeRoom, getRoomMessages, sendRoomMessage, sendRoomVoice,
+  getRooms, createRoom, closeRoom, deleteRoom, getRoomMessages, sendRoomMessage, sendRoomVoice,
   getRoomMembers, inviteToRoom, kickFromRoom, type RoomMember,
 } from '../../lib/api';
 import { getLang } from '../../lib/i18n';
@@ -22,6 +22,7 @@ const L: Record<string, Record<string, string>> = {
     invite_hint: 'ID виден в профиле пользователя', kick_confirm: 'Исключить этого участника из группы?',
     removed_from_room: 'Вас исключили из группы', no_members: 'Пока нет участников',
     you_are_kicked: 'Больше нет доступа к этой группе', back: 'Назад',
+    delete_room: 'Удалить группу', confirm_delete_room: 'Удалить эту группу навсегда? Вся переписка будет стёрта без возможности восстановить.',
   },
   en: {
     rooms: 'Groups', create: 'Create group', no_rooms: 'No active groups yet',
@@ -33,6 +34,7 @@ const L: Record<string, Record<string, string>> = {
     invite_hint: 'ID is shown on the user\'s profile', kick_confirm: 'Remove this member from the group?',
     removed_from_room: 'You were removed from the group', no_members: 'No members yet',
     you_are_kicked: 'No longer have access to this group', back: 'Back',
+    delete_room: 'Delete group', confirm_delete_room: 'Permanently delete this group? All messages will be erased and cannot be recovered.',
   },
   lt: {
     rooms: 'Grupės', create: 'Sukurti grupę', no_rooms: 'Kol kas nėra aktyvių grupių',
@@ -44,6 +46,7 @@ const L: Record<string, Record<string, string>> = {
     invite_hint: 'ID matomas vartotojo profilyje', kick_confirm: 'Pašalinti šį narį iš grupės?',
     removed_from_room: 'Jūs buvote pašalintas iš grupės', no_members: 'Kol kas nėra narių',
     you_are_kicked: 'Nebeturite prieigos prie šios grupės', back: 'Atgal',
+    delete_room: 'Ištrinti grupę', confirm_delete_room: 'Visam laikui ištrinti šią grupę? Visas susirašinėjimas bus ištrintas negrįžtamai.',
   },
 };
 
@@ -99,11 +102,30 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ChatRoom | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const canCreate = user?.role === 'admin' || user?.role === 'moderator' || user?.role === 'doverenniy' || (user?.level ?? 1) >= 3;
+  const canDelete = (r: ChatRoom) => !!user && (r.host_user_id === user.id || user.role === 'admin' || user.role === 'moderator');
 
   const load = useCallback(() => {
     getRooms().then(setRooms).catch(() => setRooms([])).finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await deleteRoom(pendingDelete.id);
+      setPendingDelete(null);
+      load();
+    } catch {
+      // xatolik bo'lsa ham modal yopiladi — ro'yxat qayta yuklanganda
+      // guruh hali turgan bo'lsa, foydalanuvchi qayta urinib ko'radi
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -141,15 +163,27 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
         ) : (
           <div className="flex flex-col gap-2">
             {rooms.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => onOpenRoom(r)}
-                className="glass rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
-              >
-                <div className="text-sm font-bold text-[#F8FAFC]">{r.title}</div>
-                {r.description && <div className="text-[11px] text-[#94A3B8] mt-1">{r.description}</div>}
-                <div className="text-[10px] text-[#F97316] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
-              </button>
+              <div key={r.id} className="relative">
+                <button
+                  onClick={() => onOpenRoom(r)}
+                  className="w-full glass rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
+                  style={canDelete(r) ? { paddingRight: '3rem' } : undefined}
+                >
+                  <div className="text-sm font-bold text-[#F8FAFC]">{r.title}</div>
+                  {r.description && <div className="text-[11px] text-[#94A3B8] mt-1">{r.description}</div>}
+                  <div className="text-[10px] text-[#F97316] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
+                </button>
+                {canDelete(r) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete(r); }}
+                    aria-label={tx('delete_room')}
+                    className="absolute top-3.5 right-3.5 w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ background: 'rgba(239,68,68,0.1)' }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-[#FCA5A5]" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -173,6 +207,27 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); load(); }}
         />
+      )}
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-[600] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !deleting && setPendingDelete(null)}>
+          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-[#94A3B8] mb-5">{tx('confirm_delete_room')}</p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setPendingDelete(null)} disabled={deleting} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#94A3B8] glass disabled:opacity-50">
+                {tx('cancel')}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)' }}
+              >
+                {tx('confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </FullScreenModal>
   );

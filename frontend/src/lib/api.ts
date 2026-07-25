@@ -723,6 +723,16 @@ export async function closeRoom(roomId: number) {
   return resp.json();
 }
 
+// To'liq o'chirish — qaytarib bo'lmaydi, closeRoom'dan farqli (u faqat
+// yashiradi). Xabarlar tarixi ham CASCADE bilan ketadi.
+export async function deleteRoom(roomId: number) {
+  const resp = await fetch(`${API_URL}/rooms/${roomId}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) throw new Error('Failed to delete room');
+  return resp.json();
+}
+
 export async function getRoomMessages(roomId: number): Promise<ChatMessage[]> {
   const resp = await fetch(`${API_URL}/rooms/${roomId}/messages`, { headers: authHeaders(), cache: 'no-store' });
   if (!resp.ok) {

@@ -104,6 +104,24 @@ async def close_room(room_id: int, user: dict = Depends(get_current_user)):
     return OkResponse(detail={"room_id": room_id})
 
 
+@router.delete("/{room_id}", response_model=OkResponse)
+async def delete_room(room_id: int, user: dict = Depends(get_current_user)):
+    """Guruhni BUTUNLAY o'chiradi — xost yoki staff (admin/moderator).
+
+    /close'dan farqli (is_active=false, qaytariladi) — bu qaytarib
+    bo'lmaydigan o'chirish: chat_messages va room_members CASCADE bilan
+    birga ketadi (schema.sql'da ON DELETE CASCADE)."""
+    room = await db.fetchrow("SELECT host_user_id FROM chat_rooms WHERE id = $1", room_id)
+    if room is None:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if room["host_user_id"] != user["id"] and not is_staff(user):
+        raise HTTPException(status_code=403, detail="Not your room")
+
+    await db.execute("DELETE FROM chat_rooms WHERE id = $1", room_id)
+    log.info("Room #%s permanently deleted by user %s", room_id, user["id"])
+    return OkResponse(detail={"room_id": room_id})
+
+
 async def _get_active_room(room_id: int, user: dict) -> dict:
     """Guruh mavjud/faolligini va a'zolikni tekshiradi. Staff va xost —
     a'zolikdan qat'i nazar kira oladi (moderatsiya/o'z guruhi)."""
