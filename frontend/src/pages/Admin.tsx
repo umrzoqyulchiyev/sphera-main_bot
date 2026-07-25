@@ -81,8 +81,8 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Стоимость услуг', pricing_hint: 'Сколько поинтов списывается у пользователя за каждое действие. Изменения применяются сразу.',
     pricing_text: 'Текстовое сообщение', pricing_voice: 'Голосовое сообщение', pricing_slot: 'Час эфира (слот)',
     pricing_saved: 'Цены сохранены',
-    grant_access: 'Дать доступ к панели', grant_access_title: 'Доступ к админ-панели',
-    grant_access_pick: 'Выбрать', grant_access_hint: 'Выберите пользователя и дайте ему доступ к админ-панели (модератор).',
+    grant_access: 'Управление доступом к панели', grant_access_title: 'Доступ к админ-панели',
+    grant_access_pick: 'Выбрать', grant_access_hint: 'Выберите пользователя, чтобы дать доступ к админ-панели или, если он модератор, исключить его оттуда.',
     no_candidates: 'Некому давать доступ',
   },
   en: {
@@ -127,8 +127,8 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Service pricing', pricing_hint: 'How many points are deducted from a user for each action. Changes apply immediately.',
     pricing_text: 'Text message', pricing_voice: 'Voice message', pricing_slot: 'Broadcast hour (slot)',
     pricing_saved: 'Prices saved',
-    grant_access: 'Grant panel access', grant_access_title: 'Admin panel access',
-    grant_access_pick: 'Select', grant_access_hint: 'Pick a user and give them admin panel access (moderator).',
+    grant_access: 'Manage panel access', grant_access_title: 'Admin panel access',
+    grant_access_pick: 'Select', grant_access_hint: 'Pick a user to grant admin panel access, or — if they\'re already a moderator — remove it.',
     no_candidates: 'No one to grant access to',
   },
   lt: {
@@ -173,8 +173,8 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Paslaugų kainos', pricing_hint: 'Kiek taškų nurašoma iš vartotojo už kiekvieną veiksmą. Pakeitimai taikomi iš karto.',
     pricing_text: 'Teksto žinutė', pricing_voice: 'Balso žinutė', pricing_slot: 'Eterio valanda (slotas)',
     pricing_saved: 'Kainos išsaugotos',
-    grant_access: 'Suteikti prieigą prie panelės', grant_access_title: 'Prieiga prie admin panelės',
-    grant_access_pick: 'Pasirinkti', grant_access_hint: 'Pasirinkite vartotoją ir suteikite jam admin panelės prieigą (moderatorius).',
+    grant_access: 'Prieigos prie panelės valdymas', grant_access_title: 'Prieiga prie admin panelės',
+    grant_access_pick: 'Pasirinkti', grant_access_hint: 'Pasirinkite vartotoją, kad suteiktumėte prieigą prie admin panelės arba, jei jis jau moderatorius, ją panaikintumėte.',
     no_candidates: 'Nėra kam suteikti prieigą',
   },
 };
@@ -1528,11 +1528,16 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
     );
   })();
 
+  // Kim tanlansa — o'sha kishining joriy roliga qarab harakat o'zi
+  // aniqlanadi: moderator emas → beramiz, moderator → olib qo'yamiz
+  // (bitta oyna orqali ikkalasi ham — "исключить" aynan shu yerda).
+  const willRevoke = selected?.role === 'moderator';
+
   async function handleConfirm() {
     if (!selected) return;
     setGranting(true);
     try {
-      await adminSetStaffRole(selected.id, 'moderator');
+      await adminSetStaffRole(selected.id, willRevoke ? 'none' : 'moderator');
       flash('✅');
       onGranted();
       onClose();
@@ -1603,17 +1608,19 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
         <button
           onClick={() => selected && setConfirming(true)}
           disabled={!selected}
-          className="w-full mt-3 py-3 rounded-xl font-bold text-sm text-[#1B1204] disabled:opacity-40 shrink-0"
-          style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
+          className="w-full mt-3 py-3 rounded-xl font-bold text-sm disabled:opacity-40 shrink-0"
+          style={willRevoke
+            ? { background: 'rgba(239,68,68,0.15)', color: '#FCA5A5' }
+            : { background: 'linear-gradient(135deg, #FB923C, #F97316)', color: '#1B1204' }}
         >
-          {tx('grant_access_pick')}
+          {selected ? (willRevoke ? tx('revoke_moderator') : tx('make_moderator')) : tx('grant_access_pick')}
         </button>
       </div>
 
       {confirming && selected && (
         <ConfirmModal
           tx={tx}
-          message={tx('confirm_grant_admin')}
+          message={tx(willRevoke ? 'confirm_revoke_admin' : 'confirm_grant_admin')}
           onConfirm={handleConfirm}
           onCancel={() => !granting && setConfirming(false)}
         />
