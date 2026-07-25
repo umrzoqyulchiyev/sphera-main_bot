@@ -11,12 +11,10 @@ import { MusicScreen } from '../components/music/MusicScreen';
 import { SlotsScreen } from '../components/slots/SlotsScreen';
 import { CastingScreen } from '../components/casting/CastingScreen';
 import { OnboardingModal } from '../components/ui/OnboardingModal';
-import { Toast } from '../components/ui/Toast';
 import { useTelegramBackButton } from '../hooks/useTelegramBackButton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useLiveBroadcast } from '../hooks/useLiveBroadcast';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { useToast } from '../hooks/useToast';
 import { useTranslation } from '../hooks/useTranslation';
 import { getMe, getPointsHistory, getRadioStatus } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
@@ -32,9 +30,14 @@ interface RadioProps {
   // /admin orasida almashish Radio.tsx'ni butunlay qayta mount qiladi,
   // shuning uchun bu holat shu yerda emas, yanada yuqorida yashaydi.
   liveBroadcast: ReturnType<typeof useLiveBroadcast>;
+  // App.tsx'ning yagona global toast'i — shu yerda alohida useToast()
+  // ishlatilsa, ikkita mustaqil <Toast> bir vaqtda bir xil joyga chiqib,
+  // ustma-ust tushishi mumkin edi (masalan LIVE tugmasi va audio pleer
+  // xatosi bir vaqtda bo'lsa).
+  showToast: (message: string) => void;
 }
 
-export function Radio({ liveBroadcast }: RadioProps) {
+export function Radio({ liveBroadcast, showToast }: RadioProps) {
   // Admin panelidan "Orqaga" bosilganda qaysi tabga qaytish kerakligi
   // location.state orqali keladi (masalan { screen: 'profile' }) — aks holda
   // Radio har safar remount bo'lganda tab holati yo'qolib, doim 'anons'ga
@@ -57,7 +60,6 @@ export function Radio({ liveBroadcast }: RadioProps) {
   // /admin orasida almashganda ham uzilmasligi uchun (quyida shu holatni
   // faqat iste'mol qilamiz, hook'ni o'zi bu yerda chaqirilmaydi).
   const { isLive, remainingSec: liveRemainingSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = liveBroadcast;
-  const { message: liveToast, showToast: showLiveToast } = useToast();
 
   // Tinglash (audio pleer) holati ham shu darajada — avval EfirScreen
   // ichida edi, shuning uchun boshqa tabga (chat/profil) o'tilganda
@@ -74,7 +76,7 @@ export function Radio({ liveBroadcast }: RadioProps) {
     useHls: radioStatus?.use_hls ?? false,
     // Backend proksi orqali (bir xil origin) — /radio/live/{lang} yoki /radio/hls/...
     streamUrl: radioStatus?.stream_url,
-    onError: showLiveToast,
+    onError: showToast,
   });
 
   useEffect(() => {
@@ -217,7 +219,7 @@ export function Radio({ liveBroadcast }: RadioProps) {
         // faqat raqam jimgina o'zgarardi, kim ko'rmasa umuman bilmasdi.
         const delta = newPoints - (Number(user.points) || 0);
         if (delta > 0.0001) {
-          showLiveToast(`💰 +${delta.toFixed(3).replace(/\.?0+$/, '')} поинтов зачислено`);
+          showToast(`💰 +${delta.toFixed(3).replace(/\.?0+$/, '')} поинтов зачислено`);
         }
         handlePointsUpdate(newPoints);
       }
@@ -329,7 +331,9 @@ export function Radio({ liveBroadcast }: RadioProps) {
 
       <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
-      <Toast message={liveToast} />
+      {/* Oddiy tost App.tsx darajasida (global, Router'dan tashqarida)
+          ko'rsatiladi — shu yerda alohida emas, ikkitasi ustma-ust
+          tushmasligi uchun. */}
       {pointsNotice && (
         <div
           className="fixed top-[calc(12px+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[2500] w-[92%] max-w-[400px] cursor-pointer"

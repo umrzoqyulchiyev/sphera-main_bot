@@ -32,7 +32,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Splash />} />
           <Route path="/welcome" element={<Welcome />} />
-          <Route path="/radio" element={<Radio liveBroadcast={liveBroadcast} />} />
+          <Route path="/radio" element={<Radio liveBroadcast={liveBroadcast} showToast={showLiveToast} />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

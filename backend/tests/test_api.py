@@ -131,7 +131,7 @@ async def test_get_me(client, patch_db):
     data = resp.json()
     assert data["level"] == 2
     assert data["language"] == "en"
-    assert data["level_name"] == "Слушатель"
+    assert data["level_name"] == "Активный"
     assert data["telegram_id"] == 111111
 
 
@@ -273,11 +273,13 @@ async def test_chat_send(client, patch_db):
     from datetime import datetime
 
     user = make_user(points=Decimal("5.0000"))
-    # fetchrow calls: 1) get_current_user, 2) spend (UPDATE RETURNING), 3) INSERT RETURNING
+    # fetchrow calls: 1) get_current_user, 2) spend (UPDATE RETURNING),
+    # 3) recompute_level (SELECT level, spend() ichida chaqiriladi), 4) INSERT RETURNING
     db.fetchrow = AsyncMock(
         side_effect=[
             user,  # get_current_user
             {"points": Decimal("4.9990")},  # spend
+            {"level": 1},  # recompute_level
             {"id": 1, "created_at": datetime.now()},  # INSERT
         ]
     )
@@ -333,7 +335,7 @@ async def test_admin_set_level(client, patch_db):
     assert resp.status_code == 200
     data = resp.json()
     assert data["detail"]["level"] == 3
-    assert data["detail"]["role"] == "broadcaster"
+    assert data["detail"]["role"] == "doverenniy"
 
 
 async def test_admin_set_level_invalid(client, patch_db):
@@ -390,7 +392,9 @@ def test_decode_invalid_token():
 
 async def test_points_spend_text(patch_db):
     """spend_text atomik ishlashi."""
-    db.fetchrow = AsyncMock(return_value={"points": Decimal("4.9990")})
+    # "level" ham kerak — spend() ichida recompute_level() xuddi shu
+    # fetchrow mock'ni qayta ishlatadi (SELECT level FROM users ...).
+    db.fetchrow = AsyncMock(return_value={"points": Decimal("4.9990"), "level": 1})
     db.execute = AsyncMock()
 
     from app.services.points import spend_text
@@ -414,7 +418,9 @@ async def test_points_spend_insufficient(patch_db):
 
 async def test_points_transfer(patch_db):
     """Transfer ishlashi."""
-    db.fetchrow = AsyncMock(return_value={"points": Decimal("3.0000")})
+    # "level" ham kerak — transfer() ichida recompute_level() (ikkala
+    # tomon uchun ham) xuddi shu fetchrow mock'ni qayta ishlatadi.
+    db.fetchrow = AsyncMock(return_value={"points": Decimal("3.0000"), "level": 1})
     db.execute = AsyncMock()
 
     from app.services.points import transfer
