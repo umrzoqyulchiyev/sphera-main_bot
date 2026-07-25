@@ -81,9 +81,12 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Стоимость услуг', pricing_hint: 'Сколько поинтов списывается у пользователя за каждое действие. Изменения применяются сразу.',
     pricing_text: 'Текстовое сообщение', pricing_voice: 'Голосовое сообщение', pricing_slot: 'Час эфира (слот)',
     pricing_saved: 'Цены сохранены',
-    grant_access: 'Управление доступом к панели', grant_access_title: 'Доступ к админ-панели',
-    grant_access_pick: 'Выбрать', grant_access_hint: 'Выберите пользователя, чтобы дать доступ к админ-панели или, если он модератор, исключить его оттуда.',
-    no_candidates: 'Некому давать доступ',
+    grant_access: 'Дать права главного админа', grant_access_title: 'Полные права администратора',
+    grant_access_pick: 'Выбрать', grant_access_hint: 'Выберите пользователя, чтобы дать ему полные права администратора (или, если они уже есть, — забрать их). Для модератора — вкладка «Доступ».',
+    no_candidates: 'Некому давать права',
+    make_full_admin: '👑 Сделать администратором', revoke_full_admin: 'Убрать права администратора',
+    confirm_grant_full_admin: 'Дать этому пользователю ПОЛНЫЕ права администратора? Он сможет всё, включая изменение ролей и уровней других пользователей, оплату, кастинг и слоты.',
+    confirm_revoke_full_admin: 'Забрать полные права администратора у этого пользователя? Он станет доверенным ведущим (модератором, если хотите оставить доступ к панели — назначьте отдельно).',
   },
   en: {
     title: 'ADMIN PANEL', topics_tab: 'Topics', users_tab: 'Access', drafts_tab: 'Broadcast', slots_tab: 'Slots', music_tab: 'Music', casting_tab: 'Casting',
@@ -127,9 +130,12 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Service pricing', pricing_hint: 'How many points are deducted from a user for each action. Changes apply immediately.',
     pricing_text: 'Text message', pricing_voice: 'Voice message', pricing_slot: 'Broadcast hour (slot)',
     pricing_saved: 'Prices saved',
-    grant_access: 'Manage panel access', grant_access_title: 'Admin panel access',
-    grant_access_pick: 'Select', grant_access_hint: 'Pick a user to grant admin panel access, or — if they\'re already a moderator — remove it.',
-    no_candidates: 'No one to grant access to',
+    grant_access: 'Grant full admin rights', grant_access_title: 'Full administrator rights',
+    grant_access_pick: 'Select', grant_access_hint: 'Pick a user to give them full administrator rights (or remove them, if they already have it). For moderator access, use the Доступ tab.',
+    no_candidates: 'No one to grant rights to',
+    make_full_admin: '👑 Make administrator', revoke_full_admin: 'Revoke administrator rights',
+    confirm_grant_full_admin: 'Give this user FULL administrator rights? They will be able to do everything, including changing other users\' roles/levels, payment, casting and slots.',
+    confirm_revoke_full_admin: 'Revoke full administrator rights from this user? They will become a trusted host (assign moderator separately if you want to keep panel access).',
   },
   lt: {
     title: 'ADMIN PANEL', topics_tab: 'Temos', users_tab: 'Prieiga', drafts_tab: 'Eteris', slots_tab: 'Slotai', music_tab: 'Muzika', casting_tab: 'Atranka',
@@ -173,9 +179,12 @@ const L: Record<string, Record<string, string>> = {
     pricing_title: 'Paslaugų kainos', pricing_hint: 'Kiek taškų nurašoma iš vartotojo už kiekvieną veiksmą. Pakeitimai taikomi iš karto.',
     pricing_text: 'Teksto žinutė', pricing_voice: 'Balso žinutė', pricing_slot: 'Eterio valanda (slotas)',
     pricing_saved: 'Kainos išsaugotos',
-    grant_access: 'Prieigos prie panelės valdymas', grant_access_title: 'Prieiga prie admin panelės',
-    grant_access_pick: 'Pasirinkti', grant_access_hint: 'Pasirinkite vartotoją, kad suteiktumėte prieigą prie admin panelės arba, jei jis jau moderatorius, ją panaikintumėte.',
-    no_candidates: 'Nėra kam suteikti prieigą',
+    grant_access: 'Suteikti pilnas administratoriaus teises', grant_access_title: 'Pilnos administratoriaus teisės',
+    grant_access_pick: 'Pasirinkti', grant_access_hint: 'Pasirinkite vartotoją, kad suteiktumėte jam pilnas administratoriaus teises (arba, jei jos jau yra, — jas panaikintumėte). Moderatoriaus teisėms — skirtukas „Доступ“.',
+    no_candidates: 'Nėra kam suteikti teisių',
+    make_full_admin: '👑 Padaryti administratoriumi', revoke_full_admin: 'Panaikinti administratoriaus teises',
+    confirm_grant_full_admin: 'Suteikti šiam vartotojui PILNAS administratoriaus teises? Jis galės viską, įskaitant kitų vartotojų rolių/lygių keitimą, mokėjimus, atranką ir slotus.',
+    confirm_revoke_full_admin: 'Panaikinti pilnas administratoriaus teises iš šio vartotojo? Jis taps patikimu vedėju (jei norite palikti prieigą prie panelės, priskirkite moderatorių atskirai).',
   },
 };
 
@@ -453,10 +462,11 @@ export function Admin() {
           onApprove={handleApproveDraft} onReject={handleRejectDraft} />
       )}
 
-      {/* Admin-panelga kirish huquqi berish — header'dagi tez tugma */}
+      {/* To'liq admin huquqi berish — header'dagi tez tugma */}
       {showGrantAccess && (
         <GrantAccessModal
           tx={tx}
+          meId={me?.id}
           onClose={() => setShowGrantAccess(false)}
           flash={flash}
           onGranted={() => { if (tab === 'users') loadData(); }}
@@ -1498,10 +1508,11 @@ function AddPointsModal({ user, tx, onClose, onSubmit }: {
 }
 
 // ── GrantAccessModal — header'dagi tez tugma: qidirish → tanlash →
-// "Выбрать" → tasdiqlash (ConfirmModal). Faqat isFullAdmin ko'radi (tugma
-// o'zi header'da shunga qarab yashiringan), backend ham require_admin.
-function GrantAccessModal({ tx, onClose, flash, onGranted }: {
-  tx: any; onClose: () => void; flash: (m: string) => void; onGranted: () => void;
+// "Выбрать" → tasdiqlash (ConfirmModal). TO'LIQ admin huquqini beradi/
+// qaytarib oladi (moderator emas — moderator uchun Доступ tabidagi tugma
+// bor allaqachon). Faqat isFullAdmin ko'radi, backend ham require_admin.
+function GrantAccessModal({ tx, meId, onClose, flash, onGranted }: {
+  tx: any; meId?: number; onClose: () => void; flash: (m: string) => void; onGranted: () => void;
 }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1514,9 +1525,11 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
     getUsers().then(setUsers).catch(() => setUsers([])).finally(() => setLoading(false));
   }, []);
 
-  // Haqiqiy admin (yagona) ro'yxatda ko'rsatilmaydi — unga huquq berish
-  // ma'nosiz (u allaqachon hammasiga ega).
-  const candidates = users.filter((u: any) => u.role !== 'admin');
+  // O'zini ro'yxatda ko'rsatmaymiz — o'z rolini o'zgartira olmaydi
+  // (backend ham shunday bloklaydi). Qolgan hamma ko'rinadi — istalgan
+  // kishiga to'liq admin berish yoki (agar u allaqachon admin bo'lsa)
+  // qaytarib olish mumkin.
+  const candidates = users.filter((u: any) => u.id !== meId);
   const filtered = (() => {
     const q = search.trim().toLowerCase().replace(/^@/, '');
     if (!q) return candidates;
@@ -1529,15 +1542,14 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
   })();
 
   // Kim tanlansa — o'sha kishining joriy roliga qarab harakat o'zi
-  // aniqlanadi: moderator emas → beramiz, moderator → olib qo'yamiz
-  // (bitta oyna orqali ikkalasi ham — "исключить" aynan shu yerda).
-  const willRevoke = selected?.role === 'moderator';
+  // aniqlanadi: admin emas → to'liq admin qilamiz, admin → qaytarib olamiz.
+  const willRevoke = selected?.role === 'admin';
 
   async function handleConfirm() {
     if (!selected) return;
     setGranting(true);
     try {
-      await adminSetStaffRole(selected.id, willRevoke ? 'none' : 'moderator');
+      await adminSetStaffRole(selected.id, willRevoke ? 'none' : 'admin');
       flash('✅');
       onGranted();
       onClose();
@@ -1596,6 +1608,7 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
                   </div>
                   <div className="text-[10px] text-[#94A3B8]">
                     {tx('level_label')} {u.level}
+                    {u.role === 'admin' && <span className="ml-1.5 text-[#EAB308]">👑 {tx('main_admin_badge')}</span>}
                     {u.role === 'moderator' && <span className="ml-1.5 text-[#38BDF8]">🛡 {tx('moderator_badge')}</span>}
                   </div>
                 </div>
@@ -1613,14 +1626,14 @@ function GrantAccessModal({ tx, onClose, flash, onGranted }: {
             ? { background: 'rgba(239,68,68,0.15)', color: '#FCA5A5' }
             : { background: 'linear-gradient(135deg, #FB923C, #F97316)', color: '#1B1204' }}
         >
-          {selected ? (willRevoke ? tx('revoke_moderator') : tx('make_moderator')) : tx('grant_access_pick')}
+          {selected ? (willRevoke ? tx('revoke_full_admin') : tx('make_full_admin')) : tx('grant_access_pick')}
         </button>
       </div>
 
       {confirming && selected && (
         <ConfirmModal
           tx={tx}
-          message={tx(willRevoke ? 'confirm_revoke_admin' : 'confirm_grant_admin')}
+          message={tx(willRevoke ? 'confirm_revoke_full_admin' : 'confirm_grant_full_admin')}
           onConfirm={handleConfirm}
           onCancel={() => !granting && setConfirming(false)}
         />
