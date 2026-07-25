@@ -207,7 +207,14 @@ export function Radio() {
     city: 'global',
     onMessage: (msg) => {
       if (msg.type === 'points_update' && user && (msg.data as any)?.user_id === user.id) {
-        handlePointsUpdate(Number((msg.data as any).points));
+        const newPoints = Number((msg.data as any).points);
+        // Sof qo'shilish (списание emas) bo'lsa — ko'rinadigan tost, oldin
+        // faqat raqam jimgina o'zgarardi, kim ko'rmasa umuman bilmasdi.
+        const delta = newPoints - (Number(user.points) || 0);
+        if (delta > 0.0001) {
+          showLiveToast(`💰 +${delta.toFixed(3).replace(/\.?0+$/, '')} поинтов зачислено`);
+        }
+        handlePointsUpdate(newPoints);
       }
     },
   });

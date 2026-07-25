@@ -268,13 +268,14 @@ async def decide_request(request_id: int, deciding_user_id: int, approve: bool) 
             "UPDATE points_requests SET status = 'approved', decided_at = NOW() WHERE id = $1",
             request_id,
         )
-        # So'rovni yuborgan (from_user_id) — pointlarni oluvchi, uni WS orqali
+        # So'rovni yuborgan (from_user_id) — pointlarni oluvchi, uni WS/DM orqali
         # xabardor qilish uchun router'ga qaytaramiz.
         return {
             "ok": True,
             "status": "approved",
             "recipient_user_id": req["from_user_id"],
             "recipient_points": result["to_points"],
+            "amount": req["amount"],
         }
     else:
         await db.execute(

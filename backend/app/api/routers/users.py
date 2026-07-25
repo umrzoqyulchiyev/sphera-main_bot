@@ -9,6 +9,7 @@ Profil sahifasi:
 6. Point so'rash / berish / sotib olish
 """
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -33,6 +34,7 @@ from app.core.models import (
     UpdateProfileRequest,
     UserProfileOut,
 )
+from app.services import notifications
 from app.services import points as points_service
 
 log = logging.getLogger("users")
@@ -158,6 +160,14 @@ async def transfer_points(
     if not result["ok"]:
         raise HTTPException(status_code=400, detail=result.get("reason", "Transfer failed"))
     await _notify_balance(target["id"], result["to_points"])
+    sender_name = user["display_name"] or user["username"] or "пользователя"
+    # payload.to_user_id — allaqachon telegram_id (yuqoridagi so'rovda ko'rilgan),
+    # qo'shimcha DB lookup shart emas.
+    asyncio.create_task(
+        notifications.notify_points_received_tg(
+            payload.to_user_id, payload.amount, f"От {sender_name}"
+        )
+    )
     return OkResponse(detail={"points": result["points"]})
 
 
@@ -212,6 +222,12 @@ async def decide_point_request(
         raise HTTPException(status_code=400, detail=result.get("reason"))
     if result["status"] == "approved":
         await _notify_balance(result["recipient_user_id"], result["recipient_points"])
+        sender_name = user["display_name"] or user["username"] or "пользователя"
+        asyncio.create_task(
+            notifications.notify_points_received(
+                result["recipient_user_id"], result["amount"], f"От {sender_name}"
+            )
+        )
     return OkResponse(detail={"status": result["status"]})
 
 

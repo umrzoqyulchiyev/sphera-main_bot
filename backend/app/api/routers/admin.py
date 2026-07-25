@@ -5,6 +5,7 @@
 - Yangilik boshqarish (news router'da)
 """
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -26,6 +27,7 @@ from app.core.models import (
     PricingUpdate,
 )
 from app.core.ws_manager import manager
+from app.services import notifications
 from app.services import points as points_service
 from app.services import pricing
 
@@ -131,6 +133,13 @@ async def add_points(
             "type": "points_update",
             "data": {"user_id": payload.user_id, "points": str(result["points"])},
         },
+    )
+    # Mini app yopiq bo'lsa ham bilsin — bot orqali DM (faqat начисление,
+    # списание haqida DM yubormaymiz).
+    asyncio.create_task(
+        notifications.notify_points_received(
+            payload.user_id, payload.amount, "Начислено администрацией"
+        )
     )
     return OkResponse(detail={"user_id": payload.user_id, "points": str(result["points"])})
 

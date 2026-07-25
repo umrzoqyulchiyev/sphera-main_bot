@@ -5,6 +5,7 @@ Admin ko'rib chiqadi (GET /casting/admin/list) va tasdiqlasa foydalanuvchi
 'doverenniy' bo'ladi — efirga chiqish huquqi (POST /casting/admin/{id}/approve).
 """
 
+import asyncio
 import logging
 import os
 import uuid
@@ -21,6 +22,7 @@ from app.core.models import (
     CastingStatusOut,
     OkResponse,
 )
+from app.services import notifications
 
 log = logging.getLogger("casting")
 
@@ -137,6 +139,8 @@ async def apply_casting(
         note.strip()[:500],
     )
     log.info("Casting application submitted: user=%d file=%s", user["id"], fname)
+    applicant_name = user["display_name"] or user["username"] or f"id{user['telegram_id']}"
+    asyncio.create_task(notifications.notify_admins_new_casting(applicant_name))
     return OkResponse(detail={"status": "pending"})
 
 
