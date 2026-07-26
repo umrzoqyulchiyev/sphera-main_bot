@@ -313,6 +313,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       setIsRecording(false);
       return;
     }
+    if (isLive) {
+      showToast(t('toast_mic_live'));
+      return;
+    }
     try {
       // Telegram WebApp mikrofon ruxsati
       const tgApp = (window as any).Telegram?.WebApp;
@@ -487,7 +491,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
       {/* ── Группы — ведущий эфир вақтида ҳам guruh chatlariga kira oladi ── */}
       <div className="px-4 mb-3 flex justify-end">
-        <RoomsButton user={user} />
+        <RoomsButton user={user} isLive={isLive} />
       </div>
 
       {/* Голос записалган — hali yuborilmagan, "ОТПРАВИТЬ" bosilguncha kutadi */}
@@ -536,6 +540,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         <button
           onClick={handleVoiceMessage}
           className="flex flex-col items-center gap-2 group flex-1"
+          style={isLive && !isRecording ? { opacity: 0.45 } : undefined}
         >
           <div
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1.5 relative transition-all duration-200 active:scale-95"
@@ -918,6 +923,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               onSendVoice={handleSendVoiceToChat}
               onToast={showToast}
               city={city}
+              micDisabled={isLive}
             />
           </div>
         </FullScreenModal>

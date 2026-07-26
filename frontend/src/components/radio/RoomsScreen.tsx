@@ -54,11 +54,12 @@ const ROOM_POLL_MS = 3000;
 
 interface RoomsButtonProps {
   user: User | null;
+  isLive?: boolean;
 }
 
 // O'zi holatini boshqaradigan komponent — chaqiruvchi ekran faqat
 // <RoomsButton user={user} /> qo'yadi, qolgan hammasi shu ichida.
-export function RoomsButton({ user }: RoomsButtonProps) {
+export function RoomsButton({ user, isLive }: RoomsButtonProps) {
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
   const [showList, setShowList] = useState(false);
@@ -90,6 +91,7 @@ export function RoomsButton({ user }: RoomsButtonProps) {
           tx={tx}
           onClose={() => setActiveRoom(null)}
           onClosedRoom={() => { setActiveRoom(null); }}
+          isLive={isLive}
         />
       )}
     </>
@@ -291,8 +293,9 @@ function CreateRoomModal({ tx, onClose, onCreated }: {
   );
 }
 
-function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
+function RoomChatModal({ room, user, tx, onClose, onClosedRoom, isLive }: {
   room: ChatRoom; user: User | null; tx: (k: string) => string; onClose: () => void; onClosedRoom: () => void;
+  isLive?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pendingClose, setPendingClose] = useState(false);
@@ -430,6 +433,7 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom }: {
             onSendVoice={handleSendVoice}
             onToast={() => {}}
             city=""
+            micDisabled={isLive}
           />
         </div>
       </div>

@@ -12,6 +12,10 @@ interface ChatScreenProps {
   user: User | null;
   onPointsUpdate: (points: number) => void;
   onExit?: () => void;
+  // O'zi hozir prямой эфирda bo'lsa — ovozli xabar yozib bo'lmaydi
+  // (mikrofon band). Berilmasa — default false (masalan oddiy
+  // tinglovchi hech qachon эфирда bo'lmaydi).
+  isLive?: boolean;
 }
 
 interface PendingSend {
@@ -21,7 +25,7 @@ interface PendingSend {
   blobUrl?: string;
 }
 
-export function ChatScreen({ user, onPointsUpdate, onExit }: ChatScreenProps) {
+export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -192,6 +196,7 @@ export function ChatScreen({ user, onPointsUpdate, onExit }: ChatScreenProps) {
         onToast={showToast}
         city={city}
         onExit={onExit}
+        isLive={isLive}
       />
       <Toast message={message} />
     </div>

@@ -209,7 +209,23 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Bu yerga yetganda server sessiyasi ALLAQACHON ochilgan
+      // (broadcast.open_session — shahar "band" deb belgilangan). Agar
+      // brauzer mikrofon ruxsatini rad etsa, shu sessiyani albatta
+      // yopishimiz kerak — aks holda keyingi urinish stale-timeout
+      // (15s) tugaguncha "Broadcast busy" bilan ishlamay qolardi.
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (micErr) {
+        fetch(`${API_URL}/radio/${city}/broadcast/stop`, {
+          method: 'POST',
+          headers: authHeaders(),
+        }).catch(() => {});
+        console.error('[GoLive] mic denied after session opened:', micErr);
+        onToastRef.current(t('toast_mic_denied'));
+        return;
+      }
       streamRef.current = stream;
       liveRef.current = true;
       setIsLive(true);

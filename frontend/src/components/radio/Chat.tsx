@@ -14,6 +14,7 @@ interface ChatProps {
   // Berilsa — sarlavha yonida chiqish tugmasi ko'rsatiladi (asosiy "Живой
   // чат" ekranida BottomNav o'rniga shu orqali oldingi ekranga qaytiladi).
   onExit?: () => void;
+  isLive?: boolean;
 }
 
 export function Chat({
@@ -24,6 +25,7 @@ export function Chat({
   onToast,
   city,
   onExit,
+  isLive,
 }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +60,7 @@ export function Chat({
             </svg>
           </button>
         ) : <span />}
-        <RoomsButton user={currentUser} />
+        <RoomsButton user={currentUser} isLive={isLive} />
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1 min-h-[60px] scroll-smooth"
@@ -78,6 +80,7 @@ export function Chat({
         onSendVoice={onSendVoice}
         onToast={onToast}
         city={city}
+        micDisabled={isLive}
       />
     </div>
   );

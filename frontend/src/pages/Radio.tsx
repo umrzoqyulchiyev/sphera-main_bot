@@ -259,6 +259,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
             user={user}
             onPointsUpdate={handlePointsUpdate}
             onExit={() => handleNavigate(previousScreen)}
+            isLive={isLive}
           />
         );
       case 'efir':
@@ -288,7 +289,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={setUser} />;
       default:
-        return <ChatScreen user={user} onPointsUpdate={handlePointsUpdate} />;
+        return <ChatScreen user={user} onPointsUpdate={handlePointsUpdate} isLive={isLive} />;
     }
   };
 

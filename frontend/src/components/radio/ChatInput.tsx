@@ -11,12 +11,16 @@ interface ChatInputProps {
   onSendVoice: (blob: Blob) => void;
   onToast: (message: string) => void;
   city: string;
+  // O'zi hozir prямой эфирда bo'lsa — mikrofon band (broadcast uchun
+  // ishlatilyapti), shuning uchun ovozli xabar yozib bo'lmaydi. Matn
+  // yuborish esa bunga bog'liq emas, davom etaveradi.
+  micDisabled?: boolean;
 }
 
 // Bu input faqat CHAT'ga yuborish uchun — studiyaga yuborish Efir ekranida
 // alohida joylashgan. Tugma Telegram uslubida: matn bo'lsa yuborish
 // belgisi, bo'lmasa mikrofon — bitta doira tugma, matn maydonidan tashqarida.
-export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInputProps) {
+export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabled }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -37,6 +41,11 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
       // tasdiqlashsiz: mediaRecorder.onstop ichida onSendVoice chaqiriladi).
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
+      return;
+    }
+
+    if (micDisabled) {
+      onToast(t('toast_mic_live'));
       return;
     }
 
@@ -146,16 +155,20 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city }: ChatInp
           style={{
             background: isRecording
               ? '#EF4444'
-              : 'linear-gradient(135deg, #FB923C, #F97316)',
+              : micDisabled && !hasText
+                ? 'rgba(148,163,184,0.15)'
+                : 'linear-gradient(135deg, #FB923C, #F97316)',
             boxShadow: isRecording
               ? '0 0 18px rgba(239,68,68,0.6)'
-              : '0 0 16px rgba(249,115,22,0.4)',
+              : micDisabled && !hasText
+                ? 'none'
+                : '0 0 16px rgba(249,115,22,0.4)',
           }}
         >
           {hasText && !isRecording ? (
             <Send className="w-4.5 h-4.5 text-white ml-[-1px]" strokeWidth={2} fill="white" />
           ) : (
-            <Mic className="w-5 h-5 text-white" strokeWidth={2} />
+            <Mic className={`w-5 h-5 ${micDisabled ? 'text-[#64748B]' : 'text-white'}`} strokeWidth={2} />
           )}
         </button>
       </div>
