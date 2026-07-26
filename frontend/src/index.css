@@ -36,6 +36,16 @@
     --muted: #94A3B8;
     --app-vh: 100vh;
 
+    /* Telegram'ning o'zi bergan qurilma xavfsiz maydoni (Android jismoniy
+       tugmalar paneli va h.k.) — lib/telegram.ts JS orqali to'ldiradi.
+       JS ishga tushmaguncha (yoki Telegram tashqarisida) 0 — shunda
+       BottomNav faqat env(safe-area-inset-bottom)ga tayanadi, xuddi
+       oldingidek. */
+    --tg-safe-top: 0px;
+    --tg-safe-bottom: 0px;
+    --tg-safe-left: 0px;
+    --tg-safe-right: 0px;
+
     /* Legacy Stitch tokens — retargeted so old consumers stay in sync */
     --primary-dim: #FB923C;
     --primary-light: #FDBA74;

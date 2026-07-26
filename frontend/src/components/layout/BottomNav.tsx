@@ -27,9 +27,14 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
       <div
-        className="pointer-events-auto max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pb-[calc(6px+env(safe-area-inset-bottom))] pt-2"
+        className="pointer-events-auto max-w-[460px] sm:max-w-[480px] lg:max-w-[520px] mx-auto px-4 pt-2"
         style={{
           background: 'linear-gradient(180deg, transparent 0%, rgba(15,15,35,0.92) 30%, rgba(15,15,35,0.99) 100%)',
+          // Android jismoniy "Kнопки" navigatsiya paneli bilan
+          // to'qnashmasin — Telegram native ilova bergan --tg-safe-bottom
+          // (ishonchliroq) va brauzerning o'z env(safe-area-inset-bottom)
+          // ikkalasidan kattarog'i olinadi.
+          paddingBottom: 'calc(6px + max(env(safe-area-inset-bottom), var(--tg-safe-bottom, 0px)))',
         }}
       >
         <div
