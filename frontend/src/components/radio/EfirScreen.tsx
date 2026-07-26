@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
-import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check } from 'lucide-react';
+import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check, Mic } from 'lucide-react';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
@@ -68,6 +68,16 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   const canGoLive = user?.role === 'admin' || user?.role === 'moderator' || user?.role === 'doverenniy';
   const [mySlot, setMySlot] = useState<BroadcastSlot | null>(null);
   const [, forceTick] = useState(0);
+
+  // O'zi efirga chiqqanda — agar oldin tinglab turgan bo'lsa, pleer
+  // avtomatik to'xtaydi (aks holda o'z ovozini eshitib qoladi). Efirda
+  // ekan pastdagi play tugmasi ham butunlay o'chirilgan (pastroqda).
+  useEffect(() => {
+    if (isLive && audioPlayer.isPlaying) {
+      audioPlayer.togglePlay();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive]);
 
   useEffect(() => {
     if (!canGoLive) return;
@@ -414,21 +424,28 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         </div>
       </div>
 
-      {/* ── КОЛЬЦО + VISUALIZER (кнопка play) ── */}
+      {/* ── КОЛЬЦО + VISUALIZER (кнопка play) — o'zi efirda ekan
+          o'chirilgan: o'z ovozini eshitmasin, faqat boshqalar efirda
+          bo'lganda tinglay oladi. ── */}
       <div className="flex items-center justify-center py-2">
         <button
-          onClick={audioPlayer.togglePlay}
-          className="relative flex items-center justify-center active:scale-95 transition-transform duration-150"
-          aria-label={audioPlayer.isPlaying ? 'pause' : 'play'}
+          onClick={isLive ? undefined : audioPlayer.togglePlay}
+          disabled={isLive}
+          className="relative flex items-center justify-center active:scale-95 transition-transform duration-150 disabled:active:scale-100 disabled:cursor-default"
+          aria-label={isLive ? 'own-broadcast' : (audioPlayer.isPlaying ? 'pause' : 'play')}
         >
-          <Visualizer isPlaying={audioPlayer.isPlaying} />
-          {audioPlayer.isLoading && (
+          <Visualizer isPlaying={audioPlayer.isPlaying && !isLive} />
+          {isLive ? (
+            <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
+              <Mic className="w-6 h-6 text-[#F97316]" />
+            </span>
+          ) : audioPlayer.isLoading ? (
             <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
               <Loader className="w-6 h-6 text-[#F97316] animate-spin" />
             </span>
-          )}
-          {!audioPlayer.isPlaying && !audioPlayer.isLoading && (
+          ) : !audioPlayer.isPlaying && (
             <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
               <svg className="w-6 h-6 text-[#F97316] ml-1" fill="currentColor" viewBox="0 0 24 24">
