@@ -223,6 +223,17 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
         }
         handlePointsUpdate(newPoints);
       }
+      // Rol/daraja admin panelidan o'zgartirilganda — ilova ochiq bo'lsa
+      // darhol yangilanadi (masalan endigina admin qilingan odam sahifani
+      // qayta ochmasdan ham "выйти в прямой эфир" tugmasini ko'rishi kerak,
+      // aks holda eski `user.role` bilan UI noto'g'ri holatda qolib ketardi).
+      if (msg.type === 'role_updated' && user && (msg.data as any)?.user_id === user.id) {
+        const newRole = (msg.data as any).role;
+        if (newRole && newRole !== user.role) {
+          showToast('🔑 Ваш статус обновлён');
+          setUser({ ...user, role: newRole });
+        }
+      }
     },
   });
 

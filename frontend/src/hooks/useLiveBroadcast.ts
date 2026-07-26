@@ -27,6 +27,27 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onToastRef = useRef(onToast);
   onToastRef.current = onToast;
+  // Screen Wake Lock — efir vaqtida ekran avtomatik o'chib/qulflanib
+  // qolmasin (bu ko'pincha getUserMedia oqimini WebView darajasida
+  // to'xtatib qo'yadi). Chinakam background'ga (boshqa ilovaga) o'tishni
+  // bu API oldini ololmaydi — faqat ekran taймaut/qulflanishidan saqlaydi.
+  const wakeLockRef = useRef<any>(null);
+
+  const releaseWakeLock = () => {
+    try { wakeLockRef.current?.release?.(); } catch {}
+    wakeLockRef.current = null;
+  };
+
+  const acquireWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      }
+    } catch {
+      // Qo'llab-quvvatlanmasa yoki ruxsat bo'lmasa — efirning o'ziga
+      // ta'sir qilmasligi kerak, jim o'tkazamiz.
+    }
+  };
 
   const stopCountdown = () => {
     if (countdownTimerRef.current) {
@@ -42,6 +63,7 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     setIsLive(false);
     setIsPaused(false);
     stopCountdown();
+    releaseWakeLock();
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch {}
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
     recorderRef.current = null;
@@ -72,7 +94,18 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
 
   // Radio.tsx umuman qayta mount bo'lmaydi, lekin sahifa to'liq yopilsa
   // (tab yopish/ilova tark etish) — brauzer resurslarni o'zi tozalaydi.
-  useEffect(() => stopCountdown, []);
+  useEffect(() => () => { stopCountdown(); releaseWakeLock(); }, []);
+
+  // Wake Lock spetsifikatsiya bo'yicha hujjat "hidden" bo'lganda o'zi
+  // bekor qilinadi (masalan qisqa vaqtga boshqa oynaga qaralganda) — efir
+  // hali davom etayotgan bo'lsa, qaytib kelganda qayta so'raymiz.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && liveRef.current) acquireWakeLock();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const sendChunk = (blob: Blob) => {
     sendChainRef.current = sendChainRef.current
@@ -184,6 +217,7 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
       onToastRef.current('🔴 LIVE!');
       startRecorder(stream);
       if (data.expires_at) startCountdown(data.expires_at);
+      acquireWakeLock();
     } catch (err: any) {
       console.error('[GoLive] setup error:', err?.name, err?.message);
       onToastRef.current(t('toast_mic_denied'));

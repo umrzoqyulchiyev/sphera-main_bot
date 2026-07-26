@@ -36,6 +36,19 @@ log = logging.getLogger("admin")
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+async def _push_role_change(user_id: int, new_role: str) -> None:
+    """Rol/daraja o'zgarganda foydalanuvchini DARHOL xabardor qiladi — aks
+    holda uning ochiq turgan ilovasi eski rolni ko'rsatib turaveradi (masalan
+    endigina admin qilingan odam "выйти в прямой эфир" tugmasini butunlay
+    ko'rmasligi mumkin edi, chunki front eski `user.role` bilan ishlagan).
+    WS — ilova ochiq bo'lsa darhol; DM — yopiq bo'lsa ham bilsin."""
+    await manager.broadcast(
+        "global",
+        {"type": "role_updated", "data": {"user_id": user_id, "role": new_role}},
+    )
+    asyncio.create_task(notifications.notify_role_changed(user_id, new_role))
+
+
 @router.post("/users/set-level", response_model=OkResponse)
 async def set_user_level(
     payload: AdminSetLevelRequest,
@@ -71,6 +84,7 @@ async def set_user_level(
         role,
         payload.user_id,
     )
+    await _push_role_change(payload.user_id, role)
     return OkResponse(detail={"user_id": payload.user_id, "level": payload.level, "role": role})
 
 
@@ -112,6 +126,7 @@ async def set_staff_role(
         new_role,
         payload.user_id,
     )
+    await _push_role_change(payload.user_id, new_role)
     return OkResponse(detail={"user_id": payload.user_id, "role": new_role})
 
 

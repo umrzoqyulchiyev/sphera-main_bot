@@ -164,6 +164,7 @@ export type WSMessageType =
   | 'studio_denied'
   | 'balance'
   | 'points_update'
+  | 'role_updated'
   | 'error'
   | 'pong'
   | 'ping';

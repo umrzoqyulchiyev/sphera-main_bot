@@ -164,9 +164,25 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
       clearLoadingTimeout();
       setIsLoading(false);
       setIsPlaying(true);
+      // OS'ga bu "haqiqiy" media ekanini bildiradi — lock screen'da boshqaruv
+      // ko'rsatadi va ba'zi platformalarda fon rejimida davom etishga
+      // ko'proq imkon beradi (odatiy background <audio> ko'pincha tezroq
+      // to'xtatiladi, media session'li oqim ancha ishonchli).
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'Прямой эфир',
+            artist: 'INTRA GROUP',
+          });
+          navigator.mediaSession.playbackState = 'playing';
+        } catch { /* eski brauzer — jim o'tkazamiz */ }
+      }
     };
     const onPause = () => {
       setIsPlaying(false);
+      if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.playbackState = 'paused'; } catch {}
+      }
       // Tashqi sabab bilan to'xtagan bo'lishi mumkin — masalan chat/studiyaga
       // ovozli xabar yozish uchun getUserMedia() chaqirilganda ba'zi
       // WebView'lar (ayniqsa iOS) butun audio session'ni pauza qiladi va
@@ -377,6 +393,23 @@ export function useAudioPlayer({ city, language, useHls, useIcecast, streamUrl, 
       playNextSegment();
     }
   }, [isPlaying, playNextSegment]);
+
+  // Lock screen / bildirishnoma boshqaruvidagi play/pause tugmalari —
+  // shu orqali foydalanuvchi ilovani ochmasdan ham eshitishni
+  // to'xtatishi/davom ettirishi mumkin.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay(); });
+      navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlay(); });
+    } catch { /* eski brauzer — jim o'tkazamiz */ }
+    return () => {
+      try {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+      } catch {}
+    };
+  }, [togglePlay, isPlaying]);
 
   return {
     isPlaying,

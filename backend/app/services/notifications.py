@@ -60,6 +60,27 @@ async def notify_points_received(user_id: int, amount: Decimal, reason: str = ""
     await notify_points_received_tg(row["telegram_id"], amount, reason)
 
 
+_ROLE_LABELS = {
+    "admin": "администратор",
+    "moderator": "модератор",
+    "doverenniy": "доверенный ведущий",
+    "aktivniy": "активный",
+    "listener": "слушатель",
+}
+
+
+async def notify_role_changed(user_id: int, new_role: str) -> None:
+    """Rol/daraja o'zgarganda foydalanuvchiga DM — mini app ochiq bo'lmasa
+    ham darhol biladi (masalan admin qilingan odam "прямой эфир"ga chiqa
+    olishini tushunishi uchun app'ni qayta ochish shart emas)."""
+    row = await db.fetchrow("SELECT telegram_id FROM users WHERE id = $1", user_id)
+    if not row:
+        return
+    label = _ROLE_LABELS.get(new_role, new_role)
+    text = f"🔑 Ваш статус изменён: теперь вы — {label}."
+    await send_dm(row["telegram_id"], text)
+
+
 async def notify_admins_new_casting(display_name: str) -> None:
     """Yangi kasting arizasi haqida barcha adminlarga (DB role='admin' +
     ADMIN_IDS env) xabar beradi — moderator ko'ra olmaydi, shuning uchun
