@@ -49,7 +49,10 @@ async def recompute_level(user_id: int) -> int:
     TZ §1:
       0 points          → level=1, role='listener'
       points > 0        → level=2, role='aktivniy'
-      doverenniy/admin  → hech qachon avtomatik o'zgartirilmaydi
+      doverenniy/admin/moderator — hech qachon avtomatik o'zgartirilmaydi
+      (bular admin panelidan qo'lda tayinlanadi, point sarflanishi bilan
+      bog'liq emas — moderator shu yerda yo'qligi sabab har safar
+      point sarflanganda "listener"ga tushib qolar edi).
     """
     points_val = await get_balance(user_id)
     new_level = level_for_points(points_val)  # 1 yoki 2
@@ -58,11 +61,11 @@ async def recompute_level(user_id: int) -> int:
         """
         UPDATE users
         SET level = CASE
-                WHEN role IN ('doverenniy', 'admin') THEN level
+                WHEN role IN ('doverenniy', 'admin', 'moderator') THEN level
                 ELSE $2
             END,
             role = CASE
-                WHEN role IN ('doverenniy', 'admin') THEN role
+                WHEN role IN ('doverenniy', 'admin', 'moderator') THEN role
                 WHEN $2 >= 2 THEN 'aktivniy'
                 ELSE 'listener'
             END
