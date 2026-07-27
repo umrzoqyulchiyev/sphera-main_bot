@@ -319,13 +319,39 @@ def tx(lang: str, key: str) -> str:
 # ============================================================
 # POINT SOTIB OLISH — Telegram Payments (haqiqiy pul)
 # ============================================================
-POINT_PACKAGES = [
-    {"id": 1, "points": 100,  "price": 100,  "label": "100 поинтов"},
-    {"id": 2, "points": 500,  "price": 400,  "label": "500 поинтов"},
-    {"id": 3, "points": 1500, "price": 1000, "label": "1500 поинтов"},
-    {"id": 4, "points": 5000, "price": 2500, "label": "5000 поинтов"},
-]
-# price — Telegram Stars (XTR) miqdori (XTR uchun provider token kerak emas).
+# Paketlar backend'dagi `point_packages` jadvalidan jonli olinadi (admin
+# panel orqali boshqariladi) — bu yerda hardcode YO'Q, chunki admin
+# o'zgartirgan narx/paket darhol botda ham to'g'ri ko'rinishi va
+# to'g'ri summaga hisoblanishi kerak.
+async def _fetch_packages() -> list[dict]:
+    """Faol point paketlarini backend'dan oladi (public endpoint, auth kerak emas)."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{INTERNAL_API_URL}/users/me/points/packages", timeout=8)
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception as exc:
+        log.warning("fetch packages failed: %s", exc)
+    return []
+
+
+async def _send_invoice(context: ContextTypes.DEFAULT_TYPE, chat_id: int, pkg: dict) -> None:
+    """Bitta paket uchun Stars invoyce yuboradi (price_stars — Telegram Stars/XTR
+    miqdori, XTR uchun provider token kerak emas)."""
+    prices = [LabeledPrice(label=pkg["label"], amount=pkg["price_stars"])]
+    try:
+        await context.bot.send_invoice(
+            chat_id=chat_id,
+            title=f"Radio AI — {pkg['label']}",
+            description=f"Пополнение баланса на {pkg['points_amount']} поинтов",
+            payload=f"pkg_{pkg['id']}",
+            provider_token=PAYMENT_PROVIDER_TOKEN,
+            currency=PAYMENT_CURRENCY,
+            prices=prices,
+        )
+    except Exception as exc:
+        log.error("send_invoice failed: %s", exc)
+        await context.bot.send_message(chat_id, "⚠️ To'lov tizimi hozircha sozlanmagan.")
 
 
 async def _show_slot(update: Update, context: ContextTypes.DEFAULT_TYPE, slot_ref: str) -> None:
@@ -383,34 +409,31 @@ async def _show_slot(update: Update, context: ContextTypes.DEFAULT_TYPE, slot_re
 async def buy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/buy — point paketlarini ko'rsatadi."""
     lang = await _get_user_lang(update.effective_user.id)
+    packages = await _fetch_packages()
+    if not packages:
+        unavailable = {"ru": "⚠️ Пакеты временно недоступны, попробуйте позже.",
+                        "en": "⚠️ Packages temporarily unavailable, try again later.",
+                        "lt": "⚠️ Paketai laikinai nepasiekiami, bandykite vėliau."}
+        await update.message.reply_text(unavailable.get(lang, unavailable["ru"]))
+        return
     title = {"ru": "💎 Купить поинты:", "en": "💎 Buy points:", "lt": "💎 Pirkti taškus:"}
-    rows = [[InlineKeyboardButton(f"{p['label']} — ⭐{p['price']}", callback_data=f"buy_{p['id']}")]
-            for p in POINT_PACKAGES]
+    rows = [[InlineKeyboardButton(f"{p['label']} — ⭐{p['price_stars']}", callback_data=f"buy_{p['id']}")]
+            for p in packages]
     await update.message.reply_text(title.get(lang, title["ru"]), reply_markup=InlineKeyboardMarkup(rows))
 
 
 async def buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Paket tanlandi — invoice yuboradi."""
+    """Paket tanlandi — invoice yuboradi. Har doim eng so'nggi narxni backend'dan
+    qayta o'qiydi (ro'yxat ko'rsatilgandan keyin admin narxni o'zgartirgan bo'lishi
+    mumkin — to'lov summasi har doim bazadagi joriy narxga mos kelishi kerak)."""
     query = update.callback_query
     await query.answer()
     pkg_id = int(query.data.split("_")[1])
-    pkg = next((p for p in POINT_PACKAGES if p["id"] == pkg_id), None)
+    packages = await _fetch_packages()
+    pkg = next((p for p in packages if p["id"] == pkg_id), None)
     if not pkg:
         return
-    prices = [LabeledPrice(label=pkg["label"], amount=pkg["price"])]
-    try:
-        await context.bot.send_invoice(
-            chat_id=query.message.chat_id,
-            title=f"Radio AI — {pkg['label']}",
-            description=f"Пополнение баланса на {pkg['points']} поинтов",
-            payload=f"pkg_{pkg['id']}",
-            provider_token=PAYMENT_PROVIDER_TOKEN,
-            currency=PAYMENT_CURRENCY,
-            prices=prices,
-        )
-    except Exception as exc:
-        log.error("send_invoice failed: %s", exc)
-        await query.message.reply_text("⚠️ To'lov tizimi hozircha sozlanmagan.")
+    await _send_invoice(context, query.message.chat_id, pkg)
 
 
 async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -467,6 +490,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Deep-link: /start buy → to'lov paketlarini ko'rsatamiz
     if context.args and context.args[0] == "buy":
         await buy_cmd(update, context)
+        return
+    # Deep-link: /start buy_N → aniq bitta paket uchun to'g'ridan-to'g'ri
+    # invoyce (mini app'dagi paket qatoriga bosilganda) — topilmasa/faol
+    # bo'lmasa oddiy paketlar ro'yxatiga tushamiz.
+    if context.args and context.args[0].startswith("buy_"):
+        try:
+            pkg_id = int(context.args[0].split("_")[1])
+        except (IndexError, ValueError):
+            pkg_id = None
+        pkg = None
+        if pkg_id is not None:
+            packages = await _fetch_packages()
+            pkg = next((p for p in packages if p["id"] == pkg_id), None)
+        if pkg:
+            await _send_invoice(context, update.effective_chat.id, pkg)
+        else:
+            await buy_cmd(update, context)
         return
     # Deep-link: /start slot_N → efir slot ma'lumoti
     if context.args and context.args[0].startswith("slot_"):

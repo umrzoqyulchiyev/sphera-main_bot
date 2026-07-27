@@ -43,6 +43,7 @@ export interface PointPackage {
   id: number;
   points_amount: number;
   price_eur: number;
+  price_stars: number;
   label: string;
 }
 
@@ -77,6 +78,7 @@ export interface AdminPackage {
   id: number;
   points_amount: number;
   price_eur: number;
+  price_stars: number;
   label: string;
   is_active: boolean;
 }

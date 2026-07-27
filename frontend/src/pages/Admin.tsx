@@ -73,6 +73,7 @@ const L: Record<string, Record<string, string>> = {
     payment_instructions_placeholder: 'Например: напишите @admin_username, чтобы купить поинты картой или переводом',
     save: 'Сохранить', saved: 'Сохранено', packages_title: 'Пакеты поинтов',
     package_label: 'Название', package_points: 'Поинты', package_price: 'Цена €',
+    package_price_stars: 'Цена ⭐',
     package_active: 'Активен', package_add: 'Добавить пакет', package_delete: 'Удалить пакет?',
     no_packages: 'Нет пакетов',
     add_pts_title: 'Управление поинтами', add_pts_to: 'Кому', amount: 'Количество',
@@ -122,6 +123,7 @@ const L: Record<string, Record<string, string>> = {
     payment_instructions_placeholder: 'e.g. message @admin_username to buy points by card or transfer',
     save: 'Save', saved: 'Saved', packages_title: 'Point packages',
     package_label: 'Label', package_points: 'Points', package_price: 'Price €',
+    package_price_stars: 'Price ⭐',
     package_active: 'Active', package_add: 'Add package', package_delete: 'Delete package?',
     no_packages: 'No packages',
     add_pts_title: 'Manage points', add_pts_to: 'To', amount: 'Amount',
@@ -171,6 +173,7 @@ const L: Record<string, Record<string, string>> = {
     payment_instructions_placeholder: 'Pvz.: rašykite @admin_username, kad nusipirktumėte taškų kortele ar pervedimu',
     save: 'Išsaugoti', saved: 'Išsaugota', packages_title: 'Taškų paketai',
     package_label: 'Pavadinimas', package_points: 'Taškai', package_price: 'Kaina €',
+    package_price_stars: 'Kaina ⭐',
     package_active: 'Aktyvus', package_add: 'Pridėti paketą', package_delete: 'Ištrinti paketą?',
     no_packages: 'Nėra paketų',
     add_pts_title: 'Taškų valdymas', add_pts_to: 'Kam', amount: 'Kiekis',
@@ -1292,18 +1295,19 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
   tx: any; packages: AdminPackage[]; flash: (m: string) => void; onReload: () => Promise<void>;
 }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ label: '', points_amount: '', price_eur: '' });
+  const [form, setForm] = useState({ label: '', points_amount: '', price_eur: '', price_stars: '' });
   const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
 
   async function handleAdd() {
     const points = parseFloat(form.points_amount);
     const price = parseFloat(form.price_eur);
-    if (!form.label.trim() || !points || !price) return;
+    const stars = parseInt(form.price_stars, 10);
+    if (!form.label.trim() || !points || !price || !stars) return;
     setCreating(true);
     try {
-      await adminCreatePackage({ points_amount: points, price_eur: price, label: form.label.trim() });
-      setForm({ label: '', points_amount: '', price_eur: '' });
+      await adminCreatePackage({ points_amount: points, price_eur: price, price_stars: stars, label: form.label.trim() });
+      setForm({ label: '', points_amount: '', price_eur: '', price_stars: '' });
       setShowAdd(false);
       flash('✅');
       await onReload();
@@ -1314,7 +1318,7 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
   async function toggleActive(p: AdminPackage) {
     try {
       await adminUpdatePackage(p.id, {
-        points_amount: p.points_amount, price_eur: p.price_eur, label: p.label, is_active: !p.is_active,
+        points_amount: p.points_amount, price_eur: p.price_eur, price_stars: p.price_stars, label: p.label, is_active: !p.is_active,
       });
       await onReload();
     } catch { flash('❌'); }
@@ -1363,6 +1367,14 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
               className="flex-1 rounded-lg px-3 py-2 text-sm text-[#F8FAFC] outline-none"
               style={{ background: 'rgba(15,15,35,0.7)', border: '1px solid rgba(249,115,22,0.18)' }}
             />
+            <input
+              placeholder={tx('package_price_stars')}
+              value={form.price_stars}
+              inputMode="numeric"
+              onChange={(e) => setForm((f) => ({ ...f, price_stars: e.target.value }))}
+              className="flex-1 rounded-lg px-3 py-2 text-sm text-[#F8FAFC] outline-none"
+              style={{ background: 'rgba(15,15,35,0.7)', border: '1px solid rgba(249,115,22,0.18)' }}
+            />
           </div>
           <button
             onClick={handleAdd}
@@ -1383,7 +1395,7 @@ function PackagesEditor({ tx, packages, flash, onReload }: {
             <div key={p.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(15,15,35,0.4)', border: '1px solid rgba(249,115,22,0.1)' }}>
               <div className="flex-1 min-w-0">
                 <div className={`text-sm font-semibold truncate ${p.is_active ? 'text-[#F8FAFC]' : 'text-[#64748B] line-through'}`}>{p.label}</div>
-                <div className="text-[11px] text-[#94A3B8]">{Number(p.points_amount).toFixed(0)} pts · €{Number(p.price_eur).toFixed(2)}</div>
+                <div className="text-[11px] text-[#94A3B8]">{Number(p.points_amount).toFixed(0)} pts · €{Number(p.price_eur).toFixed(2)} · ⭐{p.price_stars}</div>
               </div>
               <button
                 onClick={() => toggleActive(p)}

@@ -471,12 +471,16 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
     getPaymentMethod().then(setPayment).catch(() => setPayment({ method: 'stars', instructions: '' }));
   }, []);
 
-  // To'lov botda bo'ladi (Telegram Payments faqat bot orqali) → botga yo'naltiramiz
-  function buyViaBot() {
+  // To'lov botda bo'ladi (Telegram Payments faqat bot orqali) → botga yo'naltiramiz.
+  // packageId berilsa — bot shu paket uchun to'g'ridan-to'g'ri invoyce ochadi
+  // (oraliq ro'yxatsiz), berilmasa — /buy paketlar ro'yxatini ko'rsatadi.
+  function buyViaBot(packageId?: number) {
     const tg = (window as any).Telegram?.WebApp;
+    const deepLink = packageId
+      ? `https://t.me/mybot_12_bot?start=buy_${packageId}`
+      : 'https://t.me/mybot_12_bot?start=buy';
     if (tg?.openTelegramLink) {
-      // Bot'da /buy buyrug'i — paketlar ko'rinadi
-      tg.openTelegramLink('https://t.me/mybot_12_bot?start=buy');
+      tg.openTelegramLink(deepLink);
       tg.close?.();
     } else {
       window.open('https://t.me/mybot_12_bot', '_blank');
@@ -494,11 +498,13 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
       </p>
       <div className="flex flex-col gap-2 mb-3">
         {packages.map((p) => (
-          <div key={p.id}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(148,163,184,0.16)] bg-[rgba(15,15,35,0.5)]">
+          <button key={p.id}
+            onClick={() => buyViaBot(p.id)}
+            disabled={isManual || !payment}
+            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(148,163,184,0.16)] bg-[rgba(15,15,35,0.5)] disabled:opacity-60 active:scale-[0.98] transition-transform">
             <span className="font-semibold text-[#F8FAFC]">{p.label}</span>
-            <span className="text-[#F97316] font-bold">⭐{Number(p.price_eur).toFixed(0)}</span>
-          </div>
+            <span className="text-[#F97316] font-bold">⭐{p.price_stars}</span>
+          </button>
         ))}
       </div>
       {isManual ? (
@@ -508,7 +514,7 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
           </div>
         ) : null
       ) : (
-        <button className={primaryBtn} style={primaryStyle} onClick={buyViaBot} disabled={!payment}>
+        <button className={primaryBtn} style={primaryStyle} onClick={() => buyViaBot()} disabled={!payment}>
           {tx('buy')} →
         </button>
       )}

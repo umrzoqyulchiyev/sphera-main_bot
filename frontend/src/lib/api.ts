@@ -467,7 +467,7 @@ export async function adminListPackages(): Promise<AdminPackage[]> {
   return resp.json();
 }
 
-export async function adminCreatePackage(data: { points_amount: number; price_eur: number; label: string }): Promise<AdminPackage> {
+export async function adminCreatePackage(data: { points_amount: number; price_eur: number; price_stars: number; label: string }): Promise<AdminPackage> {
   const resp = await fetch(`${API_URL}/admin/packages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -477,7 +477,7 @@ export async function adminCreatePackage(data: { points_amount: number; price_eu
   return resp.json();
 }
 
-export async function adminUpdatePackage(id: number, data: { points_amount: number; price_eur: number; label: string; is_active: boolean }): Promise<AdminPackage> {
+export async function adminUpdatePackage(id: number, data: { points_amount: number; price_eur: number; price_stars: number; label: string; is_active: boolean }): Promise<AdminPackage> {
   const resp = await fetch(`${API_URL}/admin/packages/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },

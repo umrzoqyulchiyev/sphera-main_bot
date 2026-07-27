@@ -90,6 +90,7 @@ class PointPackageOut(BaseModel):
     id: int
     points_amount: Decimal
     price_eur: Decimal
+    price_stars: int
     label: str
 
 
@@ -110,12 +111,14 @@ class PaymentSettingsUpdate(BaseModel):
 class PackageCreate(BaseModel):
     points_amount: Decimal = Field(gt=0)
     price_eur: Decimal = Field(gt=0)
+    price_stars: int = Field(gt=0)
     label: str
 
 
 class PackageUpdate(BaseModel):
     points_amount: Decimal = Field(gt=0)
     price_eur: Decimal = Field(gt=0)
+    price_stars: int = Field(gt=0)
     label: str
     is_active: bool = True
 
@@ -124,6 +127,7 @@ class PackageOut(BaseModel):
     id: int
     points_amount: Decimal
     price_eur: Decimal
+    price_stars: int
     label: str
     is_active: bool
 

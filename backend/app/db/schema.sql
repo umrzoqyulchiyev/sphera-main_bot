@@ -183,6 +183,13 @@ CREATE TABLE IF NOT EXISTS point_packages (
     is_active       BOOLEAN DEFAULT true
 );
 
+-- Bot Telegram Stars orqali shu narxni ishlatadi (avval botda hardcode
+-- qilingan edi, endi shu ustundan o'qiydi — admin panel yagona haqiqat
+-- manbai). Mavjud qatorlar uchun eski hardcode bilan bir xil kurs (×100)
+-- bilan bir martalik to'ldiramiz.
+ALTER TABLE point_packages ADD COLUMN IF NOT EXISTS price_stars INTEGER NOT NULL DEFAULT 0;
+UPDATE point_packages SET price_stars = (price_eur * 100)::int WHERE price_stars = 0;
+
 -- Bir martalik tozalash: `ON CONFLICT DO NOTHING` pastda unique constraint'siz
 -- ishlatilgani uchun default paketlar har server restart'ida (demak har Railway
 -- deploy'ida ham) takrorlanib qo'shilib kelgan edi. Dublikatlarni bitta qoldirib
@@ -203,11 +210,11 @@ BEGIN
     END IF;
 END $$;
 
-INSERT INTO point_packages (points_amount, price_eur, label) VALUES
-    (100, 1.00, '100 points'),
-    (500, 4.00, '500 points'),
-    (1500, 10.00, '1500 points'),
-    (5000, 25.00, '5000 points')
+INSERT INTO point_packages (points_amount, price_eur, label, price_stars) VALUES
+    (100, 1.00, '100 points', 100),
+    (500, 4.00, '500 points', 400),
+    (1500, 10.00, '1500 points', 1000),
+    (5000, 25.00, '5000 points', 2500)
 ON CONFLICT (label) DO NOTHING;
 
 -- ============ Ilova sozlamalari (key-value) — poinт to'lovi qanday ishlashini admin belgilaydi ============

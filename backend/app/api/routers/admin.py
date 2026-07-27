@@ -208,7 +208,7 @@ async def update_payment_settings(
 @router.get("/packages", response_model=list[PackageOut])
 async def admin_list_packages(admin: dict = Depends(require_admin)):
     rows = await db.fetch(
-        "SELECT id, points_amount, price_eur, label, is_active FROM point_packages ORDER BY price_eur"
+        "SELECT id, points_amount, price_eur, price_stars, label, is_active FROM point_packages ORDER BY price_eur"
     )
     return [PackageOut(**dict(r)) for r in rows]
 
@@ -217,12 +217,13 @@ async def admin_list_packages(admin: dict = Depends(require_admin)):
 async def admin_create_package(payload: PackageCreate, admin: dict = Depends(require_admin)):
     row = await db.fetchrow(
         """
-        INSERT INTO point_packages (points_amount, price_eur, label, is_active)
-        VALUES ($1, $2, $3, true)
-        RETURNING id, points_amount, price_eur, label, is_active
+        INSERT INTO point_packages (points_amount, price_eur, price_stars, label, is_active)
+        VALUES ($1, $2, $3, $4, true)
+        RETURNING id, points_amount, price_eur, price_stars, label, is_active
         """,
         payload.points_amount,
         payload.price_eur,
+        payload.price_stars,
         payload.label.strip(),
     )
     log.info("Admin %d yangi paket yaratdi: %s", admin["id"], payload.label)
@@ -236,13 +237,14 @@ async def admin_update_package(
     row = await db.fetchrow(
         """
         UPDATE point_packages
-        SET points_amount = $2, price_eur = $3, label = $4, is_active = $5
+        SET points_amount = $2, price_eur = $3, price_stars = $4, label = $5, is_active = $6
         WHERE id = $1
-        RETURNING id, points_amount, price_eur, label, is_active
+        RETURNING id, points_amount, price_eur, price_stars, label, is_active
         """,
         package_id,
         payload.points_amount,
         payload.price_eur,
+        payload.price_stars,
         payload.label.strip(),
         payload.is_active,
     )

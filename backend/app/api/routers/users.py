@@ -236,7 +236,7 @@ async def decide_point_request(
 async def get_packages():
     """Mavjud point paketlari (narxlar)."""
     rows = await db.fetch(
-        "SELECT id, points_amount, price_eur, label FROM point_packages WHERE is_active = true ORDER BY price_eur"
+        "SELECT id, points_amount, price_eur, price_stars, label FROM point_packages WHERE is_active = true ORDER BY price_eur"
     )
     return [PointPackageOut(**dict(r)) for r in rows]
 
