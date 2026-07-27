@@ -361,8 +361,10 @@ export function Admin() {
     >
       <div className="max-w-[520px] mx-auto px-3.5 pb-6 flex flex-col gap-4">
         {/* Telegram'ning o'z native "⋮ ⌄ ✕" paneli tepada bo'lgani uchun,
-            orqaga tugmasi shu bilan to'qnashib bosilmay qolmasin. */}
-        <header className="flex items-center gap-3" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top))' }}>
+            orqaga tugmasi shu bilan to'qnashib bosilmay qolmasin. 76px —
+            RoomsScreen/EfirScreen/Chat.tsx bilan bir xil (avval bu yerda
+            64px edi — qolganlaridan kamroq, mos kelmasdi). */}
+        <header className="flex items-center gap-3" style={{ paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
           <button onClick={handleBack} aria-label="Назад" className="glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.92] transition-transform duration-150">
             <ArrowLeft className="w-4.5 h-4.5 text-[#F8FAFC]" />
           </button>
@@ -582,9 +584,14 @@ function DraftModal({ draft, tx, onClose, onApprove, onReject }: any) {
   const wordCount = dialog.split(/\s+/).filter(Boolean).length;
   return (
     <div className="fixed inset-0 z-[300] bg-black/80 flex flex-col" onClick={onClose}>
-      <div className="flex-1 overflow-y-auto p-4 max-w-[520px] mx-auto w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="glass rounded-2xl p-5 flex flex-col gap-4 mt-4 mb-4">
-          {/* Header */}
+      <div
+        className="flex-1 overflow-y-auto p-4 max-w-[520px] mx-auto w-full"
+        style={{ paddingTop: 'calc(76px + env(safe-area-inset-top))' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="glass rounded-2xl p-5 flex flex-col gap-4 mb-4">
+          {/* Header — Telegram'ning o'z native "⋮ ⌄ ✕" paneli bilan
+              to'qnashmasin (avval bu yerda umuman отступ yo'q edi). */}
           <div className="flex items-center justify-between">
             <div className="text-base font-bold text-[#F97316]">🎙 {draft.main_topic}</div>
             <button onClick={onClose}><X className="w-5 h-5 text-[#94A3B8]" /></button>

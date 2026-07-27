@@ -348,7 +348,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
           tushmasligi uchun. */}
       {pointsNotice && (
         <div
-          className="fixed top-[calc(12px+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[2500] w-[92%] max-w-[400px] cursor-pointer"
+          className="fixed top-[calc(76px+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[2500] w-[92%] max-w-[400px] cursor-pointer"
           onClick={() => setPointsNotice(null)}
         >
           <div

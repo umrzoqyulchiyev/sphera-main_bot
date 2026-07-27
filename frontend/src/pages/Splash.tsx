@@ -73,8 +73,13 @@ export function Splash() {
         <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(49,46,129,0.3)_0%,transparent_70%)]" />
       </div>
 
-      {/* Language selector - top right */}
-      <div className="absolute top-4 right-4 z-20 flex gap-1.5">
+      {/* Language selector - top right. Telegram'ning o'z native
+          свернуть/закрыть/⋮ tugmalari aynan shu burchakda bo'lgani uchun,
+          qolgan ekranlar (Admin/RoomsScreen/EfirScreen/Chat) bilan bir xil
+          76px + safe-area отступ ishlatiladi (avval hech qanday отступ
+          yo'q edi — eng birinchi ko'rinadigan ekranda to'g'ridan-to'g'ri
+          Telegram chromesi ustiga tushib qolardi). */}
+      <div className="absolute right-4 z-20 flex gap-1.5" style={{ top: 'calc(76px + env(safe-area-inset-top))' }}>
         {languages.map(({ code, label }) => (
           <button
             key={code}
