@@ -16,7 +16,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useLiveBroadcast } from '../hooks/useLiveBroadcast';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useTranslation } from '../hooks/useTranslation';
-import { getMe, getPointsHistory, getRadioStatus } from '../lib/api';
+import { getMe, getPointsHistory, getRadioStatus, adminGetCastingPendingCount } from '../lib/api';
 import { authenticate, isAuthenticated } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
 import { t } from '../lib/i18n';
@@ -51,6 +51,9 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
   const [user, setUser] = useState<User | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [pointsNotice, setPointsNotice] = useState<{ text: string; gift: boolean } | null>(null);
+  // Kastingga yangi ariza — admin panelga kirmasdan ham profil tugmasida
+  // значok ko'rinsin (faqat haqiqiy admin uchun, kasting faqat unga ochiq).
+  const [pendingCastingCount, setPendingCastingCount] = useState(0);
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastTxIdRef = useRef<number | null>(null);
@@ -215,6 +218,26 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
     }
   };
 
+  // Kastingga yangi ariza — faqat haqiqiy admin uchun значok (kasting
+  // faqat unga ochiq). Admin panelga hech kirmasdan ham darhol bilishi
+  // uchun (WS "casting_updated" pastda), plyus 20s'lik zaxira poll.
+  useEffect(() => {
+    if (user?.role !== 'admin') { setPendingCastingCount(0); return; }
+    let cancelled = false;
+    const loadCount = () => {
+      adminGetCastingPendingCount().then((n) => { if (!cancelled) setPendingCastingCount(n); });
+    };
+    loadCount();
+    const interval = setInterval(loadCount, 20000);
+    const onWake = () => { if (document.visibilityState === 'visible') loadCount(); };
+    document.addEventListener('visibilitychange', onWake);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onWake);
+    };
+  }, [user?.role]);
+
   // Boshqa foydalanuvchidan point kelganda balansni darhol yangilash uchun —
   // Radio.tsx darajasida doim tirik ulanish (qaysi tab ochiq bo'lishidan
   // qat'i nazar), 20s'lik poll'ni kutmasdan. Backend barcha ulanishlarni
@@ -243,6 +266,11 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
           showToast('🔑 Ваш статус обновлён');
           setUser({ ...user, role: newRole });
         }
+      }
+      // Kastingga yangi ariza/qaror — Profil значokini darhol yangilaydi
+      // (20s pollingni kutmasdan), faqat haqiqiy admin uchun.
+      if (msg.type === 'casting_updated' && user?.role === 'admin') {
+        adminGetCastingPendingCount().then(setPendingCastingCount);
       }
     },
   });
@@ -351,7 +379,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
         </div>
       </div>
 
-      <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
+      <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} profileBadgeCount={pendingCastingCount} />
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
       {/* Oddiy tost App.tsx darajasida (global, Router'dan tashqarida)
           ko'rsatiladi — shu yerda alohida emas, ikkitasi ustma-ust

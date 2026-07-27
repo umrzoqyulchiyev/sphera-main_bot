@@ -4,6 +4,9 @@ import type { Screen } from '../../types';
 interface BottomNavProps {
   currentScreen: Screen;
   onNavigate: (screen: Screen) => void;
+  // Profil tugmasi ustidagi значok — masalan ko'rib chiqilmagan kasting
+  // arizalari soni (faqat haqiqiy admin uchun beriladi, boshqalarda 0).
+  profileBadgeCount?: number;
 }
 
 const ICONS: Record<string, typeof MessageCircle> = {
@@ -14,7 +17,7 @@ const ICONS: Record<string, typeof MessageCircle> = {
   person: User,
 };
 
-export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
+export function BottomNav({ currentScreen, onNavigate, profileBadgeCount = 0 }: BottomNavProps) {
   // Stitch dizayni: chat | podcasts | [ORB] | spatial_audio | person
   const navItems: { id: Screen; icon: string; isCenter?: boolean }[] = [
     { id: 'anons', icon: 'chat' },
@@ -71,13 +74,21 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 active:scale-90"
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 active:scale-90"
                 style={{
                   color: isActive ? '#F97316' : '#94A3B8',
                   transform: isActive ? 'scale(1.08)' : 'scale(1)',
                 }}
               >
                 <Icon size={21} fill={isActive ? 'currentColor' : 'none'} strokeWidth={2} />
+                {item.id === 'profile' && profileBadgeCount > 0 && (
+                  <span
+                    className="absolute top-0 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-extrabold text-white"
+                    style={{ background: '#EF4444', boxShadow: '0 0 0 2px #1B1B30' }}
+                  >
+                    {profileBadgeCount > 9 ? '9+' : profileBadgeCount}
+                  </span>
+                )}
               </button>
             );
           })}

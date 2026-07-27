@@ -368,6 +368,15 @@ export async function getUsers() {
   return resp.json();
 }
 
+// Faqat sonini olish uchun yengil chaqiruv — BottomNav'dagi Profil
+// значоки va Admin panelning "Кастинг" tab значoki shu bilan ishlaydi.
+export async function adminGetCastingPendingCount(): Promise<number> {
+  const resp = await fetch(`${API_URL}/casting/admin/list?status=pending`, { headers: authHeaders() });
+  if (!resp.ok) return 0;
+  const data = await resp.json().catch(() => []);
+  return Array.isArray(data) ? data.length : 0;
+}
+
 export async function adminSetLevel(user_id: number, level: number) {
   const resp = await fetch(`${API_URL}/admin/users/set-level`, {
     method: 'POST',
