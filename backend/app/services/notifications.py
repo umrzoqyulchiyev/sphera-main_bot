@@ -81,6 +81,22 @@ async def notify_role_changed(user_id: int, new_role: str) -> None:
     await send_dm(row["telegram_id"], text)
 
 
+async def push_role_change(user_id: int, new_role: str) -> None:
+    """Rol/daraja o'zgargan HAR safar shu chaqirilishi kerak (admin panel
+    orqali ham, kasting tasdiqlanganda ham) — WS (ilova ochiq bo'lsa
+    darhol) + DM (yopiq bo'lsa ham bilsin). WS tez/local — kutiladi; DM
+    tashqi HTTP so'rov — orqa fonda (javobni sekinlashtirmasin)."""
+    import asyncio
+
+    from app.core.ws_manager import manager
+
+    await manager.broadcast(
+        "global",
+        {"type": "role_updated", "data": {"user_id": user_id, "role": new_role}},
+    )
+    asyncio.create_task(notify_role_changed(user_id, new_role))
+
+
 async def notify_admins_new_casting(display_name: str) -> None:
     """Yangi kasting arizasi haqida barcha adminlarga (DB role='admin' +
     ADMIN_IDS env) xabar beradi — moderator ko'ra olmaydi, shuning uchun

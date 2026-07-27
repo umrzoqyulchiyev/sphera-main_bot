@@ -144,6 +144,21 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
       if (inFlight) return;
       inFlight = true;
       try {
+        // Profilni (rol/daraja) HAR DOIM yangilaymiz — pastdagi point
+        // tarixiga bog'liq emas. Admin panelidan to'g'ridan-to'g'ri
+        // rol/daraja o'zgartirilsa (masalan modератор qilinsa) hech qanday
+        // points_transactions yozuvi yaralmaydi, shuning uchun bu tekshiruv
+        // pastdagi "yangi tranzaksiya bormi" shartidan ALOHIDA turishi kerak
+        // — aks holda WS push'ni sog'inib qolgan holatda (ilova fonda
+        // bo'lganda uzilgan bo'lsa) foydalanuvchi to'liq qayta kirmaguncha
+        // eski rol bilan qolib ketardi.
+        try {
+          const freshMe = await getMe();
+          if (!cancelled) {
+            setUser((prev) => (prev ? { ...prev, ...freshMe, points: Number(freshMe.points) || 0 } : prev));
+          }
+        } catch { /* keyingi poll'da urinib ko'radi */ }
+
         const history = await getPointsHistory();
         if (cancelled || history.length === 0) return;
 
@@ -159,13 +174,8 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
         if (fresh.length === 0) return;
         lastTxIdRef.current = Math.max(lastSeenId, ...fresh.map((h) => h.id));
 
-        // Balansni har doim yangilaymiz (chat/studiya orqali sarflangan
-        // bo'lsa ham UI eskirmasin), bildirishnomani esa faqat kirim uchun.
-        try {
-          const updatedUser = await getMe();
-          if (!cancelled) setUser({ ...updatedUser, points: Number(updatedUser.points) || 0 });
-        } catch { /* balans keyingi poll'da yangilanadi */ }
-
+        // Balans yuqorida (har doimgi getMe()) allaqachon yangilangan —
+        // bu yerda faqat kirim haqida bildirishnoma ko'rsatiladi.
         const incoming = fresh.find((h) => h.event_type === 'transfer_in' || h.event_type === 'gift');
         if (incoming) {
           const amount = Number(incoming.amount).toFixed(3);

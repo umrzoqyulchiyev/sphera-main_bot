@@ -181,7 +181,10 @@ class RoomMessageRequest(BaseModel):
 
 
 class RoomInviteRequest(BaseModel):
-    telegram_id: int  # profilda ko'rsatiladigan ID — points transfer bilan bir xil shartnoma
+    # Yoki telegram_id (profilda ko'rsatiladigan ID), yoki @username —
+    # frontend bitta matn maydonidan yuboradi, backend avtomatik aniqlaydi
+    # (raqam bo'lsa — ID, aks holda username sifatida qidiriladi).
+    identifier: str
 
 
 class RoomKickRequest(BaseModel):

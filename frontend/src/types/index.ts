@@ -165,6 +165,7 @@ export type WSMessageType =
   | 'balance'
   | 'points_update'
   | 'role_updated'
+  | 'casting_updated'
   | 'error'
   | 'pong'
   | 'ping';

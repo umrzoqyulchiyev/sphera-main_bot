@@ -16,6 +16,7 @@ import type { User } from '../types';
 import { authHeaders, getToken } from '../lib/auth';
 import { API_URL } from '../lib/config';
 import { getLang } from '../lib/i18n';
+import { useWebSocket } from '../hooks/useWebSocket';
 import type { PaymentSettings, AdminPackage } from '../types';
 
 interface Topic {
@@ -254,6 +255,7 @@ export function Admin() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [slots, setSlots] = useState<BroadcastSlot[]>([]);
   const [castingApps, setCastingApps] = useState<CastingApp[]>([]);
+  const [pendingCastingCount, setPendingCastingCount] = useState(0);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [packages, setPackages] = useState<AdminPackage[]>([]);
   const [pricing, setPricing] = useState<Pricing | null>(null);
@@ -273,6 +275,40 @@ export function Admin() {
   // boshqa foydalanuvchilarning rolini o'zgartira oladi, moderator emas.
   useEffect(() => { getMe().then(setMe).catch(() => {}); }, []);
 
+  // Kastingga yangi ariza — bot orqali DM YAGONA kanal bo'lmasin: bu yerda
+  // "Кастинг" tab ustida доим ko'rinadigan значок, admin ko'rib chiqmaguncha
+  // (approve/reject) turadi. Faqat haqiqiy admin ko'radi — moderator
+  // kasting'ga umuman kirolmaydi.
+  useEffect(() => {
+    if (me?.role !== 'admin') return;
+    let cancelled = false;
+    const loadCount = () => {
+      adminGetCasting('pending')
+        .then((apps) => { if (!cancelled) setPendingCastingCount(apps.length); })
+        .catch(() => {});
+    };
+    loadCount();
+    const interval = setInterval(loadCount, 20000);
+    const onWake = () => { if (document.visibilityState === 'visible') loadCount(); };
+    document.addEventListener('visibilitychange', onWake);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onWake);
+    };
+  }, [me?.role]);
+
+  // Yangi ariza/qaror darhol (20s pollingni kutmasdan) — backend har bir
+  // apply/approve/reject'da "casting_updated" yuboradi.
+  useWebSocket({
+    city: 'global',
+    onMessage: (msg) => {
+      if (msg.type === 'casting_updated' && me?.role === 'admin') {
+        adminGetCasting('pending').then((apps) => setPendingCastingCount(apps.length)).catch(() => {});
+      }
+    },
+  });
+
   async function loadData() {
     setLoading(true);
     try {
@@ -286,7 +322,11 @@ export function Admin() {
         adminGetPricing().then(setPricing).catch(() => {});
       }
       else if (tab === 'music') setTopics(await adminGetTopics());
-      else if (tab === 'casting') setCastingApps(await adminGetCasting('pending'));
+      else if (tab === 'casting') {
+        const apps = await adminGetCasting('pending');
+        setCastingApps(apps);
+        setPendingCastingCount(apps.length);
+      }
       else if (tab === 'payment') {
         setPaymentSettings(await adminGetPaymentSettings());
         setPackages(await adminListPackages());
@@ -395,13 +435,22 @@ export function Admin() {
             const active = tab === t;
             return (
               <button key={t} onClick={() => setTab(t as any)}
-                className={`flex items-center gap-1.5 py-2.5 px-4 rounded-full border font-bold text-[11px] transition-all duration-200 active:scale-[0.95] ${
+                className={`relative flex items-center gap-1.5 py-2.5 px-4 rounded-full border font-bold text-[11px] transition-all duration-200 active:scale-[0.95] ${
                   active ? 'text-[#1B1204] border-transparent' : 'glass text-[#94A3B8] border-[rgba(249,115,22,0.14)]'
                 }`}
                 style={active ? { background: 'linear-gradient(135deg, #FB923C, #F97316)', boxShadow: '0 4px 18px rgba(249,115,22,0.45)' } : undefined}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">{label}</span>
+                {/* Yangi kasting arizalari — admin ko'rib chiqmaguncha turadi */}
+                {t === 'casting' && pendingCastingCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[9px] font-extrabold text-white"
+                    style={{ background: '#EF4444', boxShadow: '0 0 0 2px #0F0F23' }}
+                  >
+                    {pendingCastingCount > 9 ? '9+' : pendingCastingCount}
+                  </span>
+                )}
               </button>
             );
           })}

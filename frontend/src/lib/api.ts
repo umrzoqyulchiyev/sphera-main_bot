@@ -759,11 +759,12 @@ export async function getRoomMembers(roomId: number): Promise<RoomMember[]> {
   return resp.json();
 }
 
-export async function inviteToRoom(roomId: number, telegramId: number) {
+// identifier — Telegram ID (raqam) yoki @username, ikkalasi ham mumkin.
+export async function inviteToRoom(roomId: number, identifier: string) {
   const resp = await fetch(`${API_URL}/rooms/${roomId}/invite`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ telegram_id: telegramId }),
+    body: JSON.stringify({ identifier }),
   });
   if (!resp.ok) {
     const e = await resp.json().catch(() => ({}));

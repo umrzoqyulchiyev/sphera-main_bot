@@ -288,7 +288,7 @@ async def list_room_members(room_id: int, user: dict = Depends(get_current_user)
 async def invite_to_room(
     room_id: int, payload: RoomInviteRequest, user: dict = Depends(get_current_user)
 ):
-    """Guruhga foydalanuvchi qo'shadi (Telegram ID bo'yicha) — xost yoki staff."""
+    """Guruhga foydalanuvchi qo'shadi (Telegram ID YOKI @username bo'yicha) — xost yoki staff."""
     room = await db.fetchrow(
         "SELECT id, host_user_id FROM chat_rooms WHERE id = $1 AND is_active = true", room_id
     )
@@ -297,10 +297,20 @@ async def invite_to_room(
     if not _can_manage_members(dict(room), user):
         raise HTTPException(status_code=403, detail="Not your room")
 
-    target = await db.fetchrow(
-        "SELECT id, username, display_name FROM users WHERE telegram_id = $1",
-        payload.telegram_id,
-    )
+    identifier = payload.identifier.strip().lstrip("@")
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Empty identifier")
+
+    if identifier.isdigit():
+        target = await db.fetchrow(
+            "SELECT id, username, display_name FROM users WHERE telegram_id = $1",
+            int(identifier),
+        )
+    else:
+        target = await db.fetchrow(
+            "SELECT id, username, display_name FROM users WHERE lower(username) = lower($1)",
+            identifier,
+        )
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
 

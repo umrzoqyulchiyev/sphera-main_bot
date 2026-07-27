@@ -22,6 +22,7 @@ from app.core.models import (
     CastingStatusOut,
     OkResponse,
 )
+from app.core.ws_manager import manager
 from app.services import notifications
 
 log = logging.getLogger("casting")
@@ -141,6 +142,9 @@ async def apply_casting(
     log.info("Casting application submitted: user=%d file=%s", user["id"], fname)
     applicant_name = user["display_name"] or user["username"] or f"id{user['telegram_id']}"
     asyncio.create_task(notifications.notify_admins_new_casting(applicant_name))
+    # DM botdan tashqari — admin-panel ochiq bo'lsa значок darhol yangilansin
+    # (20s pollingни kutmasdan), pastdagi approve/reject'da ham xuddi shu.
+    asyncio.create_task(manager.broadcast("global", {"type": "casting_updated", "data": {}}))
     return OkResponse(detail={"status": "pending"})
 
 
@@ -238,6 +242,11 @@ async def approve_casting(
         row["user_id"],
         admin["id"],
     )
+    # Ariza beruvchi darhol bilsin — app ochiq bo'lsa qayta kirmasdan ham
+    # "выйти в прямой эфир" ko'rinadi (points/rol o'zgarishi bilan bir xil
+    # WS+DM pattern).
+    await notifications.push_role_change(row["user_id"], "doverenniy")
+    asyncio.create_task(manager.broadcast("global", {"type": "casting_updated", "data": {}}))
     return OkResponse(detail={"user_id": row["user_id"], "status": "approved"})
 
 
@@ -260,4 +269,5 @@ async def reject_casting(
     if result.endswith("0"):
         raise HTTPException(status_code=404, detail="Application not found or already decided")
     log.info("Casting rejected: application=%d by admin=%d", application_id, admin["id"])
+    asyncio.create_task(manager.broadcast("global", {"type": "casting_updated", "data": {}}))
     return OkResponse(detail={"status": "rejected"})

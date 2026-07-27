@@ -18,8 +18,8 @@ const L: Record<string, Record<string, string>> = {
     host_only: 'Создавать группы может только ведущий', close_room: 'Закрыть группу',
     confirm_close: 'Закрыть эту группу? Новые сообщения будут недоступны.',
     cancel: 'Отмена', confirm: 'Подтвердить', by: 'Ведущий',
-    members: 'Участники', invite_ph: 'Telegram ID', invite: 'Пригласить',
-    invite_hint: 'ID виден в профиле пользователя', kick_confirm: 'Исключить этого участника из группы?',
+    members: 'Участники', invite_ph: 'ID или @username', invite: 'Пригласить',
+    invite_hint: 'ID виден в профиле пользователя, или укажите @username', kick_confirm: 'Исключить этого участника из группы?',
     removed_from_room: 'Вас исключили из группы', no_members: 'Пока нет участников',
     you_are_kicked: 'Больше нет доступа к этой группе', back: 'Назад',
     delete_room: 'Удалить группу', confirm_delete_room: 'Удалить эту группу навсегда? Вся переписка будет стёрта без возможности восстановить.',
@@ -30,8 +30,8 @@ const L: Record<string, Record<string, string>> = {
     host_only: 'Only hosts can create groups', close_room: 'Close group',
     confirm_close: 'Close this group? New messages will be unavailable.',
     cancel: 'Cancel', confirm: 'Confirm', by: 'Host',
-    members: 'Members', invite_ph: 'Telegram ID', invite: 'Invite',
-    invite_hint: 'ID is shown on the user\'s profile', kick_confirm: 'Remove this member from the group?',
+    members: 'Members', invite_ph: 'ID or @username', invite: 'Invite',
+    invite_hint: 'ID is shown on the user\'s profile, or enter @username', kick_confirm: 'Remove this member from the group?',
     removed_from_room: 'You were removed from the group', no_members: 'No members yet',
     you_are_kicked: 'No longer have access to this group', back: 'Back',
     delete_room: 'Delete group', confirm_delete_room: 'Permanently delete this group? All messages will be erased and cannot be recovered.',
@@ -42,8 +42,8 @@ const L: Record<string, Record<string, string>> = {
     host_only: 'Grupes gali kurti tik vedėjas', close_room: 'Uždaryti grupę',
     confirm_close: 'Uždaryti šią grupę? Naujos žinutės bus nepasiekiamos.',
     cancel: 'Atšaukti', confirm: 'Patvirtinti', by: 'Vedėjas',
-    members: 'Nariai', invite_ph: 'Telegram ID', invite: 'Pakviesti',
-    invite_hint: 'ID matomas vartotojo profilyje', kick_confirm: 'Pašalinti šį narį iš grupės?',
+    members: 'Nariai', invite_ph: 'ID arba @username', invite: 'Pakviesti',
+    invite_hint: 'ID matomas vartotojo profilyje, arba nurodykite @username', kick_confirm: 'Pašalinti šį narį iš grupės?',
     removed_from_room: 'Jūs buvote pašalintas iš grupės', no_members: 'Kol kas nėra narių',
     you_are_kicked: 'Nebeturite prieigos prie šios grupės', back: 'Atgal',
     delete_room: 'Ištrinti grupę', confirm_delete_room: 'Visam laikui ištrinti šią grupę? Visas susirašinėjimas bus ištrintas negrįžtamai.',
@@ -496,12 +496,12 @@ function RoomMembersModal({ room, user, tx, isHost, onClose, onSelfRemoved }: {
   useEffect(() => { load(); }, [load]);
 
   async function handleInvite() {
-    const tgId = parseInt(inviteId.trim(), 10);
-    if (!tgId) return;
+    const identifier = inviteId.trim();
+    if (!identifier) return;
     setInviting(true);
     setError('');
     try {
-      await inviteToRoom(room.id, tgId);
+      await inviteToRoom(room.id, identifier);
       setInviteId('');
       load();
     } catch (e: any) {
@@ -544,10 +544,9 @@ function RoomMembersModal({ room, user, tx, isHost, onClose, onSelfRemoved }: {
             <div className="flex gap-2">
               <input
                 value={inviteId}
-                onChange={(e) => setInviteId(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => setInviteId(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                 placeholder={tx('invite_ph')}
-                inputMode="numeric"
                 className="flex-1 bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-3 py-2.5 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316]"
               />
               <button
