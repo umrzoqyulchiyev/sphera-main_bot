@@ -431,31 +431,38 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         </div>
       </div>
 
+      {/* ── Тинглаётганлар сони — плеер тугмасидан ТЕПАДА ── */}
+      <div className="flex items-center justify-center gap-1.5 text-[#94A3B8]">
+        <Users className="w-3.5 h-3.5" />
+        <span className="text-[11px] font-semibold tabular-nums">{radioStatus?.listeners_count || 0}</span>
+      </div>
+
       {/* ── КОЛЬЦО + VISUALIZER (кнопка play) — o'zi efirda ekan
           o'chirilgan: o'z ovozini eshitmasin, faqat boshqalar efirda
-          bo'lganda tinglay oladi. ── */}
-      <div className="flex items-center justify-center py-2">
+          bo'lganda tinglay oladi. Kichikroq (200px) — tepasida tinglovchilar
+          soni ko'rinsin deb. ── */}
+      <div className="flex items-center justify-center py-1">
         <button
           onClick={isLive ? undefined : audioPlayer.togglePlay}
           disabled={isLive}
           className="relative flex items-center justify-center active:scale-95 transition-transform duration-150 disabled:active:scale-100 disabled:cursor-default"
           aria-label={isLive ? 'own-broadcast' : (audioPlayer.isPlaying ? 'pause' : 'play')}
         >
-          <Visualizer isPlaying={audioPlayer.isPlaying && !isLive} />
+          <Visualizer isPlaying={audioPlayer.isPlaying && !isLive} size={200} />
           {isLive ? (
-            <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
+            <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <Mic className="w-6 h-6 text-[#F97316]" />
+              <Mic className="w-4.5 h-4.5 text-[#F97316]" />
             </span>
           ) : audioPlayer.isLoading ? (
-            <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
+            <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <Loader className="w-6 h-6 text-[#F97316] animate-spin" />
+              <Loader className="w-4.5 h-4.5 text-[#F97316] animate-spin" />
             </span>
           ) : !audioPlayer.isPlaying && (
-            <span className="absolute z-10 w-12 h-12 rounded-full flex items-center justify-center"
+            <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <svg className="w-6 h-6 text-[#F97316] ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 text-[#F97316] ml-1" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z"/>
               </svg>
             </span>
@@ -492,14 +499,6 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
             {isLivePaused ? 'Пауза' : 'Поток активен'}
           </div>
-        </div>
-      )}
-
-      {/* ── Тинглаётганлар сони — efir jonli bo'lganda tepada ko'rinsin ── */}
-      {isLive && (
-        <div className="flex items-center justify-center gap-1.5 mb-3 text-[#94A3B8]">
-          <Users className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-semibold tabular-nums">{radioStatus?.listeners_count || 0}</span>
         </div>
       )}
 
