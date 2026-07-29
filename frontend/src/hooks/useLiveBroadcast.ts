@@ -14,17 +14,32 @@ import { useTranslation } from './useTranslation';
 // Yechim: bu holatni Radio.tsx darajasida ushlab turamiz (u hech qachon
 // qayta mount bo'lmaydi), shuning uchun ekranlar orasida almashish
 // broadcast'ga umuman ta'sir qilmaydi.
+const fmtDuration = (sec: number) => {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const mm = m.toString().padStart(2, '0');
+  const ss = s.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+};
+
 export function useLiveBroadcast(city: string, onToast: (message: string) => void) {
   const { t } = useTranslation();
   const [isLive, setIsLive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sendChainRef = useRef<Promise<void>>(Promise.resolve());
   const liveRef = useRef(false);
+  // Pauza — MediaRecorder'ning o'zini pause()/resume() qilish O'RNIGA shu
+  // ref orqali chunk yuborishni gate qilamiz (pastda batafsil izoh bor).
+  const isPausedRef = useRef(false);
   const expiresAtRef = useRef<number | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedStartRef = useRef<number | null>(null);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onToastRef = useRef(onToast);
   onToastRef.current = onToast;
   // Screen Wake Lock — efir vaqtida ekran avtomatik o'chib/qulflanib
@@ -58,11 +73,40 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     expiresAtRef.current = null;
   };
 
+  // Umumiy efirda bo'lgan vaqt — slot muddatidan mustaqil, faqat
+  // "chiqdi → tugatdi" oralig'ini sanaydi. Slot bo'lmagan (masalan admin)
+  // holatda ekranda shu son ko'rsatiladi (aks holda hamisha "00:00" statik
+  // turardi), efir tugaganda esa umumiy davomiylik toast orqali ko'rsatiladi.
+  const stopElapsedTimer = () => {
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current);
+      elapsedTimerRef.current = null;
+    }
+  };
+
+  const startElapsedTimer = () => {
+    elapsedStartRef.current = Date.now();
+    setElapsedSec(0);
+    stopElapsedTimer();
+    elapsedTimerRef.current = setInterval(() => {
+      if (elapsedStartRef.current) {
+        setElapsedSec(Math.floor((Date.now() - elapsedStartRef.current) / 1000));
+      }
+    }, 1000);
+  };
+
   const stopBroadcast = useCallback(async () => {
+    const finalElapsed = elapsedStartRef.current
+      ? Math.floor((Date.now() - elapsedStartRef.current) / 1000)
+      : 0;
     liveRef.current = false;
+    isPausedRef.current = false;
     setIsLive(false);
     setIsPaused(false);
     stopCountdown();
+    stopElapsedTimer();
+    elapsedStartRef.current = null;
+    setElapsedSec(0);
     releaseWakeLock();
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch {}
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
@@ -74,7 +118,10 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
         headers: authHeaders(),
       });
     } catch {}
-  }, [city]);
+    if (finalElapsed > 0) {
+      onToastRef.current(t('live_duration_toast').replace('{time}', fmtDuration(finalElapsed)));
+    }
+  }, [city, t]);
 
   const startCountdown = (expiresAtIso: string) => {
     expiresAtRef.current = new Date(expiresAtIso).getTime();
@@ -94,7 +141,7 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
 
   // Radio.tsx umuman qayta mount bo'lmaydi, lekin sahifa to'liq yopilsa
   // (tab yopish/ilova tark etish) — brauzer resurslarni o'zi tozalaydi.
-  useEffect(() => () => { stopCountdown(); releaseWakeLock(); }, []);
+  useEffect(() => () => { stopCountdown(); stopElapsedTimer(); releaseWakeLock(); }, []);
 
   // Wake Lock spetsifikatsiya bo'yicha hujjat "hidden" bo'lganda o'zi
   // bekor qilinadi (masalan qisqa vaqtga boshqa oynaga qaralganda) — efir
@@ -131,39 +178,44 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
   };
 
   const startRecorder = (stream: MediaStream) => {
+    // MUAMMO (topilgan): MediaRecorder.pause()/resume() ba'zi Telegram
+    // WebView'larda (ayniqsa iOS) resume()dan keyin yangi WebM
+    // init-segment/klaster bilan boshlaydi — bu serverda ffmpeg'ga uzatilib
+    // turgan UZLUKSIZ webm oqimini buzadi, ffmpeg pipe o'ladi va keyingi
+    // chunk'lar "Feed failed" bilan rad etiladi → sendChunk xato ko'rib
+    // avtomatik stopBroadcast() chaqiradi. Foydalanuvchiga bu "pauzadan
+    // keyin efir tugab qoladi, va pauzani faqat bir marta bosish mumkin"
+    // bo'lib ko'rinadi. Yechim: recorder'ni HECH QACHON pause/resume
+    // qilmaymiz — u butun efir davomida uzluksiz "recording" holatda
+    // qoladi (ffmpeg oqimi hech qachon uzilmaydi), pauza esa faqat
+    // isPausedRef orqali — shu payt kelgan chunk'larni serverga
+    // YUBORMASDAN tashlab yuboramiz (mikrofon "jim" bo'lish effekti xuddi
+    // shunday saqlanadi, lekin cheksiz marta ishonchli ishlaydi).
+    const onData = (e: BlobEvent) => {
+      if (e.data.size > 0 && !isPausedRef.current) sendChunk(e.data);
+    };
     try {
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       recorderRef.current = recorder;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) sendChunk(e.data);
-      };
+      recorder.ondataavailable = onData;
       recorder.start(500);
     } catch {
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) sendChunk(e.data);
-      };
+      recorder.ondataavailable = onData;
       recorder.start(500);
     }
   };
 
   // Efirni vaqtincha to'xtatish — masalan vediushiy bir necha daqiqaga
-  // chetlashishi kerak bo'lsa. MediaRecorder.pause()/resume() — chunk
-  // yuborish shunchaki to'xtaydi/davom etadi, /broadcast/stop chaqirilmaydi
-  // (sessiya, slot va countdown butunlay ochiq qoladi, faqat mikrofon
-  // "jim" bo'ladi). Server tomonda hech qanday stale-timeout buni
-  // avtomatik yopib qo'ymaydi (u faqat yangi sessiya ochilganda tekshiriladi).
+  // chetlashishi kerak bo'lsa. Recorder o'zi hech qachon to'xtamaydi —
+  // faqat chunk yuborish to'xtaydi/davom etadi (yuqoridagi izohga qarang),
+  // /broadcast/stop chaqirilmaydi (sessiya, slot va countdown butunlay
+  // ochiq qoladi). Cheksiz marta, istalgan vaqt oralig'ida bosish mumkin.
   const togglePause = useCallback(() => {
-    const recorder = recorderRef.current;
-    if (!recorder || !liveRef.current) return;
-    if (recorder.state === 'recording') {
-      recorder.pause();
-      setIsPaused(true);
-    } else if (recorder.state === 'paused') {
-      recorder.resume();
-      setIsPaused(false);
-    }
+    if (!liveRef.current) return;
+    isPausedRef.current = !isPausedRef.current;
+    setIsPaused(isPausedRef.current);
   }, []);
 
   const toggleLive = useCallback(async () => {
@@ -228,10 +280,12 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
       }
       streamRef.current = stream;
       liveRef.current = true;
+      isPausedRef.current = false;
       setIsLive(true);
       setIsPaused(false);
       onToastRef.current('🔴 LIVE!');
       startRecorder(stream);
+      startElapsedTimer();
       if (data.expires_at) startCountdown(data.expires_at);
       acquireWakeLock();
     } catch (err: any) {
@@ -241,5 +295,5 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, stopBroadcast]);
 
-  return { isLive, remainingSec, toggleLive, isPaused, togglePause };
+  return { isLive, remainingSec, elapsedSec, toggleLive, isPaused, togglePause };
 }

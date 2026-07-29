@@ -27,6 +27,8 @@
   "go_live": "PRADĖTI TIESIOGINĘ",
   "end_live": "BAIGTI ETERĮ",
   "broadcast_paused": "Eteris pristabdytas",
+  "live_duration_toast": "🔴 Buvote eteryje: {time}",
+  "listeners_live_count": "{count} klauso",
   "slot_ready_now": "Galite pradėti tiesioginę transliaciją",
   "slot_starts_at": "„{title}“ prasidės {time}",
 

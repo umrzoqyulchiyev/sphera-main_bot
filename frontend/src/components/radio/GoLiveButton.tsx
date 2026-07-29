@@ -32,19 +32,19 @@ export function GoLiveButton({ isLive, remainingSec, onToggle, isPaused, onToggl
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         {isLive && onTogglePause && (
           <button
             onClick={onTogglePause}
             aria-label={isPaused ? 'resume' : 'pause'}
-            className="shrink-0 w-14 rounded-2xl flex items-center justify-center transition-all active:scale-[0.95]"
+            className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-[0.95]"
             style={{
               background: isPaused ? 'rgba(34,197,94,0.15)' : 'rgba(148,163,184,0.1)',
               border: `1px solid ${isPaused ? 'rgba(34,197,94,0.4)' : 'rgba(148,163,184,0.16)'}`,
               color: isPaused ? '#4ADE80' : '#94A3B8',
             }}
           >
-            {isPaused ? <Play className="w-4.5 h-4.5" fill="currentColor" /> : <Pause className="w-4.5 h-4.5" fill="currentColor" />}
+            {isPaused ? <Play className="w-3.5 h-3.5" fill="currentColor" /> : <Pause className="w-3.5 h-3.5" fill="currentColor" />}
           </button>
         )}
         <button

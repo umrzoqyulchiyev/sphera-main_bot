@@ -62,7 +62,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
   // Efir (mikrofon) holati App.tsx'dan prop sifatida keladi — /radio va
   // /admin orasida almashganda ham uzilmasligi uchun (quyida shu holatni
   // faqat iste'mol qilamiz, hook'ni o'zi bu yerda chaqirilmaydi).
-  const { isLive, remainingSec: liveRemainingSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = liveBroadcast;
+  const { isLive, remainingSec: liveRemainingSec, elapsedSec: liveElapsedSec, toggleLive, isPaused: isLivePaused, togglePause: onToggleLivePause } = liveBroadcast;
 
   // Tinglash (audio pleer) holati ham shu darajada — avval EfirScreen
   // ichida edi, shuning uchun boshqa tabga (chat/profil) o'tilganda
@@ -308,6 +308,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
             onNavigate={handleNavigate}
             isLive={isLive}
             liveRemainingSec={liveRemainingSec}
+            liveElapsedSec={liveElapsedSec}
             onToggleLive={toggleLive}
             isLivePaused={isLivePaused}
             onToggleLivePause={onToggleLivePause}

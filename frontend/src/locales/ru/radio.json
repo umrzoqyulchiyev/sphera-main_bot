@@ -27,6 +27,8 @@
   "go_live": "ВЫЙТИ В ПРЯМОЙ ЭФИР",
   "end_live": "ЗАВЕРШИТЬ ЭФИР",
   "broadcast_paused": "Эфир на паузе",
+  "live_duration_toast": "🔴 Вы были в эфире: {time}",
+  "listeners_live_count": "{count} слушают",
   "slot_ready_now": "Можно выходить в эфир",
   "slot_starts_at": "«{title}» начнётся в {time}",
 

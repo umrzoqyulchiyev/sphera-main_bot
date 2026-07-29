@@ -31,6 +31,9 @@ interface EfirScreenProps {
   // shu ekran boshqasiga almashtirilib qaytilganda ham efir uzilmaydi.
   isLive: boolean;
   liveRemainingSec: number | null;
+  // Efirga chiqqandan beri o'tgan vaqt (slot bo'lmagan holatda — masalan
+  // admin — countdown yo'q, shu son o'rniga hisoblanadi).
+  liveElapsedSec?: number;
   onToggleLive: () => void;
   // Efirni vaqtincha to'xtatish (mikrofon jim, sessiya ochiq qoladi).
   isLivePaused?: boolean;
@@ -43,7 +46,7 @@ interface EfirScreenProps {
   audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, onToggleLive, isLivePaused, onToggleLivePause, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, liveElapsedSec, onToggleLive, isLivePaused, onToggleLivePause, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -476,16 +479,27 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       {/* ── TIMER — faqat efirga chiqa oladiganlar (admin/moderator/
           doverenniy) uchun, va faqat o'zi hozir jonli bo'lganda: qolgan
           vaqtini ko'rsatadi. Oddiy tinglovchiga umuman ko'rinmaydi — avval
-          hammaga statik "00:00" ko'rsatilardi, ma'nosiz edi. */}
+          hammaga statik "00:00" ko'rsatilardi, ma'nosiz edi. Slot bo'lmagan
+          holatda (masalan admin — countdown yo'q) o'rniga QANCHA VAQT
+          efirda bo'lgani (o'sib boruvchi hisoblagich) ko'rsatiladi, efir
+          tugaganda esa umumiy davomiylik toast orqali chiqadi. */}
       {canGoLive && isLive && (
         <div className="text-center mb-4">
           <div className="text-[28px] font-black text-[#F97316] tabular-nums tracking-widest"
             style={{ textShadow: '0 0 10px rgba(249,115,22,0.35)' }}>
-            {formatTime(liveRemainingSec ?? 0)}
+            {formatTime(liveRemainingSec ?? liveElapsedSec ?? 0)}
           </div>
           <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
             {isLivePaused ? 'Пауза' : 'Поток активен'}
           </div>
+        </div>
+      )}
+
+      {/* ── Тинглаётганлар сони — efir jonli bo'lganda tepada ko'rinsin ── */}
+      {isLive && (
+        <div className="flex items-center justify-center gap-1.5 mb-3 text-[#94A3B8]">
+          <Users className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-semibold tabular-nums">{radioStatus?.listeners_count || 0}</span>
         </div>
       )}
 

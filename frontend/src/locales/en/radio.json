@@ -27,6 +27,8 @@
   "go_live": "GO LIVE",
   "end_live": "END BROADCAST",
   "broadcast_paused": "Broadcast paused",
+  "live_duration_toast": "🔴 You were live for: {time}",
+  "listeners_live_count": "{count} listening",
   "slot_ready_now": "You can go live now",
   "slot_starts_at": "\"{title}\" starts at {time}",
 
