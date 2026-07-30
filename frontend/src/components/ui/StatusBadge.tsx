@@ -4,12 +4,12 @@ import { LiveDot } from './LiveDot';
 export type BadgeTone = 'live' | 'warning' | 'danger' | 'muted' | 'accent' | 'ai';
 
 const TONE_STYLES: Record<BadgeTone, { bg: string; border: string; text: string }> = {
-  live: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.3)', text: '#22C55E' },
-  warning: { bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.3)', text: '#EAB308' },
-  danger: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', text: '#EF4444' },
-  muted: { bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.25)', text: '#94A3B8' },
-  accent: { bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', text: '#F97316' },
-  ai: { bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)', text: '#A78BFA' },
+  live: { bg: 'rgba(57,255,106,0.12)', border: 'rgba(57,255,106,0.3)', text: '#39FF6A' },
+  warning: { bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.3)', text: '#00F0C0' },
+  danger: { bg: 'rgba(255,59,92,0.12)', border: 'rgba(255,59,92,0.3)', text: '#FF3B5C' },
+  muted: { bg: 'rgba(0,240,192,0.1)', border: 'rgba(0,240,192,0.25)', text: '#9a9a9a' },
+  accent: { bg: 'rgba(0,240,192,0.12)', border: 'rgba(0,240,192,0.3)', text: '#00F0C0' },
+  ai: { bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)', text: '#B993FF' },
 };
 
 interface StatusBadgeProps {

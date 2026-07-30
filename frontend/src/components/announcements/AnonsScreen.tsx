@@ -68,7 +68,7 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
 
   return (
     <div
-      className={`flex flex-col gap-3 transition-opacity duration-500 ${
+      className={`rift-zone-u5 flex flex-col gap-3 transition-opacity duration-500 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}
     >
@@ -102,14 +102,14 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
           </button>
           {upcomingSlots.map(slot => (
             <div key={slot.id} className="glass rounded-2xl px-4 py-3 flex items-center gap-3"
-              style={slot.is_live_now ? { border: '1px solid rgba(239,68,68,0.3)' } : {}}>
+              style={slot.is_live_now ? { border: '1px solid rgba(255,59,92,0.3)' } : {}}>
               <div className="flex-shrink-0">
                 {slot.is_live_now ? (
-                  <LiveDot color="#EF4444" />
+                  <LiveDot color="#FF3B5C" />
                 ) : slot.is_soon ? (
-                  <LiveDot color="#EAB308" />
+                  <LiveDot color="#00F0C0" />
                 ) : (
-                  <LiveDot color="#94A3B8" pulse={false} />
+                  <LiveDot color="#9a9a9a" pulse={false} />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -123,7 +123,7 @@ export function AnonsScreen({ user, onUserUpdate, onNavigate }: AnonsScreenProps
               {slot.share_url && (
                 <a href={slot.share_url} target="_blank" rel="noreferrer"
                   className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(148,163,184,0.1)' }}>
+                  style={{ background: 'rgba(0,240,192,0.1)' }}>
                   <Share2 className="w-3.5 h-3.5 text-[var(--text)]" />
                 </a>
               )}
@@ -164,7 +164,7 @@ function FeaturesCard({ features }: { features: FeatureItem[] }) {
         return (
           <div key={idx}>
             <div className="flex items-center gap-3 py-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[rgba(148,163,184,0.1)] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[rgba(0,240,192,0.1)] flex items-center justify-center shrink-0">
                 <Icon className="w-4 h-4 text-[var(--text)]" strokeWidth={1.8} />
               </div>
               <span className="text-[12px] text-[var(--muted)] leading-relaxed">
@@ -172,7 +172,7 @@ function FeaturesCard({ features }: { features: FeatureItem[] }) {
               </span>
             </div>
             {!isLast && (
-              <div className="h-px ml-12 bg-[rgba(148,163,184,0.08)]" />
+              <div className="h-px ml-12 bg-[rgba(0,240,192,0.08)]" />
             )}
           </div>
         );
@@ -205,7 +205,7 @@ function VoiceChatStatusCard({ status, lang }: { status: VoiceChatStatus | null;
 
   return (
     <div className="glass px-4 py-3 rounded-2xl flex items-center gap-3">
-      <LiveDot color={isLive ? '#22C55E' : '#94A3B8'} pulse={isLive} />
+      <LiveDot color={isLive ? '#39FF6A' : '#9a9a9a'} pulse={isLive} />
       <Radio className="w-3.5 h-3.5 text-[var(--muted)]" />
       <span className="text-[10px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
         {label}

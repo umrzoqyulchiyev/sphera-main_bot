@@ -348,7 +348,7 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
     >
       {/* Background ambient */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse,rgba(249,115,22,0.07)_0%,transparent_70%)]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse,rgba(0,240,192,0.07)_0%,transparent_70%)]" />
       </div>
 
       {/* Asosiy scroll container — mouse wheel + touch ikkalasi ishlaydi */}
@@ -392,9 +392,9 @@ export function Radio({ liveBroadcast, showToast }: RadioProps) {
         >
           <div
             className="glass rounded-2xl px-4 py-3 flex items-center gap-3 animate-[slideDown_0.25s_ease-out]"
-            style={{ border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 8px 30px rgba(34,197,94,0.15)' }}
+            style={{ border: '1px solid rgba(57,255,106,0.35)', boxShadow: '0 8px 30px rgba(57,255,106,0.15)' }}
           >
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-[rgba(34,197,94,0.15)] text-[var(--live)]">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-[rgba(57,255,106,0.15)] text-[var(--live)]">
               {pointsNotice.gift ? <Gift size={18} /> : <Sparkles size={18} />}
             </div>
             <span className="text-sm font-semibold text-[var(--text)]">{pointsNotice.text}</span>

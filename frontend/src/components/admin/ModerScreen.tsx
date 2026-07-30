@@ -105,15 +105,15 @@ export function ModerScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="rift-zone-u1 flex flex-col gap-4">
       {/* Status Filter */}
       <div className="flex gap-2">
         <button
           onClick={() => setStatusFilter('pending')}
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'pending'
-              ? 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
+              ? 'bg-gradient-to-r from-[#1C3FD6] to-[#e0263a] text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+              : 'bg-[rgba(255,251,240,0.4)] text-[#6b5f4f] hover:text-[#1A1310]'
           }`}
         >
           ⏳ Ожидают
@@ -122,8 +122,8 @@ export function ModerScreen() {
           onClick={() => setStatusFilter('approved')}
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'approved'
-              ? 'bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
+              ? 'bg-gradient-to-r from-[#1c3fd6] to-[#16a34a] text-white shadow-[0_0_15px_rgba(28,63,214,0.4)]'
+              : 'bg-[rgba(255,251,240,0.4)] text-[#6b5f4f] hover:text-[#1A1310]'
           }`}
         >
           ✅ Одобрены
@@ -132,8 +132,8 @@ export function ModerScreen() {
           onClick={() => setStatusFilter('rejected')}
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
             statusFilter === 'rejected'
-              ? 'bg-gradient-to-r from-[#ef4444] to-[#dc2626] text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]'
-              : 'bg-[rgba(10,10,12,0.4)] text-[#8a8f98] hover:text-white'
+              ? 'bg-gradient-to-r from-[#E0263A] to-[#dc2626] text-white shadow-[0_0_15px_rgba(224,38,58,0.4)]'
+              : 'bg-[rgba(255,251,240,0.4)] text-[#6b5f4f] hover:text-[#1A1310]'
           }`}
         >
           ❌ Отклонены
@@ -143,8 +143,8 @@ export function ModerScreen() {
       {/* Loading */}
       {loading && (
         <div className="glass p-8 rounded-[24px] text-center">
-          <Loader className="w-8 h-8 text-[#5e6ad2] animate-spin mx-auto mb-3" />
-          <div className="text-sm text-[#8a8f98]">Загрузка черновиков...</div>
+          <Loader className="w-8 h-8 text-[#1C3FD6] animate-spin mx-auto mb-3" />
+          <div className="text-sm text-[#6b5f4f]">Загрузка черновиков...</div>
         </div>
       )}
 
@@ -152,9 +152,9 @@ export function ModerScreen() {
       {!loading && drafts.length === 0 && (
         <div className="glass p-8 rounded-[24px] text-center space-y-3">
           <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[rgba(94,106,210,0.2)] to-[rgba(94,106,210,0.05)] flex items-center justify-center">
-            <Radio className="w-8 h-8 text-[#5e6ad2] opacity-40" />
+            <Radio className="w-8 h-8 text-[#1C3FD6] opacity-40" />
           </div>
-          <div className="text-sm text-[#8a8f98]">
+          <div className="text-sm text-[#6b5f4f]">
             {statusFilter === 'pending' && 'Нет черновиков на модерации'}
             {statusFilter === 'approved' && 'Нет одобренных черновиков'}
             {statusFilter === 'rejected' && 'Нет отклоненных черновиков'}
@@ -173,19 +173,19 @@ export function ModerScreen() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#5e6ad2]">
+                  <span className="text-xs font-bold text-[#1C3FD6]">
                     #{draft.id}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-[rgba(94,106,210,0.15)] text-[#5e6ad2] font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded-md bg-[rgba(94,106,210,0.15)] text-[#1C3FD6] font-medium">
                     {draft.city}
                   </span>
                 </div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-[#1A1310]">
                   {draft.main_topic || 'Без темы'}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[10px] text-[#8a8f98]">
+              <div className="flex items-center gap-2 text-[10px] text-[#6b5f4f]">
                 <Users className="w-3 h-3" />
                 <span>{draft.source_count} источников</span>
               </div>
@@ -197,28 +197,28 @@ export function ModerScreen() {
                 <textarea
                   value={editedScript}
                   onChange={(e) => setEditedScript(e.target.value)}
-                  className="w-full h-32 bg-[rgba(10,10,12,0.6)] border border-[rgba(94,106,210,0.3)] rounded-xl p-3 text-sm text-white resize-none outline-none focus:border-[rgba(94,106,210,0.5)]"
+                  className="w-full h-32 bg-[rgba(255,251,240,0.6)] border border-[rgba(94,106,210,0.3)] rounded-xl p-3 text-sm text-[#1A1310] resize-none outline-none focus:border-[rgba(94,106,210,0.5)]"
                   placeholder="Редактировать скрипт..."
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleSaveEdit(draft.id)}
                     disabled={processing === draft.id}
-                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white text-xs font-semibold hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all disabled:opacity-50"
+                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-[#1c3fd6] to-[#16a34a] text-white text-xs font-semibold hover:shadow-[0_0_20px_rgba(28,63,214,0.4)] transition-all disabled:opacity-50"
                   >
                     {processing === draft.id ? 'Сохранение...' : 'Сохранить'}
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="px-4 py-2 rounded-xl bg-[rgba(10,10,12,0.6)] text-[#8a8f98] text-xs font-semibold hover:text-white transition-colors"
+                    className="px-4 py-2 rounded-xl bg-[rgba(255,251,240,0.6)] text-[#6b5f4f] text-xs font-semibold hover:text-[#1A1310] transition-colors"
                   >
                     Отмена
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-4">
-                <p className="text-xs text-[#8a8f98] leading-relaxed whitespace-pre-wrap">
+              <div className="bg-[rgba(255,251,240,0.4)] rounded-xl p-4">
+                <p className="text-xs text-[#6b5f4f] leading-relaxed whitespace-pre-wrap">
                   {draft.script}
                 </p>
               </div>
@@ -228,17 +228,17 @@ export function ModerScreen() {
             {draft.status === 'approved' && (draft.script_lt || draft.script_en) && (
               <div className="grid grid-cols-2 gap-2">
                 {draft.script_lt && (
-                  <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
-                    <div className="text-[9px] text-[#8a8f98] uppercase mb-2">🇱🇹 Lithuanian</div>
-                    <p className="text-[10px] text-[#8a8f98] leading-relaxed line-clamp-3">
+                  <div className="bg-[rgba(255,251,240,0.4)] rounded-xl p-3">
+                    <div className="text-[9px] text-[#6b5f4f] uppercase mb-2">🇱🇹 Lithuanian</div>
+                    <p className="text-[10px] text-[#6b5f4f] leading-relaxed line-clamp-3">
                       {draft.script_lt}
                     </p>
                   </div>
                 )}
                 {draft.script_en && (
-                  <div className="bg-[rgba(10,10,12,0.4)] rounded-xl p-3">
-                    <div className="text-[9px] text-[#8a8f98] uppercase mb-2">🇬🇧 English</div>
-                    <p className="text-[10px] text-[#8a8f98] leading-relaxed line-clamp-3">
+                  <div className="bg-[rgba(255,251,240,0.4)] rounded-xl p-3">
+                    <div className="text-[9px] text-[#6b5f4f] uppercase mb-2">🇬🇧 English</div>
+                    <p className="text-[10px] text-[#6b5f4f] leading-relaxed line-clamp-3">
                       {draft.script_en}
                     </p>
                   </div>
@@ -248,7 +248,7 @@ export function ModerScreen() {
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-2 border-t border-[rgba(138,143,152,0.1)]">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#8a8f98]">
+              <div className="flex items-center gap-1.5 text-[10px] text-[#6b5f4f]">
                 <Clock className="w-3 h-3" />
                 <span>{formatDate(draft.created_at)}</span>
               </div>
@@ -259,7 +259,7 @@ export function ModerScreen() {
                   <button
                     onClick={() => handleEdit(draft)}
                     disabled={processing === draft.id}
-                    className="p-2 rounded-lg hover:bg-[rgba(94,106,210,0.1)] text-[#5e6ad2] transition-colors disabled:opacity-50"
+                    className="p-2 rounded-lg hover:bg-[rgba(94,106,210,0.1)] text-[#1C3FD6] transition-colors disabled:opacity-50"
                     title="Редактировать"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -267,7 +267,7 @@ export function ModerScreen() {
                   <button
                     onClick={() => handleApprove(draft.id)}
                     disabled={processing === draft.id}
-                    className="p-2 rounded-lg hover:bg-[rgba(34,197,94,0.1)] text-[#22c55e] transition-colors disabled:opacity-50"
+                    className="p-2 rounded-lg hover:bg-[rgba(28,63,214,0.1)] text-[#1c3fd6] transition-colors disabled:opacity-50"
                     title="Одобрить"
                   >
                     {processing === draft.id ? (
@@ -279,7 +279,7 @@ export function ModerScreen() {
                   <button
                     onClick={() => handleReject(draft.id)}
                     disabled={processing === draft.id}
-                    className="p-2 rounded-lg hover:bg-[rgba(239,68,68,0.1)] text-[#ef4444] transition-colors disabled:opacity-50"
+                    className="p-2 rounded-lg hover:bg-[rgba(224,38,58,0.1)] text-[#E0263A] transition-colors disabled:opacity-50"
                     title="Отклонить"
                   >
                     <XCircle className="w-4 h-4" />
@@ -291,8 +291,8 @@ export function ModerScreen() {
             {/* Warning for TTS generation */}
             {draft.status === 'pending' && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.2)]">
-                <AlertCircle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
-                <p className="text-[10px] text-[#f59e0b] leading-relaxed">
+                <AlertCircle className="w-4 h-4 text-[#1C3FD6] shrink-0 mt-0.5" />
+                <p className="text-[10px] text-[#1C3FD6] leading-relaxed">
                   При одобрении начнется генерация TTS для 3 языков и отправка в эфир. 
                   Проверьте текст перед одобрением.
                 </p>

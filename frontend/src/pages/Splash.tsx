@@ -4,6 +4,7 @@ import { Radio, MessageSquare, Sparkles, Globe, Headphones, Mic } from 'lucide-r
 import { authenticate } from '../lib/auth';
 import { DEFAULT_CITY, LS_CITY } from '../lib/config';
 import { useTranslation } from '../hooks/useTranslation';
+import { GlitchText } from '../components/ui/GlitchText';
 import type { Language } from '../types';
 
 export function Splash() {
@@ -57,19 +58,22 @@ export function Splash() {
     { code: 'ru', label: 'RU' },
   ];
 
+  // Витрина концепции Riftline: 4 карточки — 4 разные вселенные,
+  // сталкивающиеся в одном кадре (см. таблицу в ТЗ).
   const features = [
-    { icon: Radio, label: t('features_realtime') },
-    { icon: Sparkles, label: t('features_ai') },
-    { icon: MessageSquare, label: t('features_chat') },
-    { icon: Globe, label: t('features_multilang') },
+    { icon: Radio, label: t('features_realtime'), zone: 'u3', rot: '-2deg' },
+    { icon: Sparkles, label: t('features_ai'), zone: 'u4', rot: '1.5deg' },
+    { icon: MessageSquare, label: t('features_chat'), zone: 'u2', rot: '2deg' },
+    { icon: Globe, label: t('features_multilang'), zone: 'u1', rot: '-1.5deg' },
   ];
+  const tornByIdx = ['rift-torn-a', 'rift-torn-b', 'rift-torn-c', 'rift-torn-a'];
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center relative overflow-hidden px-5 py-8">
+    <div className="rift-zone-u5 min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center relative overflow-hidden px-5 py-8">
 
       {/* Background ambient glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.09)_0%,transparent_70%)] animate-pulse" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,240,192,0.09)_0%,transparent_70%)] animate-pulse" />
         <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(49,46,129,0.3)_0%,transparent_70%)]" />
       </div>
 
@@ -86,7 +90,7 @@ export function Splash() {
             onClick={() => setLang(code)}
             className={`px-2.5 py-1.5 text-[10px] font-bold tracking-wider rounded-lg transition-all duration-200 ${
               lang === code
-                ? 'glass text-[var(--accent)] shadow-[0_0_12px_rgba(249,115,22,0.3)]'
+                ? 'glass text-[var(--accent)] shadow-[0_0_12px_rgba(0,240,192,0.3)]'
                 : 'bg-[rgba(255,255,255,0.03)] text-[var(--muted)] border border-[rgba(255,255,255,0.06)] hover:text-[var(--text)]'
             }`}
           >
@@ -104,11 +108,11 @@ export function Splash() {
           <div className="relative w-[140px] h-[140px] flex items-center justify-center">
             {/* Outer ring */}
             <div
-              className="absolute inset-0 rounded-full border border-[rgba(249,115,22,0.22)]"
+              className="absolute inset-0 rounded-full border border-[rgba(0,240,192,0.22)]"
               style={{
                 animation: 'spin 12s linear infinite',
                 borderStyle: 'dashed',
-                boxShadow: '0 0 30px rgba(249,115,22,0.12) inset',
+                boxShadow: '0 0 30px rgba(0,240,192,0.12) inset',
               }}
             />
             {/* Middle ring */}
@@ -123,8 +127,8 @@ export function Splash() {
             <div
               className="absolute inset-8 rounded-full"
               style={{
-                background: 'radial-gradient(circle at 40% 35%, rgba(249,115,22,0.4), rgba(49,46,129,0.25), rgba(15,15,35,0.9) 70%)',
-                boxShadow: '0 0 40px rgba(249,115,22,0.3), inset 0 0 20px rgba(251,146,60,0.2)',
+                background: 'radial-gradient(circle at 40% 35%, rgba(0,240,192,0.4), rgba(49,46,129,0.25), rgba(13,13,16,0.9) 70%)',
+                boxShadow: '0 0 40px rgba(0,240,192,0.3), inset 0 0 20px rgba(251,146,60,0.2)',
               }}
             />
             {/* Center icon */}
@@ -135,15 +139,13 @@ export function Splash() {
 
           {/* Brand */}
           <div className="text-center">
-            <h1 className="text-4xl font-black tracking-[3px] logo-gradient font-display">
-              INTRA GROUP
-            </h1>
+            <GlitchText tag="h1" text="INTRA GROUP" className="text-4xl font-black tracking-[3px] logo-gradient" />
             <div className="flex items-center justify-center gap-3 mt-2">
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[rgba(249,115,22,0.4)]" />
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[rgba(0,240,192,0.4)]" />
               <p className="text-[10px] tracking-[4px] text-[var(--muted)] font-semibold uppercase">
                 {t('brand_sub')}
               </p>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[rgba(249,115,22,0.4)]" />
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[rgba(0,240,192,0.4)]" />
             </div>
             <p className="text-xs text-[var(--muted)] mt-2.5 leading-relaxed">
               {t('tagline')}
@@ -151,25 +153,26 @@ export function Splash() {
           </div>
         </div>
 
-        {/* Features grid */}
-        <div className="w-full grid grid-cols-2 gap-2.5">
+        {/* Features grid — 4 карточки, 4 вселенные: главная витрина
+            концепции Riftline прямо на первом экране. */}
+        <div className="w-full grid grid-cols-2 gap-3">
           {features.map((feature, idx) => (
             <div
               key={idx}
-              className="glass p-3.5 rounded-2xl flex items-center gap-3 group hover:border-[rgba(249,115,22,0.3)] transition-all duration-300"
-              style={{
-                animationDelay: `${idx * 100}ms`,
-              }}
+              className={`rift-zone-${feature.zone} glass rift-halftone ${tornByIdx[idx]} p-3.5 flex items-center gap-2.5 group transition-all duration-300`}
+              style={{ transform: `rotate(${feature.rot})` }}
             >
-              <div className="w-9 h-9 rounded-xl bg-[rgba(249,115,22,0.12)] flex items-center justify-center flex-shrink-0 group-hover:bg-[rgba(249,115,22,0.18)] transition-colors">
-                <feature.icon className="w-4.5 h-4.5 text-[var(--accent)]" strokeWidth={1.8} />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--glow)' }}>
+                <feature.icon className="w-4.5 h-4.5" style={{ color: 'var(--accent)' }} strokeWidth={1.8} />
               </div>
-              <span className="text-[11px] font-medium text-[var(--text)] leading-tight">
+              <span className="text-[11px] font-bold leading-tight" style={{ fontFamily: 'var(--zone-font-display)', color: 'var(--text)' }}>
                 {feature.label}
               </span>
             </div>
           ))}
         </div>
+
+        <div className="rift-diagonal w-full" />
 
         {/* Loading card */}
         <div className="w-full glass p-5 rounded-2xl">
@@ -182,15 +185,15 @@ export function Splash() {
           </div>
 
           {/* Progress bar */}
-          <div className="relative h-1.5 bg-[rgba(249,115,22,0.1)] rounded-full overflow-hidden">
+          <div className="relative h-1.5 bg-[rgba(0,240,192,0.1)] rounded-full overflow-hidden">
             <div
               className="absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out"
               style={{
                 width: `${progress}%`,
                 background: phase === 'ready'
-                  ? 'linear-gradient(90deg, #22C55E, #F97316)'
-                  : 'linear-gradient(90deg, #FB923C, #F97316)',
-                boxShadow: `0 0 12px ${phase === 'ready' ? 'rgba(34,197,94,0.5)' : 'rgba(249,115,22,0.5)'}`,
+                  ? 'linear-gradient(90deg, #39FF6A, #00F0C0)'
+                  : 'linear-gradient(90deg, #5ffbe0, #00F0C0)',
+                boxShadow: `0 0 12px ${phase === 'ready' ? 'rgba(57,255,106,0.5)' : 'rgba(0,240,192,0.5)'}`,
               }}
             />
           </div>

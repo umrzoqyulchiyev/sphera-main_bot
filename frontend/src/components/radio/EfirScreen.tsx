@@ -5,6 +5,7 @@ import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
 import { Visualizer } from './Visualizer';
 import { GoLiveButton, type SlotHint } from './GoLiveButton';
+import { GlitchText } from '../ui/GlitchText';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useToast } from '../../hooks/useToast';
@@ -13,6 +14,7 @@ import { Toast } from '../ui/Toast';
 import { FullScreenModal } from '../ui/FullScreenModal';
 import { getRadioStatus, getChatHistory, getMySlots, sendOpinionVoice, sendChatMessage, sendVoiceMessage, type BroadcastSlot } from '../../lib/api';
 import { DEFAULT_CITY, LS_CITY } from '../../lib/config';
+import { hapticImpact } from '../../lib/telegram';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User, RadioStatus, ChatMessage, Screen } from '../../types';
 
@@ -48,7 +50,7 @@ interface EfirScreenProps {
 
 export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, liveElapsedSec, onToggleLive, isLivePaused, onToggleLivePause, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
   const { t, lang } = useTranslation();
-  const { message, showToast } = useToast();
+  const { message, variant: toastVariant, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // O'zimiz optimistik qo'shgan (hali serverdan tasdiqlanmagan) chat
@@ -205,10 +207,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         break;
       case 'limit_exceeded':
         onPointsUpdate(wsMessage.data.points);
-        showToast(t('toast_limit'));
+        showToast(t('toast_limit'), 'error');
         break;
       case 'studio_denied':
-        showToast(t('studio_denied_role'));
+        showToast(t('studio_denied_role'), 'error');
         break;
       case 'balance':
         onPointsUpdate(wsMessage.data.points);
@@ -266,8 +268,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       }).catch(() => {});
     } catch (e: any) {
       rollback();
-      if (e?.status === 402) showToast(t('toast_limit'));
-      else showToast(t('send_error'));
+      if (e?.status === 402) showToast(t('toast_limit'), 'error');
+      else showToast(t('send_error'), 'error');
     }
   }, [wsSend, lang, onPointsUpdate, showToast, t, city, user]);
 
@@ -300,9 +302,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       if (e?.status === 402) {
         const data = await e.response?.json().catch(() => ({}));
         if (data?.detail?.points !== undefined) onPointsUpdate(Number(data.detail.points));
-        showToast(t('toast_limit'));
+        showToast(t('toast_limit'), 'error');
       } else {
-        showToast(t('send_error'));
+        showToast(t('send_error'), 'error');
       }
     }
   }, [city, lang, onPointsUpdate, showToast, t, user]);
@@ -312,6 +314,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   // bosilguncha kutib turadi (pendingVoice).
   const handleVoiceMessage = async () => {
     if (isRecording && mediaRecorderRef.current) {
+      hapticImpact('medium');
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       return;
@@ -328,7 +331,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           tgApp.requestMicrophoneAccess((ok: boolean) => resolve(ok));
         });
         if (!granted) {
-          showToast('Микрофон рұқсаты берілмеді');
+          showToast('Микрофон рұқсаты берілмеді', 'error');
           return;
         }
       }
@@ -341,18 +344,19 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       rec.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (blob.size < 800) { showToast(t('toast_short')); return; }
+        if (blob.size < 800) { showToast(t('toast_short'), 'error'); return; }
         setPendingVoice(blob);
         showToast(t('voice_ready'));
       };
       rec.start();
       setIsRecording(true);
+      hapticImpact('light');
     } catch (err: any) {
       console.error('Mic error:', err);
       if (err?.name === 'NotAllowedError') {
-        showToast('Микрофон рұқсаты жоқ');
+        showToast('Микрофон рұқсаты жоқ', 'error');
       } else {
-        showToast(t('toast_mic_denied'));
+        showToast(t('toast_mic_denied'), 'error');
       }
     }
   };
@@ -369,9 +373,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         const res = await sendOpinionVoice(blob);
         if (res?.points !== undefined) onPointsUpdate(Number(res.points));
       } catch (err: any) {
-        if (err.status === 403) showToast(t('studio_denied_role'));
-        else if (err.status === 402) showToast(t('toast_limit'));
-        else showToast('⚠️');
+        if (err.status === 403) showToast(t('studio_denied_role'), 'error');
+        else if (err.status === 402) showToast(t('toast_limit'), 'error');
+        else showToast('⚠️', 'error');
       }
       return;
     }
@@ -411,30 +415,36 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <Loader className="w-10 h-10 text-[#F97316] animate-spin" />
-        <p className="text-xs text-[#94A3B8] tracking-widest uppercase">Загрузка эфира...</p>
+        <Loader className="w-10 h-10 text-[#39FF6A] animate-spin" />
+        <p className="text-xs text-[#6f9c72] tracking-widest uppercase">Загрузка эфира...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col relative select-none">
+    <div className="rift-zone-u3 flex flex-col relative select-none">
+
+      {canGoLive && isLive && !isLivePaused && (
+        <span className="rift-boom" style={{ top: '4px', right: '4%', ['--boom-rot' as any]: '-10deg' }} aria-hidden="true">
+          В ЭФИР!
+        </span>
+      )}
 
       {/* ── УРОВЕНЬ / ПОТОК REAL TIME ── */}
       <div className="text-center pt-2 pb-4">
-        <div className="text-[11px] font-semibold tracking-[3px] text-[#94A3B8] uppercase mb-0.5">
+        <div className="text-[11px] font-semibold tracking-[3px] text-[#6f9c72] uppercase mb-0.5">
           УРОВЕНЬ {level}
         </div>
         <div className="text-[11px] tracking-[2px] uppercase">
-          <span className="text-[#94A3B8]">ПОТОК </span>
-          <span className="text-[#F97316] font-bold">REAL TIME</span>
+          <span className="text-[#6f9c72]">ПОТОК </span>
+          <span className="text-[#39FF6A] font-bold">REAL TIME</span>
         </div>
       </div>
 
       {/* ── Тинглаётганлар сони — плеер тугмасидан ТЕПАДА ── */}
-      <div className="flex items-center justify-center gap-1.5 text-[#94A3B8]">
+      <div className="flex items-center justify-center gap-1.5 text-[#6f9c72]">
         <Users className="w-3.5 h-3.5" />
-        <span className="text-[11px] font-semibold tabular-nums">{radioStatus?.listeners_count || 0}</span>
+        <span className="rift-crt-cursor text-[11px] font-semibold tabular-nums">{radioStatus?.listeners_count || 0}</span>
       </div>
 
       {/* ── КОЛЬЦО + VISUALIZER (кнопка play) — o'zi efirda ekan
@@ -451,18 +461,18 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <Visualizer isPlaying={audioPlayer.isPlaying && !isLive} size={200} />
           {isLive ? (
             <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <Mic className="w-4.5 h-4.5 text-[#F97316]" />
+              style={{ background: 'rgba(10,15,12,0.5)', backdropFilter: 'blur(4px)' }}>
+              <Mic className="w-4.5 h-4.5 text-[#39FF6A]" />
             </span>
           ) : audioPlayer.isLoading ? (
             <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <Loader className="w-4.5 h-4.5 text-[#F97316] animate-spin" />
+              style={{ background: 'rgba(10,15,12,0.5)', backdropFilter: 'blur(4px)' }}>
+              <Loader className="w-4.5 h-4.5 text-[#39FF6A] animate-spin" />
             </span>
           ) : !audioPlayer.isPlaying && (
             <span className="absolute z-10 w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(15,15,35,0.5)', backdropFilter: 'blur(4px)' }}>
-              <svg className="w-4.5 h-4.5 text-[#F97316] ml-1" fill="currentColor" viewBox="0 0 24 24">
+              style={{ background: 'rgba(10,15,12,0.5)', backdropFilter: 'blur(4px)' }}>
+              <svg className="w-4.5 h-4.5 text-[#39FF6A] ml-1" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z"/>
               </svg>
             </span>
@@ -472,13 +482,15 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
       {/* ── ID + ЗАГОЛОВОК ── */}
       <div className="text-center px-4 mt-2 mb-3">
-        <div className="text-[10px] text-[#94A3B8] tracking-widest mb-1">
+        <div className="text-[10px] text-[#6f9c72] tracking-widest mb-1">
           ID: {user?.telegram_id || '-----'}
         </div>
-        <div className="text-[15px] font-bold tracking-wide text-[#F8FAFC] leading-tight font-display">
-          {radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
-        </div>
-        <div className="text-[11px] text-[#94A3B8] mt-1 tracking-wide">
+        <GlitchText
+          tag="div"
+          text={radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
+          className="text-[15px] font-bold tracking-wide text-[#C8FFCB] leading-tight font-display"
+        />
+        <div className="text-[11px] text-[#6f9c72] mt-1 tracking-wide">
           {broadcasterName}
         </div>
       </div>
@@ -492,11 +504,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           tugaganda esa umumiy davomiylik toast orqali chiqadi. */}
       {canGoLive && isLive && (
         <div className="text-center mb-4">
-          <div className="text-[28px] font-black text-[#F97316] tabular-nums tracking-widest"
-            style={{ textShadow: '0 0 10px rgba(249,115,22,0.35)' }}>
+          <div className={`text-[28px] font-black text-[#39FF6A] tabular-nums tracking-widest ${isLivePaused ? '' : 'rift-crt-cursor'}`}
+            style={{ textShadow: '0 0 10px rgba(57,255,106,0.35)' }}>
             {formatTime(liveRemainingSec ?? liveElapsedSec ?? 0)}
           </div>
-          <div className="text-[9px] tracking-[3px] text-[#94A3B8] uppercase mt-0.5">
+          <div className="text-[9px] tracking-[3px] text-[#6f9c72] uppercase mt-0.5">
             {isLivePaused ? 'Пауза' : 'Поток активен'}
           </div>
         </div>
@@ -509,11 +521,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
       {/* Голос записалган — hali yuborilmagan, "ОТПРАВИТЬ" bosilguncha kutadi */}
       {pendingVoice && (
-        <div className="mx-4 mb-3 glass px-4 py-2.5 rounded-2xl flex items-center justify-between border border-dashed border-[#F97316]">
-          <span className="text-xs text-[#F97316] flex items-center gap-1.5">
+        <div className="mx-4 mb-3 glass px-4 py-2.5 rounded-2xl flex items-center justify-between border border-dashed border-[#39FF6A]">
+          <span className="text-xs text-[#39FF6A] flex items-center gap-1.5">
             <Check className="w-3.5 h-3.5" /> {t('voice_ready')}
           </span>
-          <button onClick={discardPendingVoice} className="text-[#94A3B8] hover:text-white transition-colors">
+          <button onClick={discardPendingVoice} className="text-[#6f9c72] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -530,20 +542,20 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <div
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 relative transition-all duration-200 active:scale-95"
             style={{
-              background: 'rgba(27,27,48,0.8)',
-              border: '1px solid rgba(148,163,184,0.14)',
+              background: 'rgba(10,15,12,0.8)',
+              border: '1px solid rgba(200,255,203,0.14)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
-            <Coffee className="w-5 h-5 text-[#94A3B8] group-hover:text-[#F97316] transition-colors" strokeWidth={1.8} />
+            <Coffee className="w-5 h-5 text-[#6f9c72] group-hover:text-[#39FF6A] transition-colors" strokeWidth={1.8} />
             {messages.length > 0 && (
-              <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-[#F8FAFC]"
-                style={{ background: '#2A2A45', border: '1px solid rgba(148,163,184,0.25)' }}>
+              <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-[#C8FFCB]"
+                style={{ background: '#0a0f0c', border: '1px solid rgba(200,255,203,0.25)' }}>
                 {messages.length > 9 ? '9+' : messages.length}
               </div>
             )}
           </div>
-          <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+          <span className="text-[8px] text-[#6f9c72] tracking-wide text-center leading-tight">
             Чай<br/>сверхмощность
           </span>
         </button>
@@ -559,36 +571,39 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1.5 relative transition-all duration-200 active:scale-95"
             style={{
               background: isRecording
-                ? 'rgba(239,68,68,0.15)'
+                ? 'rgba(255,47,208,0.15)'
                 : pendingVoice
-                ? 'rgba(34,197,94,0.12)'
-                : 'rgba(27,27,48,0.8)',
+                ? 'rgba(57,255,106,0.12)'
+                : 'rgba(10,15,12,0.8)',
               border: isRecording
-                ? '1px solid rgba(239,68,68,0.5)'
+                ? '1px solid rgba(255,47,208,0.5)'
                 : pendingVoice
-                ? '1px solid rgba(34,197,94,0.4)'
-                : '1px solid rgba(148,163,184,0.16)',
+                ? '1px solid rgba(57,255,106,0.4)'
+                : '1px solid rgba(200,255,203,0.16)',
               boxShadow: isRecording
-                ? '0 0 14px rgba(239,68,68,0.25), inset 0 1px 0 rgba(255,255,255,0.04)'
+                ? '0 0 14px rgba(255,47,208,0.25), inset 0 1px 0 rgba(255,255,255,0.04)'
                 : 'inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
             {isRecording ? (
-              <Square className="w-6 h-6 text-[#ef4444]" fill="currentColor" />
+              <Square className="w-6 h-6 text-[#FF2FD0]" fill="currentColor" />
             ) : pendingVoice ? (
-              <Check className="w-6 h-6 text-[#22C55E]" strokeWidth={2} />
+              <Check className="w-6 h-6 text-[#39FF6A]" strokeWidth={2} />
             ) : (
-              <svg className="w-7 h-7 text-[#94A3B8] group-hover:text-[#F97316] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-7 h-7 text-[#6f9c72] group-hover:text-[#39FF6A] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
               </svg>
             )}
             {isRecording && (
-              <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
+              <div className="relative w-1.5 h-1.5">
+                <span className="rift-rec-pulse absolute inset-0 rounded-full bg-[#FF2FD0]" />
+                <div className="absolute inset-0 rounded-full bg-[#FF2FD0]" />
+              </div>
             )}
           </div>
           <span className="text-[8px] tracking-wide text-center leading-tight"
-            style={{ color: isRecording ? '#ef4444' : pendingVoice ? '#22C55E' : '#94A3B8' }}>
+            style={{ color: isRecording ? '#FF2FD0' : pendingVoice ? '#39FF6A' : '#6f9c72' }}>
             Голосовое<br/>сообщение
           </span>
         </button>
@@ -602,15 +617,15 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <div
             className="w-full h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95"
             style={{
-              background: pendingVoice ? 'rgba(249,115,22,0.13)' : 'rgba(27,27,48,0.8)',
-              border: pendingVoice ? '1px solid rgba(249,115,22,0.4)' : '1px solid rgba(148,163,184,0.14)',
+              background: pendingVoice ? 'rgba(57,255,106,0.13)' : 'rgba(10,15,12,0.8)',
+              border: pendingVoice ? '1px solid rgba(57,255,106,0.4)' : '1px solid rgba(200,255,203,0.14)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
-            <Send className={`w-5 h-5 transition-colors ${pendingVoice ? 'text-[#F97316]' : 'text-[#94A3B8] group-hover:text-[#F97316]'}`} strokeWidth={1.8} />
+            <Send className={`w-5 h-5 transition-colors ${pendingVoice ? 'text-[#39FF6A]' : 'text-[#6f9c72] group-hover:text-[#39FF6A]'}`} strokeWidth={1.8} />
           </div>
           <span className="text-[8px] tracking-wide text-center leading-tight"
-            style={{ color: pendingVoice ? '#F97316' : '#94A3B8' }}>
+            style={{ color: pendingVoice ? '#39FF6A' : '#6f9c72' }}>
             Отправить
           </span>
         </button>
@@ -634,9 +649,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <button
             onClick={() => onNavigate?.('casting')}
             className="w-full mb-2 py-3 rounded-2xl font-semibold text-sm tracking-wide flex items-center justify-center gap-2 glass active:scale-[0.97] transition-all"
-            style={{ color: '#F8FAFC' }}
+            style={{ color: '#C8FFCB' }}
           >
-            <Sparkles className="w-4 h-4 text-[#F97316]" strokeWidth={1.8} />
+            <Sparkles className="w-4 h-4 text-[#39FF6A]" strokeWidth={1.8} />
             Пройти кастинг — стать ведущим
           </button>
         )}
@@ -646,18 +661,18 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(148,163,184,0.1)' }}>
-              <Activity className="w-4 h-4 text-[#94A3B8]" strokeWidth={2} />
+              style={{ background: 'rgba(200,255,203,0.1)' }}>
+              <Activity className="w-4 h-4 text-[#6f9c72]" strokeWidth={2} />
             </div>
             <div>
-              <div className="text-[10px] font-bold tracking-[2px] text-[#F8FAFC] uppercase">Поток Real Time</div>
-              <div className="text-[9px] text-[#94A3B8]">Статистика потока</div>
+              <div className="text-[10px] font-bold tracking-[2px] text-[#C8FFCB] uppercase">Поток Real Time</div>
+              <div className="text-[9px] text-[#6f9c72]">Статистика потока</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Users className="w-3.5 h-3.5 text-[#94A3B8]" />
-            <span className="text-[10px] text-[#94A3B8]">{radioStatus?.listeners_count || 0}</span>
-            <svg className="w-4 h-4 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <Users className="w-3.5 h-3.5 text-[#6f9c72]" />
+            <span className="text-[10px] text-[#6f9c72]">{radioStatus?.listeners_count || 0}</span>
+            <svg className="w-4 h-4 text-[#6f9c72]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
             </svg>
           </div>
@@ -667,9 +682,9 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
       {/* ── OFFLINE ── */}
       {!isOnline && (
         <div className="mx-4 glass rounded-xl p-2 mb-2"
-          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-          <div className="flex items-center justify-center gap-2 text-xs text-[#ef4444]">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
+          style={{ background: 'rgba(255,47,208,0.1)', border: '1px solid rgba(255,47,208,0.3)' }}>
+          <div className="flex items-center justify-center gap-2 text-xs text-[#FF2FD0]">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#FF2FD0] animate-pulse" />
             <span>Нет соединения</span>
           </div>
         </div>
@@ -683,21 +698,21 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
           {/* Header — Telegram'ning tepadagi native paneli bilan to'qnashmasin */}
           <div className="flex items-center px-4 pb-3 border-b"
-            style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+            style={{ borderColor: 'rgba(200,255,203,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
             <button onClick={() => setShowStreamModal(false)}
               className="w-8 h-8 rounded-lg flex items-center justify-center mr-3"
-              style={{ background: 'rgba(148,163,184,0.1)' }}>
-              <svg className="w-4 h-4 text-[#F8FAFC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              style={{ background: 'rgba(200,255,203,0.1)' }}>
+              <svg className="w-4 h-4 text-[#C8FFCB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
               </svg>
             </button>
             <div>
-              <span className="text-sm font-bold text-[#94A3B8]">Поток </span>
-              <span className="text-sm font-bold text-[#F97316]">Real Time</span>
+              <span className="text-sm font-bold text-[#6f9c72]">Поток </span>
+              <span className="text-sm font-bold text-[#39FF6A]">Real Time</span>
             </div>
             <div className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(148,163,184,0.1)' }}>
-              <svg className="w-4 h-4 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              style={{ background: 'rgba(200,255,203,0.1)' }}>
+              <svg className="w-4 h-4 text-[#6f9c72]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </div>
@@ -707,26 +722,26 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             {/* Points + Level */}
             <div className="flex items-start gap-4 py-4">
               <div>
-                <div className="text-[10px] text-[#94A3B8] uppercase tracking-wide mb-1">POINT</div>
-                <div className="text-3xl font-black text-[#F8FAFC]">
+                <div className="text-[10px] text-[#6f9c72] uppercase tracking-wide mb-1">POINT</div>
+                <div className="text-3xl font-black text-[#C8FFCB]">
                   {Number(user?.points || 0).toFixed(0)}
                 </div>
               </div>
               <div className="flex-1">
-                <div className="text-[10px] text-[#94A3B8] uppercase tracking-wide mb-1">УРОВЕНЬ</div>
-                <div className="text-3xl font-black text-[#F8FAFC] mb-2">{level}</div>
+                <div className="text-[10px] text-[#6f9c72] uppercase tracking-wide mb-1">УРОВЕНЬ</div>
+                <div className="text-3xl font-black text-[#C8FFCB] mb-2">{level}</div>
                 {/* Progress bar */}
                 <div className="h-2 rounded-full overflow-hidden mt-1"
-                  style={{ background: 'rgba(249,115,22,0.12)' }}>
+                  style={{ background: 'rgba(57,255,106,0.12)' }}>
                   <div className="h-full rounded-full transition-all"
                     style={{
                       width: `${Math.max(2, Math.min(Number(user?.points || 0) / 500 * 100, 100))}%`,
-                      background: 'linear-gradient(90deg, #FB923C, #F97316)',
-                      boxShadow: '0 0 8px rgba(249,115,22,0.7)',
+                      background: 'linear-gradient(90deg, #7dffa0, #39FF6A)',
+                      boxShadow: '0 0 8px rgba(57,255,106,0.7)',
                       minWidth: '6px',
                     }} />
                 </div>
-                <div className="flex justify-between text-[9px] text-[#94A3B8] mt-1">
+                <div className="flex justify-between text-[9px] text-[#6f9c72] mt-1">
                   <span>{Number(user?.points || 0).toFixed(4)} pts</span>
                   <span>500 → next level</span>
                 </div>
@@ -735,28 +750,30 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
             {/* ID + Title */}
             <div className="mb-4">
-              <div className="text-[10px] text-[#94A3B8] mb-0.5">
+              <div className="text-[10px] text-[#6f9c72] mb-0.5">
                 ID: {user?.telegram_id || '-----'}
               </div>
-              <div className="text-[16px] font-bold text-[#F8FAFC] tracking-wide font-display">
-                {radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
-              </div>
-              <div className="text-[11px] text-[#94A3B8] mt-0.5">
+              <GlitchText
+                tag="div"
+                text={radioStatus?.is_live ? 'Активация переосмысления' : 'Ожидание потока'}
+                className="text-[16px] font-bold text-[#C8FFCB] tracking-wide font-display"
+              />
+              <div className="text-[11px] text-[#6f9c72] mt-0.5">
                 {broadcasterName}
               </div>
             </div>
 
             {/* Waveform */}
-            <div className="glass rounded-2xl px-4 py-4 mb-4">
+            <div className="glass rift-halftone rift-torn-a px-4 py-4 mb-4" style={{ transform: 'rotate(-1.5deg)' }}>
               <div className="flex items-center justify-center gap-[4px]" style={{ height: '50px' }}>
                 {waveformBars.map((h, i) => (
                   <div key={i}
                     style={{
                       width: '5px',
                       height: `${h * 1.3}px`,
-                      background: 'linear-gradient(180deg, #fff 0%, #F97316 50%, #FB923C 100%)',
+                      background: 'linear-gradient(180deg, #fff 0%, #39FF6A 50%, #7dffa0 100%)',
                       borderRadius: '3px',
-                      boxShadow: '0 0 4px rgba(249,115,22,0.4)',
+                      boxShadow: '0 0 4px rgba(57,255,106,0.4)',
                       animation: audioPlayer.isPlaying
                         ? `wave ${0.7+(i%3)*0.15}s ease-in-out ${i*0.07}s infinite`
                         : 'none',
@@ -772,10 +789,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <button onClick={() => { setShowStreamModal(false); openChat(); }}
                 className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full h-[58px] rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(148,163,184,0.14)' }}>
-                  <Coffee className="w-5 h-5 text-[#94A3B8]" strokeWidth={1.8} />
+                  style={{ background: 'rgba(10,15,12,0.8)', border: '1px solid rgba(200,255,203,0.14)' }}>
+                  <Coffee className="w-5 h-5 text-[#6f9c72]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                <span className="text-[8px] text-[#6f9c72] tracking-wide text-center leading-tight">
                   Чай<br/>сверхмощность
                 </span>
               </button>
@@ -784,15 +801,15 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                 className="flex flex-col items-center gap-2" style={{ flex: '1.4' }}>
                 <div className="w-full h-[72px] rounded-2xl flex items-center justify-center"
                   style={{
-                    background: 'rgba(27,27,48,0.8)',
-                    border: '1px solid rgba(148,163,184,0.16)',
+                    background: 'rgba(10,15,12,0.8)',
+                    border: '1px solid rgba(200,255,203,0.16)',
                   }}>
-                  <svg className="w-7 h-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <svg className="w-7 h-7 text-[#6f9c72]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
                   </svg>
                 </div>
-                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                <span className="text-[8px] text-[#6f9c72] tracking-wide text-center leading-tight">
                   Голосовое<br/>сообщение
                 </span>
               </button>
@@ -800,10 +817,10 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               <button onClick={() => { setShowStreamModal(false); handleSendToStudio(); }}
                 className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full h-[58px] rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(27,27,48,0.8)', border: '1px solid rgba(148,163,184,0.14)' }}>
-                  <Send className="w-5 h-5 text-[#94A3B8]" strokeWidth={1.8} />
+                  style={{ background: 'rgba(10,15,12,0.8)', border: '1px solid rgba(200,255,203,0.14)' }}>
+                  <Send className="w-5 h-5 text-[#6f9c72]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[8px] text-[#94A3B8] tracking-wide text-center leading-tight">
+                <span className="text-[8px] text-[#6f9c72] tracking-wide text-center leading-tight">
                   Отправить
                 </span>
               </button>
@@ -811,14 +828,14 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
             {/* СТАТИСТИКА ПОТОКА */}
             <div className="mb-3">
-              <div className="text-[10px] font-bold tracking-[2px] text-[#94A3B8] uppercase mb-3">
+              <div className="text-[10px] font-bold tracking-[2px] text-[#6f9c72] uppercase mb-3">
                 Статистика потока
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {/* Активность */}
                 <div className="glass rounded-2xl p-3">
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Активность</div>
-                  <div className="text-xl font-black text-[#F8FAFC]">
+                  <div className="text-[9px] text-[#6f9c72] uppercase tracking-wide mb-2">Активность</div>
+                  <div className="text-xl font-black text-[#C8FFCB]">
                     {radioStatus?.is_live ? '78%' : '0%'}
                   </div>
                   {/* Mini chart */}
@@ -826,7 +843,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
                     {[4,6,3,8,5,10,7,12,9,14].map((h, i) => (
                       <div key={i} style={{
                         flex: 1, height: `${h}px`,
-                        background: 'rgba(148,163,184,0.3)',
+                        background: 'rgba(200,255,203,0.3)',
                         borderRadius: '1px',
                       }} />
                     ))}
@@ -835,31 +852,31 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
                 {/* Энергия */}
                 <div className="glass rounded-2xl p-3">
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Энергия</div>
-                  <div className="text-xl font-black text-[#F8FAFC]">
+                  <div className="text-[9px] text-[#6f9c72] uppercase tracking-wide mb-2">Энергия</div>
+                  <div className="text-xl font-black text-[#C8FFCB]">
                     {radioStatus?.is_live ? 'HIGH' : 'LOW'}
                   </div>
                   <div className="mt-2 h-1.5 rounded-full overflow-hidden"
-                    style={{ background: 'rgba(148,163,184,0.1)' }}>
+                    style={{ background: 'rgba(200,255,203,0.1)' }}>
                     <div className="h-full rounded-full"
                       style={{
                         width: radioStatus?.is_live ? '80%' : '20%',
-                        background: 'linear-gradient(90deg, #FB923C, #F97316)',
+                        background: 'linear-gradient(90deg, #7dffa0, #39FF6A)',
                       }} />
                   </div>
                 </div>
 
                 {/* Сообщений */}
                 <div className="glass rounded-2xl p-3">
-                  <div className="text-[9px] text-[#94A3B8] uppercase tracking-wide mb-2">Сообщений</div>
-                  <div className="text-xl font-black text-[#F8FAFC]">
+                  <div className="text-[9px] text-[#6f9c72] uppercase tracking-wide mb-2">Сообщений</div>
+                  <div className="text-xl font-black text-[#C8FFCB]">
                     {messages.length}
                   </div>
                   <div className="flex items-end gap-[2px] mt-2" style={{ height: '20px' }}>
                     {[3,7,5,9,6,11,8,13,10,15].map((h, i) => (
                       <div key={i} style={{
                         flex: 1, height: `${h}px`,
-                        background: 'rgba(148,163,184,0.3)',
+                        background: 'rgba(200,255,203,0.3)',
                         borderRadius: '1px',
                       }} />
                     ))}
@@ -874,11 +891,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               "Закрыть" paneli bilan to'qnashib, bosilmay qolishi mumkin
               (native chrome tegishlarni ushlab qolishi). Shu joy — kirish
               maydoni bilan bir xil, kafolatlangan bosiladigan zona. */}
-          <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+          <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(200,255,203,0.12)' }}>
             <button
               onClick={() => setShowStreamModal(false)}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-[0.98] transition-transform"
-              style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-[#6f9c72] active:scale-[0.98] transition-transform"
+              style={{ background: 'rgba(200,255,203,0.06)', border: '1px solid rgba(200,255,203,0.14)' }}
             >
               Закрыть
             </button>
@@ -913,11 +930,11 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.12)' }}>
-                  <Coffee className="w-8 h-8 text-[#94A3B8]" strokeWidth={1.5} />
+                  style={{ background: 'rgba(200,255,203,0.08)', border: '1px solid rgba(200,255,203,0.12)' }}>
+                  <Coffee className="w-8 h-8 text-[#6f9c72]" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm text-[#94A3B8]">Чат пуст</p>
-                <p className="text-xs text-[#94A3B8]/60 mt-1">Начните диалог</p>
+                <p className="text-sm text-[#6f9c72]">Чат пуст</p>
+                <p className="text-xs text-[#6f9c72]/60 mt-1">Начните диалог</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -930,7 +947,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
           {/* Input — asosiy "Живой чат" bilan bir xil komponent (Telegram
               uslubidagi doira tugma, darhol ko'rinish, galochka statusi). */}
-          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+          <div className="px-4 pb-6 pt-3 border-t" style={{ borderColor: 'rgba(200,255,203,0.12)' }}>
             <ChatInput
               onSendMessage={(msg) => handleSendMessage(msg, 'chat')}
               onSendVoice={handleSendVoiceToChat}
@@ -950,7 +967,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           className="fixed z-[10000] flex items-center justify-center px-6"
           style={{
             top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(15,15,35,0.75)',
+            background: 'rgba(10,15,12,0.75)',
             backdropFilter: 'blur(6px)',
             isolation: 'isolate',
           }}
@@ -959,8 +976,8 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
           <div
             className="w-full max-w-sm rounded-2xl p-5"
             style={{
-              background: 'rgba(27,27,48,0.98)',
-              border: '1px solid rgba(148,163,184,0.16)',
+              background: 'rgba(10,15,12,0.98)',
+              border: '1px solid rgba(200,255,203,0.16)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -968,16 +985,16 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(148,163,184,0.1)' }}>
-                <Send className="w-4 h-4 text-[#94A3B8]" strokeWidth={2} />
+                style={{ background: 'rgba(200,255,203,0.1)' }}>
+                <Send className="w-4 h-4 text-[#6f9c72]" strokeWidth={2} />
               </div>
-              <div className="text-[13px] font-semibold tracking-wide text-[#F8FAFC]">
+              <div className="text-[13px] font-semibold tracking-wide text-[#C8FFCB]">
                 Сообщение для эфира
               </div>
               <button onClick={() => setShowStudioModal(false)}
                 className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(148,163,184,0.1)' }}>
-                <X className="w-4 h-4 text-[#94A3B8]" />
+                style={{ background: 'rgba(200,255,203,0.1)' }}>
+                <X className="w-4 h-4 text-[#6f9c72]" />
               </button>
             </div>
 
@@ -994,29 +1011,26 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
               }}
               placeholder="Введите сообщение..."
               rows={3}
-              className="w-full rounded-xl px-3 py-2.5 text-sm text-[#F8FAFC] resize-none outline-none placeholder:text-[#94A3B8]"
-              style={{
-                background: 'rgba(15,15,35,0.6)',
-                border: '1px solid rgba(148,163,184,0.16)',
-              }}
+              className="rift-input-torn w-full px-3 py-2.5 text-sm text-[#C8FFCB] resize-none outline-none placeholder:text-[#6f9c72]"
+              style={{ background: 'rgba(10,15,12,0.6)' }}
             />
 
             {/* Buttons */}
             <div className="flex gap-2 mt-4">
               <button
                 onClick={() => setShowStudioModal(false)}
-                className="flex-1 h-11 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-95 transition-transform"
-                style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
+                className="flex-1 h-11 rounded-xl text-sm font-semibold text-[#6f9c72] active:scale-95 transition-transform"
+                style={{ background: 'rgba(200,255,203,0.06)', border: '1px solid rgba(200,255,203,0.14)' }}
               >
                 Отмена
               </button>
               <button
                 onClick={submitStudioMessage}
                 disabled={!studioText.trim()}
-                className="flex-1 h-11 rounded-xl text-sm font-bold text-[#1B1204] active:scale-95 transition-transform disabled:opacity-40"
+                className="flex-1 h-11 rounded-xl text-sm font-bold text-[#05070A] active:scale-95 transition-transform disabled:opacity-40"
                 style={{
-                  background: 'linear-gradient(90deg, #FB923C, #F97316)',
-                  boxShadow: '0 2px 10px rgba(249,115,22,0.25)',
+                  background: 'linear-gradient(90deg, #7dffa0, #39FF6A)',
+                  boxShadow: '0 2px 10px rgba(57,255,106,0.25)',
                 }}
               >
                 Отправить
@@ -1026,7 +1040,7 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         </div>
       )}
 
-      <Toast message={message} />
+      <Toast message={message} variant={toastVariant} />
     </div>
   );
 }

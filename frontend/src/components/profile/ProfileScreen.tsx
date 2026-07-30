@@ -11,6 +11,7 @@ import {
 } from '../../lib/api';
 import { getLang, setLang as setI18nLang } from '../../lib/i18n';
 import { LanguageSelector } from '../announcements/LanguageSelector';
+import { GlitchText } from '../ui/GlitchText';
 import type { User, PointsRequest, PointPackage, Language, PointsTransaction, PaymentSettings } from '../../types';
 
 interface ProfileScreenProps {
@@ -85,14 +86,16 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   const [history, setHistory] = useState<PointsTransaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [toast, setToast] = useState('');
+  const [toastError, setToastError] = useState(false);
 
   useEffect(() => {
     getMyRequests().then(setRequests).catch(() => {});
     getPackages().then(setPackages).catch(() => {});
   }, []);
 
-  function showToast(m: string) {
+  function showToast(m: string, isError = false) {
     setToast(m);
+    setToastError(isError);
     setTimeout(() => setToast(''), 2500);
   }
 
@@ -110,7 +113,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       await updateLanguage(newLang);
       if (user) onUserUpdate?.({ ...user, language: newLang });
     } catch {
-      showToast(tx('error'));
+      showToast(tx('error'), true);
     } finally {
       setModal(null);
     }
@@ -130,14 +133,14 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       await refresh();
       showToast(tx('saved'));
     } catch {
-      showToast(tx('error'));
+      showToast(tx('error'), true);
     }
   }
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-[#94A3B8] text-sm">Loading...</div>
+      <div className="rift-zone-u1 flex items-center justify-center min-h-[200px]">
+        <div className="text-[#6b5f4f] text-sm">Loading...</div>
       </div>
     );
   }
@@ -149,24 +152,28 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
   const levelDisplay = String(lvl);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="rift-zone-u1 flex flex-col gap-6">
       {/* Balance card — avatar + neon balance (Stitch) */}
-      <section className="stitch-card p-8 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#F97316]/5 to-transparent pointer-events-none" />
+      <section className="stitch-card rift-halftone rift-torn-a p-8 flex flex-col items-center justify-center relative overflow-hidden" style={{ transform: 'rotate(-1deg)' }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#E0263A]/5 to-transparent pointer-events-none" />
         <div className="relative z-10 w-full flex flex-col items-center justify-center">
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden avatar-glow bg-[rgba(27,27,48,0.55)] flex items-center justify-center mb-4">
-            <UserIcon size={48} className="text-[#F97316]/50" />
+          <div className="w-28 h-28 rounded-full overflow-hidden avatar-glow bg-[rgba(255,251,240,0.55)] flex items-center justify-center mb-4">
+            <UserIcon size={48} className="text-[#E0263A]/50" />
           </div>
-          <h2 className="text-[11px] text-[#94A3B8] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
+          <h2 className="text-[11px] text-[#6b5f4f] tracking-[0.2em] uppercase opacity-80 mb-2 font-mono">{tx('balance')}</h2>
           <div className="flex items-baseline gap-2">
-            <span className="text-[40px] leading-[48px] font-extrabold text-[#F97316] neon-glow-text font-mono">
-              {Number(user.points).toFixed(3)}
-            </span>
-            <span className="text-[18px] font-semibold text-[#FDBA74]">PTS</span>
+            <GlitchText
+              tag="span"
+              text={Number(user.points).toFixed(3)}
+              className="text-[40px] leading-[48px] font-extrabold text-[#E0263A] neon-glow-text font-mono"
+            />
+            <span className="rift-sticker text-[13px]" style={{ '--sticker-rot': '4deg' } as any}>PTS</span>
           </div>
         </div>
       </section>
+
+      <div className="rift-diagonal" />
 
       {/* Info rows — Level / Language / ID / Name / Username (TZ tartibi) */}
       <section className="stitch-card p-6 flex flex-col">
@@ -182,7 +189,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Psixoprofil — mavjud bo'lsa */}
       {(user.focus_of_attention || user.emotional_tone) && (
         <section className="stitch-card p-6 flex flex-col">
-          <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide mb-2 font-mono">
+          <div className="text-[11px] font-bold text-[#E0263A] uppercase tracking-wide mb-2 font-mono">
             🧠 {lang === 'ru' ? 'Психопрофиль' : lang === 'lt' ? 'Psichotipas' : 'Psychotype'}
           </div>
           {user.focus_of_attention && (
@@ -219,9 +226,9 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Tahrirlash */}
       <button
         onClick={() => setModal('edit')}
-        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#F8FAFC] active:scale-[0.98] transition-transform"
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#1A1310] active:scale-[0.98] transition-transform"
       >
-        <Edit size={20} className="text-[#F97316]" />
+        <Edit size={20} className="text-[#E0263A]" />
         {tx('edit')}
       </button>
 
@@ -241,35 +248,35 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {/* Tranzaksiyalar tarixi */}
       <button
         onClick={openHistory}
-        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#F8FAFC] active:scale-[0.98] transition-transform"
+        className="stitch-card py-3.5 flex items-center justify-center gap-2 text-sm font-semibold text-[#1A1310] active:scale-[0.98] transition-transform"
       >
-        <History size={20} className="text-[#F97316]" />
+        <History size={20} className="text-[#E0263A]" />
         {tx('history')}
       </button>
 
       {/* Menga kelgan so'rovlar */}
       <div className="flex flex-col gap-2">
-        <div className="text-[11px] font-bold text-[#F97316] uppercase tracking-wide font-mono">{tx('requests')}</div>
+        <div className="text-[11px] font-bold text-[#E0263A] uppercase tracking-wide font-mono">{tx('requests')}</div>
         {requests.length === 0 ? (
-          <div className="stitch-card p-4 text-center text-xs text-[#94A3B8]">{tx('no_req')}</div>
+          <div className="stitch-card p-4 text-center text-xs text-[#6b5f4f]">{tx('no_req')}</div>
         ) : (
           requests.map((r) => (
             <div key={r.id} className="stitch-card p-3.5">
-              <div className="text-sm text-[#F8FAFC]">
+              <div className="text-sm text-[#1A1310]">
                 <b>{r.from_display_name || `#${r.from_user_id}`}</b> {tx('from_you')}{' '}
-                <b className="text-[#F97316]">{Number(r.amount).toFixed(3)}</b>
+                <b className="text-[#E0263A]">{Number(r.amount).toFixed(3)}</b>
               </div>
-              {r.message && <div className="text-xs text-[#94A3B8] mt-1">{r.message}</div>}
+              {r.message && <div className="text-xs text-[#6b5f4f] mt-1">{r.message}</div>}
               <div className="flex gap-2 mt-2.5">
                 <button
                   onClick={() => handleDecide(r.id, true)}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(34,197,94,0.15)] text-[#22C55E] text-xs font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(28,63,214,0.15)] text-[#1C3FD6] text-xs font-semibold"
                 >
                   <Check className="w-4 h-4" /> {tx('approve')}
                 </button>
                 <button
                   onClick={() => handleDecide(r.id, false)}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(239,68,68,0.12)] text-[#FCA5A5] text-xs font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[rgba(224,38,58,0.12)] text-[#E0263A] text-xs font-semibold"
                 >
                   <X className="w-4 h-4" /> {tx('reject')}
                 </button>
@@ -281,7 +288,7 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
 
       {/* Admin link — admin va moderator uchun */}
       {(user.role === 'admin' || user.role === 'moderator') && (
-        <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#F97316] transition-all">
+        <button onClick={() => navigate('/admin', { state: { from: 'profile' } })} className="stitch-card py-3 text-center text-sm font-bold text-[#E0263A] transition-all">
           {tx('admin')}
         </button>
       )}
@@ -290,22 +297,22 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       {modal === 'edit' && (
         <EditModal user={user} tx={tx} onClose={() => setModal(null)}
           onSaved={async () => { setModal(null); await refresh(); showToast(tx('saved')); }}
-          onError={() => showToast(tx('error'))} />
+          onError={() => showToast(tx('error'), true)} />
       )}
       {modal === 'give' && (
         <TransferModal tx={tx} onClose={() => setModal(null)}
           onDone={async () => { setModal(null); await refresh(); showToast(tx('sent')); }}
-          onError={(m) => showToast(m)} />
+          onError={(m) => showToast(m, true)} />
       )}
       {modal === 'request' && (
         <RequestModal tx={tx} onClose={() => setModal(null)}
           onDone={() => { setModal(null); showToast(tx('requested')); }}
-          onError={(m) => showToast(m)} />
+          onError={(m) => showToast(m, true)} />
       )}
       {modal === 'buy' && (
         <BuyModal tx={tx} packages={packages} onClose={() => setModal(null)}
           onDone={async () => { setModal(null); await refresh(); showToast(tx('saved')); }}
-          onError={() => showToast(tx('error'))} />
+          onError={() => showToast(tx('error'), true)} />
       )}
       {modal === 'lang' && (
         <ModalShell title={tx('language')} onClose={() => setModal(null)}>
@@ -319,7 +326,11 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm text-[#F8FAFC] border border-[rgba(148,163,184,0.2)] z-[200]">
+        <div
+          className={`fixed bottom-24 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-sm z-[200] ${
+            toastError ? 'rift-error-text border-2 border-[var(--danger)]' : 'text-[#1A1310] border border-[rgba(26,19,16,0.2)]'
+          }`}
+        >
           {toast}
         </div>
       )}
@@ -337,19 +348,19 @@ function StitchRow({ icon: Icon, label, value, highlight, accent, mono, last, cl
       className="flex justify-between items-center py-4"
       style={last ? {} : { borderBottom: '1px solid rgba(255,255,255,0.05)' }}
     >
-      <span className="text-[15px] text-[#94A3B8] flex items-center gap-3">
-        <Icon size={20} className="text-[#94A3B8]" />
+      <span className="text-[15px] text-[#6b5f4f] flex items-center gap-3">
+        <Icon size={20} className="text-[#6b5f4f]" />
         {label}
       </span>
       <span className="flex items-center gap-1.5">
         {highlight ? (
-          <span className="px-3 py-1 rounded-lg bg-[rgba(249,115,22,0.12)] text-[#F97316] text-[13px] font-bold">{value}</span>
+          <span className="px-3 py-1 rounded-lg bg-[rgba(224,38,58,0.12)] text-[#E0263A] text-[13px] font-bold">{value}</span>
         ) : (
-          <span className={`text-[15px] font-semibold ${accent ? 'text-[#FDBA74]' : 'text-[#F8FAFC]'} ${mono ? 'font-mono' : ''}`}>
+          <span className={`text-[15px] font-semibold ${accent ? 'text-[#ff8a97]' : 'text-[#1A1310]'} ${mono ? 'font-mono' : ''}`}>
             {value}
           </span>
         )}
-        {clickable && <ChevronRight size={16} className="text-[#64748B]" />}
+        {clickable && <ChevronRight size={16} className="text-[#6b5f4f]" />}
       </span>
     </div>
   );
@@ -361,8 +372,8 @@ function StitchAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label:
       onClick={onClick}
       className="stitch-card p-4 flex flex-col items-center justify-center gap-2.5 active:scale-95 transition-transform"
     >
-      <Icon size={28} className="text-[#F97316]" />
-      <span className="text-[11px] text-[#F8FAFC] tracking-wider font-mono">{label}</span>
+      <Icon size={28} className="text-[#E0263A]" />
+      <span className="text-[11px] text-[#1A1310] tracking-wider font-mono">{label}</span>
     </button>
   );
 }
@@ -371,15 +382,15 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
   return (
     <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-[360px] max-h-[85vh] glass rounded-3xl p-5 bg-[#1B1B30] flex flex-col"
+        className="w-full max-w-[360px] max-h-[85vh] glass rounded-3xl p-5 bg-[#FFFFFF] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
-          <h3 className="text-base font-bold text-[#F97316]">{title}</h3>
+          <h3 className="text-base font-bold text-[#E0263A]">{title}</h3>
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,255,255,0.06)] text-[#94A3B8] active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,255,255,0.06)] text-[#6b5f4f] active:scale-90 transition-transform"
           >
             <X size={16} />
           </button>
@@ -390,9 +401,9 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
   );
 }
 
-const inputCls = 'w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(148,163,184,0.16)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3';
-const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#1B1204] text-sm';
-const primaryStyle = { background: 'linear-gradient(135deg, #FB923C, #F97316)' };
+const inputCls = 'w-full bg-[rgba(255,251,240,0.7)] border border-[rgba(26,19,16,0.16)] rounded-xl px-4 py-3 text-sm text-[#1A1310] outline-none focus:border-[#E0263A] mb-3';
+const primaryBtn = 'w-full py-3 rounded-xl font-bold text-[#FFFBF0] text-sm';
+const primaryStyle = { background: 'linear-gradient(135deg, #ff4f63, #E0263A)' };
 type TX = (k: string) => string;
 
 function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX; onClose: () => void; onSaved: () => void; onError: () => void }) {
@@ -408,9 +419,9 @@ function EditModal({ user, tx, onClose, onSaved, onError }: { user: User; tx: TX
   }
   return (
     <ModalShell title={tx('edit')} onClose={onClose}>
-      <label className="text-xs text-[#94A3B8]">{tx('name')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('name')}</label>
       <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
-      <label className="text-xs text-[#94A3B8]">{tx('username')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('username')}</label>
       <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={save} disabled={busy}>{tx('save')}</button>
     </ModalShell>
@@ -430,9 +441,9 @@ function TransferModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =
   }
   return (
     <ModalShell title={tx('give')} onClose={onClose}>
-      <label className="text-xs text-[#94A3B8]">{tx('user_id')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('user_id')}</label>
       <input className={inputCls} value={toId} onChange={(e) => setToId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#94A3B8]">{tx('amount')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('give')}</button>
     </ModalShell>
@@ -453,11 +464,11 @@ function RequestModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =>
   }
   return (
     <ModalShell title={tx('request')} onClose={onClose}>
-      <label className="text-xs text-[#94A3B8]">{tx('user_id')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('user_id')}</label>
       <input className={inputCls} value={fromId} onChange={(e) => setFromId(e.target.value)} inputMode="numeric" />
-      <label className="text-xs text-[#94A3B8]">{tx('amount')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('amount')}</label>
       <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
-      <label className="text-xs text-[#94A3B8]">{tx('msg')}</label>
+      <label className="text-xs text-[#6b5f4f]">{tx('msg')}</label>
       <input className={inputCls} value={msg} onChange={(e) => setMsg(e.target.value)} />
       <button className={primaryBtn} style={primaryStyle} onClick={submit} disabled={busy}>{tx('request')}</button>
     </ModalShell>
@@ -491,7 +502,7 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
 
   return (
     <ModalShell title={tx('buy')} onClose={onClose}>
-      <p className="text-xs text-[#94A3B8] mb-3 leading-relaxed">
+      <p className="text-xs text-[#6b5f4f] mb-3 leading-relaxed">
         {isManual
           ? tx('buy_manual_intro')
           : 'Оплата проходит через бота безопасно (Telegram Payments). Нажмите кнопку — откроется бот с пакетами.'}
@@ -501,15 +512,15 @@ function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[];
           <button key={p.id}
             onClick={() => buyViaBot(p.id)}
             disabled={isManual || !payment}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(148,163,184,0.16)] bg-[rgba(15,15,35,0.5)] disabled:opacity-60 active:scale-[0.98] transition-transform">
-            <span className="font-semibold text-[#F8FAFC]">{p.label}</span>
-            <span className="text-[#F97316] font-bold">⭐{p.price_stars}</span>
+            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(26,19,16,0.16)] bg-[rgba(255,251,240,0.5)] disabled:opacity-60 active:scale-[0.98] transition-transform">
+            <span className="font-semibold text-[#1A1310]">{p.label}</span>
+            <span className="text-[#E0263A] font-bold">⭐{p.price_stars}</span>
           </button>
         ))}
       </div>
       {isManual ? (
         payment?.instructions ? (
-          <div className="rounded-xl px-4 py-3 text-sm text-[#F8FAFC] whitespace-pre-line" style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.16)' }}>
+          <div className="rounded-xl px-4 py-3 text-sm text-[#1A1310] whitespace-pre-line" style={{ background: 'rgba(26,19,16,0.08)', border: '1px solid rgba(26,19,16,0.16)' }}>
             {payment.instructions}
           </div>
         ) : null
@@ -539,10 +550,10 @@ const TX_ICON: Record<string, LucideIcon> = {
 
 function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; items: PointsTransaction[]; loading: boolean }) {
   if (loading) {
-    return <div className="py-8 text-center text-xs text-[#94A3B8]">…</div>;
+    return <div className="py-8 text-center text-xs text-[#6b5f4f]">…</div>;
   }
   if (items.length === 0) {
-    return <div className="py-8 text-center text-xs text-[#94A3B8]">{tx('no_history')}</div>;
+    return <div className="py-8 text-center text-xs text-[#6b5f4f]">{tx('no_history')}</div>;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -554,15 +565,15 @@ function HistoryList({ tx, lang, items, loading }: { tx: TX; lang: Language; ite
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
         });
         return (
-          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(15,15,35,0.5)] border border-[rgba(148,163,184,0.12)]">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(34,197,94,0.12)] text-[#22C55E]' : 'bg-[rgba(239,68,68,0.1)] text-[#FCA5A5]'}`}>
+          <div key={t.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[rgba(255,251,240,0.5)] border border-[rgba(26,19,16,0.12)]">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${positive ? 'bg-[rgba(28,63,214,0.12)] text-[#1C3FD6]' : 'bg-[rgba(224,38,58,0.1)] text-[#E0263A]'}`}>
               <Icon size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-[#F8FAFC] truncate">{label}</div>
-              <div className="text-[11px] text-[#94A3B8]">{date}</div>
+              <div className="text-[13px] font-semibold text-[#1A1310] truncate">{label}</div>
+              <div className="text-[11px] text-[#6b5f4f]">{date}</div>
             </div>
-            <div className={`text-[13px] font-bold font-mono shrink-0 ${positive ? 'text-[#22C55E]' : 'text-[#FCA5A5]'}`}>
+            <div className={`text-[13px] font-bold font-mono shrink-0 ${positive ? 'text-[#1C3FD6]' : 'text-[#E0263A]'}`}>
               {positive ? '+' : ''}{Number(t.amount).toFixed(3)}
             </div>
           </div>

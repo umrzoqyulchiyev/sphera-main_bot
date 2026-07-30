@@ -27,7 +27,7 @@ interface PendingSend {
 
 export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenProps) {
   const { t, lang } = useTranslation();
-  const { message, showToast } = useToast();
+  const { message, variant: toastVariant, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // O'zimiz optimistik qo'shgan (hali serverdan tasdiqlanmagan) xabarlar —
@@ -77,13 +77,13 @@ export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenP
         break;
       case 'limit_exceeded':
         onPointsUpdate(wsMessage.data.points);
-        showToast(t('toast_limit'));
+        showToast(t('toast_limit'), 'error');
         break;
       case 'studio_ack':
         onPointsUpdate(wsMessage.data.points);
         break;
       case 'studio_denied':
-        showToast(t('studio_denied_role'));
+        showToast(t('studio_denied_role'), 'error');
         break;
     }
   }
@@ -138,8 +138,8 @@ export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenP
         loadHistory();
       } catch (e: any) {
         rollback();
-        if (e?.status === 402) showToast(t('toast_limit'));
-        else showToast(t('send_error'));
+        if (e?.status === 402) showToast(t('toast_limit'), 'error');
+        else showToast(t('send_error'), 'error');
       }
     },
     [wsSend, lang, onPointsUpdate, showToast, t, city, loadHistory, user]
@@ -177,9 +177,9 @@ export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenP
         if (e?.status === 402) {
           const data = await e.response?.json().catch(() => ({}));
           if (data?.detail?.points !== undefined) onPointsUpdate(Number(data.detail.points));
-          showToast(t('toast_limit'));
+          showToast(t('toast_limit'), 'error');
         } else {
-          showToast(t('send_error'));
+          showToast(t('send_error'), 'error');
         }
       }
     },
@@ -198,7 +198,7 @@ export function ChatScreen({ user, onPointsUpdate, onExit, isLive }: ChatScreenP
         onExit={onExit}
         isLive={isLive}
       />
-      <Toast message={message} />
+      <Toast message={message} variant={toastVariant} />
     </div>
   );
 }

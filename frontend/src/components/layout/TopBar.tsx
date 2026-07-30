@@ -1,4 +1,5 @@
 import { Radio, Zap } from 'lucide-react';
+import { GlitchText } from '../ui/GlitchText';
 
 interface TopBarProps {
   points: number;
@@ -19,14 +20,16 @@ export function TopBar({ points }: TopBarProps) {
       <div
         className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full"
         style={{
-          background: 'rgba(27,27,48,0.8)',
-          border: '1px solid rgba(148,163,184,0.16)',
+          background: 'rgba(13,13,16,0.8)',
+          border: '1px solid rgba(0,240,192,0.16)',
         }}
       >
-        <Zap size={16} className="text-[#94A3B8]" />
-        <span className="font-mono text-sm font-bold text-[#F8FAFC] tabular-nums">
-          {Number(points).toFixed(3)}
-        </span>
+        <Zap size={16} className="text-[#9a9a9a]" />
+        <GlitchText
+          tag="span"
+          text={Number(points).toFixed(3)}
+          className="font-mono text-sm font-bold text-[#EDEDED] tabular-nums"
+        />
       </div>
     </header>
   );

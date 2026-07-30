@@ -84,6 +84,31 @@ export function applySafeAreaInsets() {
   root.setProperty('--tg-safe-right', `${Math.max(safe.right || 0, content.right || 0)}px`);
 }
 
+// Haptic-фидбек, синхронизированный с глитч-моментами (RGB-джиттер
+// заголовков, старт/стоп эфира, пауза) — чисто визуальный/UX слой поверх
+// уже существующих обработчиков, бизнес-логику не трогает. Вне Telegram
+// или на старых клиентах API просто отсутствует — try/catch no-op.
+type ImpactStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
+type NotificationType = 'error' | 'success' | 'warning';
+
+export function hapticImpact(style: ImpactStyle = 'light') {
+  try {
+    getTelegram()?.HapticFeedback?.impactOccurred?.(style);
+  } catch (e) { /* no-op */ }
+}
+
+export function hapticNotify(type: NotificationType) {
+  try {
+    getTelegram()?.HapticFeedback?.notificationOccurred?.(type);
+  } catch (e) { /* no-op */ }
+}
+
+export function hapticTick() {
+  try {
+    getTelegram()?.HapticFeedback?.selectionChanged?.();
+  } catch (e) { /* no-op */ }
+}
+
 // Get Telegram user
 export function getTgUser() {
   const tg = getTelegram();

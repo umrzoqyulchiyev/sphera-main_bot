@@ -25,8 +25,8 @@ export function Visualizer({ isPlaying, size = 280 }: VisualizerProps) {
           width: ringSize,
           height: ringSize,
           borderRadius: '50%',
-          border: '2px solid #F97316',
-          boxShadow: '0 0 16px rgba(249,115,22,0.4), inset 0 0 12px rgba(249,115,22,0.08)',
+          border: '2px solid #39FF6A',
+          boxShadow: '0 0 16px rgba(57,255,106,0.4), inset 0 0 12px rgba(57,255,106,0.08)',
           animation: 'ringPulse 2.5s ease-in-out infinite',
         }}
       />
@@ -39,9 +39,9 @@ export function Visualizer({ isPlaying, size = 280 }: VisualizerProps) {
             style={{
               width: barW,
               height: `${Math.max(2, h * scale)}px`,
-              background: 'linear-gradient(180deg, #ffffff 10%, #F97316 70%, #FB923C 100%)',
+              background: 'linear-gradient(180deg, #ffffff 10%, #39FF6A 70%, #7dffa0 100%)',
               borderRadius: '4px',
-              boxShadow: '0 0 4px rgba(249,115,22,0.5)',
+              boxShadow: '0 0 4px rgba(57,255,106,0.5)',
               animation: isPlaying ? `wave ${0.8 + (i % 2) * 0.2}s ease-in-out ${i * 0.08}s infinite` : 'none',
               opacity: isPlaying ? 1 : 0.4,
             }}

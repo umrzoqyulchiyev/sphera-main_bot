@@ -98,12 +98,12 @@ export function SiriOrb({ isActive, onClick }: SiriOrbProps) {
                   transparent 50%
                 ),
                 linear-gradient(135deg, 
-                  #5e6ad2 0%, 
-                  #5e6ad2 20%,
-                  #5e6ad2 40%,
-                  #5e6ad2 60%,
-                  #5e6ad2 80%,
-                  #5e6ad2 100%
+                  #00F0C0 0%, 
+                  #00F0C0 20%,
+                  #00F0C0 40%,
+                  #00F0C0 60%,
+                  #00F0C0 80%,
+                  #00F0C0 100%
                 )
               `,
               boxShadow: isActive

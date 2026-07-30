@@ -38,7 +38,7 @@ export function Chat({
   };
 
   return (
-    <div className="bg-[var(--bg)] p-3 flex flex-col flex-1 min-h-0">
+    <div className="rift-zone-u2 bg-[var(--bg)] p-3 flex flex-col flex-1 min-h-0">
       {/* Sarlavhasiz, chegarasiz — Efir'dagi "ЧАЙ СВЕРХМОЩНОСТЬ" bilan bir
           xil toza ko'rinish uchun. Faqat funksional tugmalar (chiqish,
           guruhlar) qoladi, matn/border yo'q. Yuqoridan qo'shimcha bo'sh joy
@@ -48,18 +48,21 @@ export function Chat({
         className="flex items-center justify-between mb-2"
         style={{ paddingTop: 'calc(76px + env(safe-area-inset-top))' }}
       >
-        {onExit ? (
-          <button
-            onClick={onExit}
-            aria-label="Выйти из чата"
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(148,163,184,0.1)' }}
-          >
-            <svg className="w-4 h-4 text-[var(--text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        ) : <span />}
+        <div className="flex items-center gap-2">
+          <span className="rift-sticker text-[10px]" style={{ '--sticker-rot': '-3deg' } as any}>ЧАТ</span>
+          {onExit && (
+            <button
+              onClick={onExit}
+              aria-label="Выйти из чата"
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(237,234,227,0.1)' }}
+            >
+              <svg className="w-4 h-4 text-[var(--text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+        </div>
         <RoomsButton user={currentUser} isLive={isLive} />
       </div>
 

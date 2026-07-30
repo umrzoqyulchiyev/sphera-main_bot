@@ -153,32 +153,32 @@ export function MusicScreen({ onPointsUpdate }: Props) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader className="w-8 h-8 text-[#F97316] animate-spin" />
+      <div className="rift-zone-u5 flex justify-center py-16">
+        <Loader className="w-8 h-8 text-[#00F0C0] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="rift-zone-u5 flex flex-col gap-4">
 
       {/* Header */}
       <div className="stitch-card p-4">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{ background: 'rgba(167,139,250,0.15)' }}>
-            <Music className="w-5 h-5 text-[#a78bfa]" />
+            <Music className="w-5 h-5 text-[#b993ff]" />
           </div>
           <div>
-            <div className="text-base font-black text-[#F8FAFC]">{tx('title')}</div>
-            <div className="text-[11px] text-[#94A3B8]">{tx('subtitle')}</div>
+            <div className="text-base font-black text-[#EDEDED]">{tx('title')}</div>
+            <div className="text-[11px] text-[#9a9a9a]">{tx('subtitle')}</div>
           </div>
         </div>
         {data.topic && (
           <div className="mt-2 px-3 py-2 rounded-xl text-[11px]"
-            style={{ background: 'rgba(148,163,184,0.07)', border: '1px solid rgba(148,163,184,0.12)' }}>
-            <span className="text-[#94A3B8]">{tx('topic')}: </span>
-            <span className="text-[#F8FAFC] font-semibold">{data.topic.title}</span>
+            style={{ background: 'rgba(0,240,192,0.07)', border: '1px solid rgba(0,240,192,0.12)' }}>
+            <span className="text-[#9a9a9a]">{tx('topic')}: </span>
+            <span className="text-[#EDEDED] font-semibold">{data.topic.title}</span>
           </div>
         )}
       </div>
@@ -186,9 +186,9 @@ export function MusicScreen({ onPointsUpdate }: Props) {
       {/* No topic */}
       {!data.topic && (
         <div className="stitch-card p-8 text-center">
-          <Music className="w-12 h-12 text-[#94A3B8] mx-auto mb-3" />
-          <div className="text-sm font-bold text-[#F8FAFC] mb-1">{tx('no_topic')}</div>
-          <div className="text-[11px] text-[#94A3B8]">{tx('no_topic_sub')}</div>
+          <Music className="w-12 h-12 text-[#9a9a9a] mx-auto mb-3" />
+          <div className="text-sm font-bold text-[#EDEDED] mb-1">{tx('no_topic')}</div>
+          <div className="text-[11px] text-[#9a9a9a]">{tx('no_topic_sub')}</div>
         </div>
       )}
 
@@ -197,14 +197,14 @@ export function MusicScreen({ onPointsUpdate }: Props) {
           {/* Winner banner */}
           {winner && winner.vote_count > 0 && (
             <div className="rounded-2xl p-4"
-              style={{ background: 'linear-gradient(135deg, rgba(167,139,250,0.2), rgba(249,115,22,0.1))', border: '1px solid rgba(167,139,250,0.3)' }}>
+              style={{ background: 'linear-gradient(135deg, rgba(167,139,250,0.2), rgba(0,240,192,0.1))', border: '1px solid rgba(167,139,250,0.3)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-4 h-4 text-[#EAB308]" />
-                <span className="text-[11px] font-bold text-[#EAB308] uppercase tracking-wide">{tx('winner')}</span>
+                <Trophy className="w-4 h-4 text-[#00F0C0]" />
+                <span className="text-[11px] font-bold text-[#00F0C0] uppercase tracking-wide">{tx('winner')}</span>
               </div>
-              <div className="text-base font-black text-[#F8FAFC]">{winner.title}</div>
-              {winner.artist && <div className="text-[12px] text-[#94A3B8] mt-0.5">{winner.artist}</div>}
-              <div className="text-[11px] text-[#a78bfa] mt-1 font-bold">{winner.vote_count} {tx('votes')}</div>
+              <div className="text-base font-black text-[#EDEDED]">{winner.title}</div>
+              {winner.artist && <div className="text-[12px] text-[#9a9a9a] mt-0.5">{winner.artist}</div>}
+              <div className="text-[11px] text-[#b993ff] mt-1 font-bold">{winner.vote_count} {tx('votes')}</div>
             </div>
           )}
 
@@ -212,40 +212,40 @@ export function MusicScreen({ onPointsUpdate }: Props) {
           {!showAdd ? (
             <button onClick={() => setShowAdd(true)}
               className="flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
-              style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', color: '#a78bfa' }}>
+              style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', color: '#b993ff' }}>
               <Plus className="w-4 h-4" />
               {tx('add')} · {tx('cost_nom')}
             </button>
           ) : (
             <div className="stitch-card p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-[#a78bfa]">{tx('add')}</span>
-                <button onClick={() => setShowAdd(false)}><X className="w-4 h-4 text-[#94A3B8]" /></button>
+                <span className="text-sm font-bold text-[#b993ff]">{tx('add')}</span>
+                <button onClick={() => setShowAdd(false)}><X className="w-4 h-4 text-[#9a9a9a]" /></button>
               </div>
               <input
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#F8FAFC]"
-                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(148,163,184,0.16)' }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#EDEDED]"
+                style={{ background: 'rgba(13,13,16,0.6)', border: '1px solid rgba(0,240,192,0.16)' }}
                 placeholder={tx('track_name')}
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddNomination()}
               />
               <input
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#F8FAFC]"
-                style={{ background: 'rgba(15,15,35,0.6)', border: '1px solid rgba(148,163,184,0.16)' }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-[#EDEDED]"
+                style={{ background: 'rgba(13,13,16,0.6)', border: '1px solid rgba(0,240,192,0.16)' }}
                 placeholder={tx('artist')}
                 value={newArtist}
                 onChange={e => setNewArtist(e.target.value)}
               />
               <div className="flex gap-2">
                 <button onClick={() => setShowAdd(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-[#94A3B8]"
-                  style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.12)' }}>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-[#9a9a9a]"
+                  style={{ background: 'rgba(0,240,192,0.06)', border: '1px solid rgba(0,240,192,0.12)' }}>
                   {tx('cancel')}
                 </button>
                 <button onClick={handleAddNomination} disabled={submitting || !newTitle.trim()}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-[#1B1204] disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, #A78BFA, #7C3AED)' }}>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-[#050505] disabled:opacity-40"
+                  style={{ background: 'linear-gradient(135deg, #B993FF, #B993FF)' }}>
                   {submitting ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : tx('submit')}
                 </button>
               </div>
@@ -254,45 +254,45 @@ export function MusicScreen({ onPointsUpdate }: Props) {
 
           {/* Nominations list */}
           <div className="flex flex-col gap-2">
-            <div className="text-[10px] font-bold tracking-[2px] text-[#94A3B8] uppercase px-1">
+            <div className="text-[10px] font-bold tracking-[2px] text-[#9a9a9a] uppercase px-1">
               {tx('nominations')} · {data.nominations.length}
             </div>
 
             {data.nominations.length === 0 ? (
               <div className="stitch-card p-8 text-center">
-                <Music className="w-10 h-10 text-[#94A3B8] mx-auto mb-3" />
-                <div className="text-sm font-bold text-[#F8FAFC] mb-1">{tx('no_noms')}</div>
-                <div className="text-[11px] text-[#94A3B8]">{tx('no_noms_sub')}</div>
+                <Music className="w-10 h-10 text-[#9a9a9a] mx-auto mb-3" />
+                <div className="text-sm font-bold text-[#EDEDED] mb-1">{tx('no_noms')}</div>
+                <div className="text-[11px] text-[#9a9a9a]">{tx('no_noms_sub')}</div>
               </div>
             ) : data.nominations.map((nom, idx) => (
               <div key={nom.id} className="stitch-card p-3.5 flex items-center gap-3">
                 {/* Rank */}
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[11px] font-black"
                   style={{
-                    background: idx === 0 ? 'rgba(234,179,8,0.15)' : idx === 1 ? 'rgba(138,143,152,0.1)' : 'rgba(148,163,184,0.08)',
-                    color: idx === 0 ? '#EAB308' : idx === 1 ? '#94A3B8' : '#94A3B8',
+                    background: idx === 0 ? 'rgba(234,179,8,0.15)' : idx === 1 ? 'rgba(138,143,152,0.1)' : 'rgba(0,240,192,0.08)',
+                    color: idx === 0 ? '#00F0C0' : idx === 1 ? '#9a9a9a' : '#9a9a9a',
                   }}>
                   #{idx + 1}
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-[#F8FAFC] truncate">{nom.title}</div>
-                  {nom.artist && <div className="text-[11px] text-[#94A3B8] truncate">{nom.artist}</div>}
+                  <div className="text-sm font-bold text-[#EDEDED] truncate">{nom.title}</div>
+                  {nom.artist && <div className="text-[11px] text-[#9a9a9a] truncate">{nom.artist}</div>}
                 </div>
                 {/* Vote count + button */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-[12px] font-bold text-[#a78bfa]">{nom.vote_count}</span>
+                  <span className="text-[12px] font-bold text-[#b993ff]">{nom.vote_count}</span>
                   <button
                     onClick={() => handleVote(nom)}
                     disabled={nom.user_voted || voting === nom.id}
                     className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
                     style={{
-                      background: nom.user_voted ? 'rgba(148,163,184,0.06)' : 'rgba(167,139,250,0.15)',
-                      border: `1px solid ${nom.user_voted ? 'rgba(148,163,184,0.12)' : 'rgba(167,139,250,0.3)'}`,
+                      background: nom.user_voted ? 'rgba(0,240,192,0.06)' : 'rgba(167,139,250,0.15)',
+                      border: `1px solid ${nom.user_voted ? 'rgba(0,240,192,0.12)' : 'rgba(167,139,250,0.3)'}`,
                     }}>
                     {voting === nom.id
-                      ? <Loader className="w-3.5 h-3.5 text-[#a78bfa] animate-spin" />
-                      : <ThumbsUp className="w-3.5 h-3.5" style={{ color: nom.user_voted ? '#94A3B8' : '#a78bfa' }} />
+                      ? <Loader className="w-3.5 h-3.5 text-[#b993ff] animate-spin" />
+                      : <ThumbsUp className="w-3.5 h-3.5" style={{ color: nom.user_voted ? '#9a9a9a' : '#b993ff' }} />
                     }
                   </button>
                 </div>
@@ -304,8 +304,8 @@ export function MusicScreen({ onPointsUpdate }: Props) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-sm text-[#F8FAFC] z-50"
-          style={{ background: 'rgba(27,27,48,0.98)', border: '1px solid rgba(148,163,184,0.2)', whiteSpace: 'nowrap' }}>
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-sm text-[#EDEDED] z-50"
+          style={{ background: 'rgba(13,13,16,0.98)', border: '1px solid rgba(0,240,192,0.2)', whiteSpace: 'nowrap' }}>
           {toast}
         </div>
       )}

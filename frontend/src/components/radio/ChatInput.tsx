@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Mic, Send, Paperclip } from 'lucide-react';
 import { uploadFile } from '../../lib/api';
 import { useTranslation } from '../../hooks/useTranslation';
+import { hapticImpact } from '../../lib/telegram';
 
 interface ChatInputProps {
   onSendMessage: (message: string, destination: 'chat' | 'studio') => void;
@@ -39,6 +40,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
     if (isRecording) {
       // To'xtatish — ovoz darhol yuboriladi (Telegram kabi, oraliq
       // tasdiqlashsiz: mediaRecorder.onstop ichida onSendVoice chaqiriladi).
+      hapticImpact('medium');
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
       return;
@@ -82,6 +84,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
 
       mediaRecorder.start();
       setIsRecording(true);
+      hapticImpact('light');
     } catch (e) {
       console.error('Mic error:', e);
       onToast(t('toast_mic_denied'));
@@ -124,7 +127,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
       <div className="flex-1 glass rounded-full px-3 py-2 flex items-center gap-2 min-w-0">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[rgba(249,115,22,0.08)] transition-all"
+          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[rgba(255,47,208,0.08)] transition-all"
         >
           <Paperclip className="w-4.5 h-4.5" strokeWidth={1.8} />
         </button>
@@ -137,7 +140,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
           onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
           placeholder={t('chat_placeholder')}
           disabled={isRecording}
-          className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text)] placeholder-[#4a5568] outline-none disabled:opacity-50"
+          className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text)] placeholder-[#9a9791] outline-none disabled:opacity-50"
         />
       </div>
 
@@ -146,7 +149,7 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
           urib turadi (button'ning o'zi/ikonkasi hech qachon xira bo'lmaydi). */}
       <div className="relative shrink-0">
         {isRecording && (
-          <span className="absolute inset-0 rounded-full bg-[var(--danger)] opacity-60 animate-ping" />
+          <span className="rift-rec-pulse absolute inset-0 rounded-full bg-[var(--danger)] opacity-60" />
         )}
         <button
           onClick={handleActionClick}
@@ -154,21 +157,21 @@ export function ChatInput({ onSendMessage, onSendVoice, onToast, city, micDisabl
           className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
           style={{
             background: isRecording
-              ? '#EF4444'
+              ? '#ff3b5c'
               : micDisabled && !hasText
-                ? 'rgba(148,163,184,0.15)'
-                : 'linear-gradient(135deg, #FB923C, #F97316)',
+                ? 'rgba(237,234,227,0.15)'
+                : 'linear-gradient(135deg, #ff6ee0, #FF2FD0)',
             boxShadow: isRecording
-              ? '0 0 18px rgba(239,68,68,0.6)'
+              ? '0 0 18px rgba(255,59,92,0.6)'
               : micDisabled && !hasText
                 ? 'none'
-                : '0 0 16px rgba(249,115,22,0.4)',
+                : '0 0 16px rgba(255,47,208,0.4)',
           }}
         >
           {hasText && !isRecording ? (
             <Send className="w-4.5 h-4.5 text-white ml-[-1px]" strokeWidth={2} fill="white" />
           ) : (
-            <Mic className={`w-5 h-5 ${micDisabled ? 'text-[#64748B]' : 'text-white'}`} strokeWidth={2} />
+            <Mic className={`w-5 h-5 ${micDisabled ? 'text-[#9a9791]' : 'text-white'}`} strokeWidth={2} />
           )}
         </button>
       </div>

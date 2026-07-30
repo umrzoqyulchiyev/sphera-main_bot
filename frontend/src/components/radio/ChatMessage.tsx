@@ -24,13 +24,18 @@ export function ChatMessage({ message, currentUser }: ChatMessageProps) {
   else if (isMine) messageClass += ' justify-end';
   else messageClass += ' justify-start';
 
-  let bubbleClass = 'max-w-[80%] px-3 py-2 rounded-2xl';
+  // Наклейки под лёгким углом — "приклеены" в чат, а не ровные пилюли.
+  // Знак чередуется по id сообщения, чтобы соседние пузыри не были
+  // зеркально одинаковыми (не рандом на каждый рендер — стабильно по id).
+  const tilt = (message.id % 2 === 0 ? 1 : -1) * (1 + (message.id % 3));
+
+  let bubbleClass = 'max-w-[80%] px-3 py-2 border-2';
   if (isAI) {
-    bubbleClass += ' bg-[rgba(167,139,250,0.1)] border border-dashed border-[var(--ai)] text-center max-w-[92%]';
+    bubbleClass += ' rift-halftone rift-torn-b bg-[rgba(167,139,250,0.12)] border-dashed border-[var(--ai)] text-center max-w-[92%]';
   } else if (isMine) {
-    bubbleClass += ' bg-gradient-to-br from-[var(--accent-light)] to-[var(--accent)] text-[#1B1204] rounded-br-sm';
+    bubbleClass += ' rift-torn-a bg-gradient-to-br from-[var(--accent-light)] to-[var(--accent)] border-[var(--text)] text-[#0d0e11] shadow-[3px_3px_0_rgba(0,0,0,0.3)]';
   } else {
-    bubbleClass += ' bg-[rgba(251,146,60,0.12)] border border-[var(--glass-border)] rounded-bl-sm';
+    bubbleClass += ' rift-torn-c bg-[rgba(251,146,60,0.12)] border-[var(--glass-border)] shadow-[3px_3px_0_rgba(0,0,0,0.22)]';
   }
 
   const renderContent = () => {
@@ -45,14 +50,14 @@ export function ChatMessage({ message, currentUser }: ChatMessageProps) {
 
   return (
     <div className={messageClass}>
-      <div className={bubbleClass}>
+      <div className={bubbleClass} style={isAI ? undefined : { transform: `rotate(${tilt}deg)` }}>
         {!isMine && !isAI && (
           <div className="text-[11px] font-bold text-[var(--accent-light)] mb-0.5">
             {message.username || t('guest')}
           </div>
         )}
         {renderContent()}
-        <div className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${isMine ? 'text-[rgba(15,15,35,0.65)]' : 'text-[var(--muted)]'}`}>
+        <div className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${isMine ? 'text-[rgba(23,24,28,0.65)]' : 'text-[var(--muted)]'}`}>
           {time}
           {isMine && message.status && <StatusTicks status={message.status} />}
         </div>
@@ -105,7 +110,7 @@ function VoicePlayer({ url, duration, voiceLabel }: { url: string; duration: num
       <button
         onClick={handlePlay}
         className={`w-8 h-8 rounded-full flex items-center justify-center ${
-          failed ? 'bg-[var(--danger)] text-white' : 'bg-[rgba(15,15,35,0.3)]'
+          failed ? 'bg-[var(--danger)] text-white' : 'bg-[rgba(23,24,28,0.3)]'
         }`}
       >
         {failed ? <AlertTriangle className="w-3.5 h-3.5" /> : playing ? <Pause className="w-3.5 h-3.5" fill="currentColor" /> : <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />}
@@ -134,7 +139,7 @@ function FileAttachment({ url, name, isMine }: { url: string; name: string; isMi
       className="flex items-center gap-2 min-w-[120px] no-underline"
     >
       <div className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center flex-shrink-0 ${
-        isMine ? 'bg-[rgba(15,15,35,0.25)]' : 'bg-[var(--accent)] text-[#1B1204]'
+        isMine ? 'bg-[rgba(23,24,28,0.25)]' : 'bg-[var(--accent)] text-[#0d0e11]'
       }`}>
         <Paperclip className="w-3.5 h-3.5" />
       </div>

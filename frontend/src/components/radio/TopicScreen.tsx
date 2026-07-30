@@ -46,7 +46,7 @@ const BAR_HEIGHTS = [10, 15, 25, 40, 60, 30, 70, 45, 55, 20, 35, 15, 10];
 export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
-  const { message, showToast } = useToast();
+  const { message, variant: toastVariant, showToast } = useToast();
 
   const [topic, setTopic] = useState<CurrentTopic | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
 
   const handleSendText = async () => {
     const t = text.trim();
-    if (!t) { showToast(tx('empty')); return; }
+    if (!t) { showToast(tx('empty'), 'error'); return; }
     setSending(true);
     try {
       const res = await sendOpinionText(t);
@@ -85,8 +85,8 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       showToast(tx('sent_ok'));
       loadTopic();
     } catch (e: any) {
-      if (e.status === 402) showToast(tx('no_points'));
-      else showToast(tx('sent_fail'));
+      if (e.status === 402) showToast(tx('no_points'), 'error');
+      else showToast(tx('sent_fail'), 'error');
     } finally {
       setSending(false);
     }
@@ -102,7 +102,7 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       const tgApp = (window as any).Telegram?.WebApp;
       if (tgApp?.requestMicrophoneAccess) {
         const granted: boolean = await new Promise(r => tgApp.requestMicrophoneAccess((ok: boolean) => r(ok)));
-        if (!granted) { showToast(tx('sent_fail')); return; }
+        if (!granted) { showToast(tx('sent_fail'), 'error'); return; }
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);
@@ -112,29 +112,29 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       rec.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        if (blob.size < 800) { showToast(tx('empty')); return; }
+        if (blob.size < 800) { showToast(tx('empty'), 'error'); return; }
         try {
           const res = await sendOpinionVoice(blob);
           if (res?.points !== undefined) onPointsUpdate(Number(res.points));
           showToast(tx('voice_sent'));
           loadTopic();
         } catch (e: any) {
-          if (e.status === 402) showToast(tx('no_points'));
-          else showToast(tx('sent_fail'));
+          if (e.status === 402) showToast(tx('no_points'), 'error');
+          else showToast(tx('sent_fail'), 'error');
         }
       };
       rec.start();
       setIsRecording(true);
       showToast(tx('recording'));
     } catch {
-      showToast(tx('sent_fail'));
+      showToast(tx('sent_fail'), 'error');
     }
   };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <Loader className="w-10 h-10 text-[#F97316] animate-spin" />
+        <Loader className="w-10 h-10 text-[#8a9400] animate-spin" />
       </div>
     );
   }
@@ -142,13 +142,13 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
   const lvl = user?.level ?? 1;
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="rift-zone-u4 flex flex-col items-center gap-6">
       {/* Status text (Stitch) */}
       <div className="flex flex-col items-center gap-1 text-center mt-2">
-        <span className="font-mono text-[12px] text-[#94A3B8]/70 tracking-[0.15em] uppercase">
+        <span className="font-mono text-[12px] text-[#5b584f]/70 tracking-[0.15em] uppercase">
           {tx('level')} {lvl}
         </span>
-        <span className="font-mono text-[12px] text-[#F97316] tracking-[0.15em] uppercase">
+        <span className="font-mono text-[12px] text-[#8a9400] tracking-[0.15em] uppercase">
           {tx('stream_active')}
         </span>
       </div>
@@ -169,30 +169,30 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       {/* Mavzu kartasi */}
       {topic ? (
         <div className="stitch-card-bordered p-5 w-full"
-          style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(167,139,250,0.05))' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(138,148,0,0.1), rgba(167,139,250,0.05))' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.15)' }}>
-              <Sparkles size={18} className="text-[#F97316]" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(138,148,0,0.15)' }}>
+              <Sparkles size={18} className="text-[#8a9400]" />
             </div>
-            <span className="text-[10px] font-bold tracking-[2px] text-[#94A3B8]/70 uppercase font-mono">{tx('title')}</span>
+            <span className="text-[10px] font-bold tracking-[2px] text-[#5b584f]/70 uppercase font-mono">{tx('title')}</span>
           </div>
-          <h2 className="text-[19px] font-extrabold text-[#F8FAFC] leading-tight mb-2">{topic.title}</h2>
+          <h2 className="text-[19px] font-extrabold text-[#0A0A0A] leading-tight mb-2">{topic.title}</h2>
           {topic.description && (
-            <p className="text-[13px] text-[#94A3B8] leading-relaxed mb-3">{topic.description}</p>
+            <p className="text-[13px] text-[#5b584f] leading-relaxed mb-3">{topic.description}</p>
           )}
-          <div className="flex items-center gap-2 text-[#F97316]">
+          <div className="flex items-center gap-2 text-[#8a9400]">
             <Users size={16} />
             <span className="text-[12px] font-bold tabular-nums font-mono">{topic.opinion_count}</span>
-            <span className="text-[11px] text-[#94A3B8]">{tx('opinions')}</span>
+            <span className="text-[11px] text-[#5b584f]">{tx('opinions')}</span>
           </div>
         </div>
       ) : (
         <div className="stitch-card p-8 text-center w-full">
-          <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(249,115,22,0.08)' }}>
-            <MessageSquare size={28} className="text-[#94A3B8]" />
+          <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(138,148,0,0.08)' }}>
+            <MessageSquare size={28} className="text-[#5b584f]" />
           </div>
-          <p className="text-sm text-[#F8FAFC] font-semibold">{tx('no_topic')}</p>
-          <p className="text-xs text-[#94A3B8] mt-1">{tx('wait')}</p>
+          <p className="text-sm text-[#0A0A0A] font-semibold">{tx('no_topic')}</p>
+          <p className="text-xs text-[#5b584f] mt-1">{tx('wait')}</p>
         </div>
       )}
 
@@ -200,8 +200,8 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       {topic && (
         <div className="stitch-card p-4 w-full flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wide text-[#F97316] uppercase font-mono">{tx('your_opinion')}</span>
-            <span className="text-[9px] text-[#94A3B8] font-mono">text: 0.001 · voice: 0.005</span>
+            <span className="text-[11px] font-bold tracking-wide text-[#8a9400] uppercase font-mono">{tx('your_opinion')}</span>
+            <span className="text-[9px] text-[#5b584f] font-mono">text: 0.001 · voice: 0.005</span>
           </div>
 
           <textarea
@@ -209,8 +209,8 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
             onChange={(e) => setText(e.target.value)}
             placeholder={tx('placeholder')}
             rows={3}
-            className="w-full rounded-2xl px-3 py-2.5 text-sm text-[#F8FAFC] resize-none outline-none placeholder:text-[#94A3B8]"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.2)' }}
+            className="w-full rounded-2xl px-3 py-2.5 text-sm text-[#0A0A0A] resize-none outline-none placeholder:text-[#5b584f]"
+            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(138,148,0,0.2)' }}
           />
 
           <div className="flex gap-2">
@@ -219,13 +219,13 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
               onClick={handleVoice}
               className="h-12 w-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform shrink-0"
               style={{
-                background: isRecording ? 'rgba(239,68,68,0.18)' : 'rgba(25,30,45,0.6)',
-                border: `1px solid ${isRecording ? 'rgba(239,68,68,0.5)' : 'rgba(249,115,22,0.2)'}`,
+                background: isRecording ? 'rgba(179,38,30,0.18)' : 'rgba(250,248,240,0.6)',
+                border: `1px solid ${isRecording ? 'rgba(179,38,30,0.5)' : 'rgba(138,148,0,0.2)'}`,
               }}
             >
               <Mic
                 size={22}
-                className={isRecording ? 'text-[#ef4444]' : 'text-[#F97316]'}
+                className={isRecording ? 'text-[#b3261e]' : 'text-[#8a9400]'}
                 style={{ animation: isRecording ? 'pulse-glow 1s infinite' : 'none' }}
               />
             </button>
@@ -248,11 +248,11 @@ export function TopicScreen({ user, onPointsUpdate }: TopicScreenProps) {
       {/* AI info */}
       <div className="stitch-card px-4 py-3 flex items-center gap-3 w-full"
         style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
-        <Sparkles size={18} className="text-[#a78bfa] shrink-0" />
-        <span className="text-[11px] text-[#94A3B8] leading-relaxed">{tx('ai_info')}</span>
+        <Sparkles size={18} className="text-[#4b4534] shrink-0" />
+        <span className="text-[11px] text-[#5b584f] leading-relaxed">{tx('ai_info')}</span>
       </div>
 
-      <Toast message={message} />
+      <Toast message={message} variant={toastVariant} />
     </div>
   );
 }

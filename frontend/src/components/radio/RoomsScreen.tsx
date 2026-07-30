@@ -69,7 +69,7 @@ export function RoomsButton({ user, isLive }: RoomsButtonProps) {
     <>
       <button
         onClick={() => setShowList(true)}
-        className="stitch-card px-3.5 py-2 flex items-center gap-1.5 text-[11px] font-bold text-[#F97316] active:scale-95 transition-transform shrink-0"
+        className="stitch-card px-3.5 py-2 flex items-center gap-1.5 text-[11px] font-bold text-[#FF2FD0] active:scale-95 transition-transform shrink-0"
       >
         <Users size={14} />
         {tx('rooms')}
@@ -141,27 +141,27 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
       {/* Yuqoridan qo'shimcha bo'sh joy — Telegram'ning o'z "⋮ ⌄ ✕" native
           paneli aynan shu burchakda bo'lgani uchun, tugmalar (ayniqsa
           "Создать") shu bilan to'qnashib bosilmay qolmasin. */}
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(148,163,184,0.1)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#F8FAFC]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(237,234,227,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(237,234,227,0.1)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#EDEAE3]" />
         </button>
-        <div className="flex-1 text-sm font-bold text-[#F8FAFC]">{tx('rooms')}</div>
+        <div className="flex-1 text-sm font-bold text-[#EDEAE3]">{tx('rooms')}</div>
         {canCreate && (
           <button
             onClick={() => setShowCreate(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(148,163,184,0.1)' }}
+            style={{ background: 'rgba(237,234,227,0.1)' }}
           >
-            <Plus className="w-4 h-4 text-[#F8FAFC]" />
+            <Plus className="w-4 h-4 text-[#EDEAE3]" />
           </button>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {loading ? (
-          <div className="text-center text-xs text-[#94A3B8] py-8">…</div>
+          <div className="text-center text-xs text-[#9a9791] py-8">…</div>
         ) : rooms.length === 0 ? (
-          <div className="text-center text-xs text-[#94A3B8] py-8">{tx('no_rooms')}</div>
+          <div className="text-center text-xs text-[#9a9791] py-8">{tx('no_rooms')}</div>
         ) : (
           <div className="flex flex-col gap-2">
             {rooms.map((r) => (
@@ -171,18 +171,18 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
                   className="w-full glass rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
                   style={canDelete(r) ? { paddingRight: '3rem' } : undefined}
                 >
-                  <div className="text-sm font-bold text-[#F8FAFC]">{r.title}</div>
-                  {r.description && <div className="text-[11px] text-[#94A3B8] mt-1">{r.description}</div>}
-                  <div className="text-[10px] text-[#F97316] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
+                  <div className="text-sm font-bold text-[#EDEAE3]">{r.title}</div>
+                  {r.description && <div className="text-[11px] text-[#9a9791] mt-1">{r.description}</div>}
+                  <div className="text-[10px] text-[#FF2FD0] mt-1.5">{tx('by')}: {r.host_display_name || '—'}</div>
                 </button>
                 {canDelete(r) && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setPendingDelete(r); }}
                     aria-label={tx('delete_room')}
                     className="absolute top-3.5 right-3.5 w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(239,68,68,0.1)' }}
+                    style={{ background: 'rgba(255,59,92,0.1)' }}
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-[#FCA5A5]" />
+                    <Trash2 className="w-3.5 h-3.5 text-[#ff9ab0]" />
                   </button>
                 )}
               </div>
@@ -193,11 +193,11 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
       {/* Pastki "Закрыть" — tepadagi orqaga tugmasi native chrome bilan
           to'qnashsa ham, bu zona (ekran pastida) doim bosiladi. */}
-      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'rgba(237,234,227,0.12)' }}>
         <button
           onClick={onClose}
-          className="w-full py-3 rounded-xl text-sm font-semibold text-[#94A3B8] active:scale-[0.98] transition-transform"
-          style={{ background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.14)' }}
+          className="w-full py-3 rounded-xl text-sm font-semibold text-[#9a9791] active:scale-[0.98] transition-transform"
+          style={{ background: 'rgba(237,234,227,0.06)', border: '1px solid rgba(237,234,227,0.14)' }}
         >
           Закрыть
         </button>
@@ -213,17 +213,17 @@ function RoomsListModal({ user, tx, onClose, onOpenRoom }: {
 
       {pendingDelete && (
         <div className="fixed inset-0 z-[600] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !deleting && setPendingDelete(null)}>
-          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm text-[#94A3B8] mb-5">{tx('confirm_delete_room')}</p>
+          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1c1d22]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-[#9a9791] mb-5">{tx('confirm_delete_room')}</p>
             <div className="flex gap-2.5">
-              <button onClick={() => setPendingDelete(null)} disabled={deleting} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#94A3B8] glass disabled:opacity-50">
+              <button onClick={() => setPendingDelete(null)} disabled={deleting} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#9a9791] glass disabled:opacity-50">
                 {tx('cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)' }}
+                style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff3b5c)' }}
               >
                 {tx('confirm')}
               </button>
@@ -259,10 +259,10 @@ function CreateRoomModal({ tx, onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-[550] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[360px] glass rounded-3xl p-5 bg-[#1c1d22]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-[#F97316]">{tx('create')}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#94A3B8]">
+          <h3 className="text-base font-bold text-[#FF2FD0]">{tx('create')}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#9a9791]">
             <X size={16} />
           </button>
         </div>
@@ -271,20 +271,20 @@ function CreateRoomModal({ tx, onClose, onCreated }: {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={tx('title_ph')}
-          className="w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3"
+          className="w-full bg-[rgba(23,24,28,0.7)] border border-[rgba(255,47,208,0.18)] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] outline-none focus:border-[#FF2FD0] mb-3"
         />
         <input
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
           placeholder={tx('desc_ph')}
-          className="w-full bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316] mb-3"
+          className="w-full bg-[rgba(23,24,28,0.7)] border border-[rgba(255,47,208,0.18)] rounded-xl px-4 py-3 text-sm text-[#EDEAE3] outline-none focus:border-[#FF2FD0] mb-3"
         />
-        {error && <div className="text-xs text-[#FCA5A5] mb-3">{error}</div>}
+        {error && <div className="text-xs text-[#ff9ab0] mb-3">{error}</div>}
         <button
           onClick={submit}
           disabled={busy || !title.trim()}
-          className="w-full py-3 rounded-xl font-bold text-[#020203] text-sm disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
+          className="w-full py-3 rounded-xl font-bold text-[#0d0e11] text-sm disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg, #ff6ee0, #FF2FD0)' }}
         >
           {tx('create')}
         </button>
@@ -366,43 +366,43 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom, isLive }: {
 
   return (
     <FullScreenModal zIndex={500}>
-      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(148,163,184,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(148,163,184,0.1)' }}>
-          <ArrowLeft className="w-4 h-4 text-[#F8FAFC]" />
+      <div className="flex items-center gap-3 px-4 pb-3 border-b" style={{ borderColor: 'rgba(237,234,227,0.12)', paddingTop: 'calc(76px + env(safe-area-inset-top))' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(237,234,227,0.1)' }}>
+          <ArrowLeft className="w-4 h-4 text-[#EDEAE3]" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-[#F8FAFC] truncate">{room.title}</div>
-          <div className="text-[10px] text-[#94A3B8]">{tx('by')}: {room.host_display_name || '—'}</div>
+          <div className="text-sm font-bold text-[#EDEAE3] truncate">{room.title}</div>
+          <div className="text-[10px] text-[#9a9791]">{tx('by')}: {room.host_display_name || '—'}</div>
         </div>
         {!kicked && (
           <button
             onClick={() => setShowMembers(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(148,163,184,0.1)' }}
+            style={{ background: 'rgba(237,234,227,0.1)' }}
             aria-label={tx('members')}
           >
-            <Users className="w-4 h-4 text-[#F8FAFC]" />
+            <Users className="w-4 h-4 text-[#EDEAE3]" />
           </button>
         )}
         {isHost && !kicked && (
           <button
             onClick={() => setPendingClose(true)}
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(239,68,68,0.1)' }}
+            style={{ background: 'rgba(255,59,92,0.1)' }}
             aria-label={tx('close_room')}
           >
-            <Lock className="w-4 h-4 text-[#FCA5A5]" />
+            <Lock className="w-4 h-4 text-[#ff9ab0]" />
           </button>
         )}
       </div>
 
       {kicked ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4 text-center">
-          <div className="text-sm text-[#94A3B8]">{tx('you_are_kicked')}</div>
+          <div className="text-sm text-[#9a9791]">{tx('you_are_kicked')}</div>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#94A3B8]"
-            style={{ background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.16)' }}
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#9a9791]"
+            style={{ background: 'rgba(237,234,227,0.1)', border: '1px solid rgba(237,234,227,0.16)' }}
           >
             {tx('back')}
           </button>
@@ -418,14 +418,14 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom, isLive }: {
       {/* Chapdagi ✕ — tepadagi orqaga tugmasi native "Закрыть" paneli
           bilan to'qnashib bosilmay qolgan hollar uchun kafolatlangan
           chiqish (bu zona kirish maydoni bilan bir xil — doim bosiladi). */}
-      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+      <div className="px-4 pb-6 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(237,234,227,0.12)' }}>
         <button
           onClick={onClose}
           aria-label="Закрыть чат"
           className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(148,163,184,0.1)' }}
+          style={{ background: 'rgba(237,234,227,0.1)' }}
         >
-          <X className="w-4 h-4 text-[#94A3B8]" />
+          <X className="w-4 h-4 text-[#9a9791]" />
         </button>
         <div className="flex-1 min-w-0">
           <ChatInput
@@ -453,16 +453,16 @@ function RoomChatModal({ room, user, tx, onClose, onClosedRoom, isLive }: {
 
       {pendingClose && (
         <div className="fixed inset-0 z-[600] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPendingClose(false)}>
-          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm text-[#94A3B8] mb-5">{tx('confirm_close')}</p>
+          <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1c1d22]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-[#9a9791] mb-5">{tx('confirm_close')}</p>
             <div className="flex gap-2.5">
-              <button onClick={() => setPendingClose(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#94A3B8] glass">
+              <button onClick={() => setPendingClose(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#9a9791] glass">
                 {tx('cancel')}
               </button>
               <button
                 onClick={async () => { await closeRoom(room.id).catch(() => {}); setPendingClose(false); onClosedRoom(); }}
                 className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)' }}
+                style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff3b5c)' }}
               >
                 {tx('confirm')}
               </button>
@@ -531,10 +531,10 @@ function RoomMembersModal({ room, user, tx, isHost, onClose, onSelfRemoved }: {
 
   return (
     <div className="fixed inset-0 z-[600] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-[400px] max-h-[80vh] flex flex-col glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[400px] max-h-[80vh] flex flex-col glass rounded-3xl p-5 bg-[#1c1d22]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3 shrink-0">
-          <h3 className="text-base font-bold text-[#F8FAFC]">{tx('members')}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#94A3B8]">
+          <h3 className="text-base font-bold text-[#EDEAE3]">{tx('members')}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.06)] text-[#9a9791]">
             <X size={16} />
           </button>
         </div>
@@ -547,43 +547,43 @@ function RoomMembersModal({ room, user, tx, isHost, onClose, onSelfRemoved }: {
                 onChange={(e) => setInviteId(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                 placeholder={tx('invite_ph')}
-                className="flex-1 bg-[rgba(15,15,35,0.7)] border border-[rgba(249,115,22,0.18)] rounded-xl px-3 py-2.5 text-sm text-[#F8FAFC] outline-none focus:border-[#F97316]"
+                className="flex-1 bg-[rgba(23,24,28,0.7)] border border-[rgba(255,47,208,0.18)] rounded-xl px-3 py-2.5 text-sm text-[#EDEAE3] outline-none focus:border-[#FF2FD0]"
               />
               <button
                 onClick={handleInvite}
                 disabled={inviting || !inviteId.trim()}
-                className="px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-[#1B1204] disabled:opacity-40 shrink-0"
-                style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)' }}
+                className="px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-[#0d0e11] disabled:opacity-40 shrink-0"
+                style={{ background: 'linear-gradient(135deg, #ff6ee0, #FF2FD0)' }}
               >
                 <UserPlus className="w-3.5 h-3.5" /> {tx('invite')}
               </button>
             </div>
-            <div className="text-[10px] text-[#94A3B8] mt-1.5">{tx('invite_hint')}</div>
-            {error && <div className="text-[11px] text-[#FCA5A5] mt-1.5">{error}</div>}
+            <div className="text-[10px] text-[#9a9791] mt-1.5">{tx('invite_hint')}</div>
+            {error && <div className="text-[11px] text-[#ff9ab0] mt-1.5">{error}</div>}
           </div>
         )}
 
         <div className="flex-1 overflow-y-auto flex flex-col gap-2">
           {loading ? (
-            <div className="text-center text-xs text-[#94A3B8] py-6">…</div>
+            <div className="text-center text-xs text-[#9a9791] py-6">…</div>
           ) : members.length === 0 ? (
-            <div className="text-center text-xs text-[#94A3B8] py-6">{tx('no_members')}</div>
+            <div className="text-center text-xs text-[#9a9791] py-6">{tx('no_members')}</div>
           ) : members.map((m) => (
             <div
               key={m.user_id}
               className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-              style={{ background: 'rgba(15,15,35,0.5)' }}
+              style={{ background: 'rgba(23,24,28,0.5)' }}
             >
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-[#F8FAFC] truncate">
+                <div className="text-sm text-[#EDEAE3] truncate">
                   {m.display_name || m.username || `ID ${m.telegram_id}`}
                 </div>
               </div>
-              {m.is_host && <Crown className="w-3.5 h-3.5 text-[#F97316] shrink-0" />}
+              {m.is_host && <Crown className="w-3.5 h-3.5 text-[#FF2FD0] shrink-0" />}
               {isHost && !m.is_host && (
                 <button
                   onClick={() => setPendingKick(m)}
-                  className="p-1.5 rounded-lg bg-[rgba(239,68,68,0.1)] text-[#FCA5A5] shrink-0"
+                  className="p-1.5 rounded-lg bg-[rgba(255,59,92,0.1)] text-[#ff9ab0] shrink-0"
                   aria-label={tx('kick_confirm')}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -595,17 +595,17 @@ function RoomMembersModal({ room, user, tx, isHost, onClose, onSelfRemoved }: {
 
         {pendingKick && (
           <div className="fixed inset-0 z-[650] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPendingKick(null)}>
-            <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1B1B30]" onClick={(e) => e.stopPropagation()}>
-              <p className="text-sm text-[#94A3B8] mb-5">{tx('kick_confirm')}</p>
+            <div className="w-full max-w-[340px] glass rounded-3xl p-5 bg-[#1c1d22]" onClick={(e) => e.stopPropagation()}>
+              <p className="text-sm text-[#9a9791] mb-5">{tx('kick_confirm')}</p>
               <div className="flex gap-2.5">
-                <button onClick={() => setPendingKick(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#94A3B8] glass">
+                <button onClick={() => setPendingKick(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-[#9a9791] glass">
                   {tx('cancel')}
                 </button>
                 <button
                   onClick={handleKick}
                   disabled={kicking}
                   className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)' }}
+                  style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff3b5c)' }}
                 >
                   {tx('confirm')}
                 </button>

@@ -21,11 +21,11 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
     <div className="fixed inset-0 bg-[rgba(8,7,20,0.85)] backdrop-blur-sm flex items-center justify-center z-[3000] p-5">
       <div className="w-full max-w-[380px] glass rounded-3xl p-7 relative overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-[radial-gradient(circle,rgba(249,115,22,0.06),transparent_70%)] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-[radial-gradient(circle,rgba(0,240,192,0.06),transparent_70%)] pointer-events-none" />
 
         <div className="relative text-center">
           {/* Icon — the one accented element in this modal */}
-          <div className="w-16 h-16 rounded-2xl bg-[rgba(249,115,22,0.12)] flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-[rgba(0,240,192,0.12)] flex items-center justify-center mx-auto mb-4">
             <Headphones className="w-8 h-8 text-[var(--accent)]" strokeWidth={1.5} />
           </div>
 
@@ -38,7 +38,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
           <div className="flex flex-col gap-3.5 text-left mb-6">
             {steps.map((step, idx) => (
               <div key={idx} className="flex items-center gap-3 glass rounded-xl p-3">
-                <div className="w-9 h-9 rounded-lg bg-[rgba(148,163,184,0.1)] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-[rgba(0,240,192,0.1)] flex items-center justify-center shrink-0">
                   <step.icon className="w-4.5 h-4.5 text-[var(--muted)]" strokeWidth={1.8} />
                 </div>
                 <span className="text-sm text-[var(--text)] leading-snug">{step.text}</span>
@@ -49,10 +49,10 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
           {/* Button */}
           <button
             onClick={onClose}
-            className="w-full py-3.5 rounded-2xl font-bold text-sm text-[#1B1204] transition-all active:scale-[0.97]"
+            className="w-full py-3.5 rounded-2xl font-bold text-sm text-[#050505] transition-all active:scale-[0.97]"
             style={{
-              background: 'linear-gradient(135deg, #FB923C, #F97316)',
-              boxShadow: '0 4px 16px rgba(249,115,22,0.22)',
+              background: 'linear-gradient(135deg, #5ffbe0, #00F0C0)',
+              boxShadow: '0 4px 16px rgba(0,240,192,0.22)',
             }}
           >
             {t('onb_btn')}

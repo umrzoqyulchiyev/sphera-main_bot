@@ -42,15 +42,15 @@ export function LanguageSelector({ selectedLang, onLangChange }: LanguageSelecto
                 overflow-hidden
                 ${
                   isActive
-                    ? 'text-[#1B1204] scale-[1.03]'
+                    ? 'text-[#050505] scale-[1.03]'
                     : 'bg-[rgba(255,255,255,0.03)] text-[var(--muted)] border border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--text)] hover:scale-[1.01]'
                 }
               `}
               style={
                 isActive
                   ? {
-                      background: 'linear-gradient(135deg, #FB923C, #F97316)',
-                      boxShadow: '0 0 20px rgba(249,115,22,0.35), 0 4px 12px rgba(251,146,60,0.2)',
+                      background: 'linear-gradient(135deg, #5ffbe0, #00F0C0)',
+                      boxShadow: '0 0 20px rgba(0,240,192,0.35), 0 4px 12px rgba(251,146,60,0.2)',
                     }
                   : {}
               }

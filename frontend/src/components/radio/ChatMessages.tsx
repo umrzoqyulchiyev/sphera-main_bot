@@ -26,8 +26,8 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="text-3xl mb-3 opacity-20">🎤</div>
-        <p className="text-xs text-[#8a8f98]">Чат пока пуст</p>
-        <p className="text-[10px] text-[#8a8f98]/50 mt-1">Начните общение!</p>
+        <p className="text-xs text-[#9a9791]">Чат пока пуст</p>
+        <p className="text-[10px] text-[#9a9791]/50 mt-1">Начните общение!</p>
       </div>
     );
   }
@@ -61,12 +61,12 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
             {/* Имя + время */}
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold" style={{
-                color: isAI ? '#a78bfa' : isStudio ? '#f59e0b' : '#5e6ad2'
+                color: isAI ? '#16e5e5' : isStudio ? '#16E5E5' : '#16E5E5'
               }}>
                 {isStudio && <span className="mr-1 opacity-60 text-[9px]">[СТУДИЯ]</span>}
                 {msg.username || 'Гость'}
               </span>
-              <span className="text-[9px] text-[#5a5f68]">{formatTime(msg.created_at)}</span>
+              <span className="text-[9px] text-[#9a9791]">{formatTime(msg.created_at)}</span>
             </div>
 
             {/* Контент */}
@@ -75,7 +75,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
             ) : msg.file_url ? (
               <FileCard url={msg.file_url} name={msg.file_name || 'Файл'} />
             ) : (
-              <p className="text-[13px] text-[#d5d6dc] leading-relaxed break-words">
+              <p className="text-[13px] text-[#c9c6bf] leading-relaxed break-words">
                 {msg.message}
               </p>
             )}
@@ -214,7 +214,7 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
     <div
       className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
       style={{
-        background: 'rgba(10,10,12,0.6)',
+        background: 'rgba(23,24,28,0.6)',
         border: '1px solid rgba(94,106,210,0.12)',
       }}
     >
@@ -224,14 +224,14 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
         className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
         style={{
           background: error
-            ? 'rgba(239,68,68,0.2)'
-            : 'linear-gradient(135deg, #5e6ad2 0%, #5e6ad2 100%)',
+            ? 'rgba(255,59,92,0.2)'
+            : 'linear-gradient(135deg, #16E5E5 0%, #16E5E5 100%)',
           boxShadow: isPlaying ? '0 0 12px rgba(94,106,210,0.5)' : 'none',
         }}
         title={error ? 'Ошибка загрузки' : isPlaying ? 'Пауза' : 'Воспроизвести'}
       >
         {error ? (
-          <span className="text-[#ef4444] text-xs">!</span>
+          <span className="text-[#ff3b5c] text-xs">!</span>
         ) : isPlaying ? (
           /* Pause icon */
           <svg width="12" height="14" viewBox="0 0 12 14" fill="white">
@@ -260,7 +260,7 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
                   height: `${h}px`,
                   borderRadius: '2px',
                   background: filled
-                    ? 'linear-gradient(180deg, #5e6ad2 0%, #7b85e8 100%)'
+                    ? 'linear-gradient(180deg, #16E5E5 0%, #5eecec 100%)'
                     : 'rgba(94,106,210,0.25)',
                   transition: 'background 0.1s',
                 }}
@@ -278,7 +278,7 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
             style={{
               height: '100%',
               width: `${progress}%`,
-              background: 'linear-gradient(90deg, #7b85e8, #5e6ad2)',
+              background: 'linear-gradient(90deg, #5eecec, #16E5E5)',
               borderRadius: '2px',
               transition: 'width 0.05s linear',
             }}
@@ -289,7 +289,7 @@ function VoiceMiniPlayer({ url, duration }: { url: string | null; duration?: num
       {/* Вaqt */}
       <span
         className="shrink-0 tabular-nums text-[10px]"
-        style={{ color: '#5a5f68', minWidth: '28px', textAlign: 'right' }}
+        style={{ color: '#9a9791', minWidth: '28px', textAlign: 'right' }}
       >
         {isPlaying ? fmtSec(currentTime) : fmtSec(totalDuration)}
       </span>
@@ -317,7 +317,7 @@ function FileCard({ url, name }: { url: string; name: string }) {
         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
         style={{ background: 'rgba(94,106,210,0.1)' }}
       >
-        <FileText className="w-4 h-4 text-[#5e6ad2]" />
+        <FileText className="w-4 h-4 text-[#16E5E5]" />
       </div>
       <span className="text-[12px] text-[#8c91be] truncate">{clean}</span>
     </a>

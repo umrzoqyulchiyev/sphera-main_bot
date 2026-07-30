@@ -29,13 +29,13 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center"
-          style={{ background: '#0F0F23', color: '#F8FAFC' }}
+          style={{ background: '#050505', color: '#EDEDED' }}
         >
-          <p className="text-sm text-[#94A3B8]">Что-то пошло не так</p>
+          <p className="text-sm text-[#9a9a9a]">Что-то пошло не так</p>
           <button
             onClick={this.handleReload}
             className="px-5 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: 'linear-gradient(135deg, #FB923C, #F97316)', color: '#1B1204' }}
+            style={{ background: 'linear-gradient(135deg, #5ffbe0, #00F0C0)', color: '#050505' }}
           >
             Перезагрузить
           </button>
