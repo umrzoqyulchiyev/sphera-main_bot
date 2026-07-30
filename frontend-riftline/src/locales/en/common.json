@@ -1,0 +1,13 @@
+{
+  "lang_name": "English",
+  "brand_sub": "RADIO",
+  "choose_lang": "Choose language",
+  "nav_anons": "News",
+  "nav_efir": "Live",
+  "nav_profile": "Profile",
+  "points_label": "POINT",
+  "points_balance": "Your balance",
+  "level": "LEVEL",
+  "notify_points_received": "💰 Received +{amount} points",
+  "notify_points_gift": "🎁 +{amount} points credited by admin"
+}
