@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import secrets
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
@@ -50,6 +51,15 @@ _broadcast_expiry: dict[str, datetime] = {}  # city -> slot tugash vaqti (UTC)
 _broadcast_slot_id: dict[str, int] = {}  # city -> slot id
 _watchdog_task: asyncio.Task | None = None
 
+# Har bir jonli efir sessiyasi uchun bir martalik ulashiladigan link
+# (EfirScreen dashboard'idagi "Копировать ссылку") — /start orqali bot
+# shu tokenni "live_{token}" deb tanib, hozir kim efirda ekanini ko'rsatadi.
+# Slotlarnikiga o'xshab (bot.py'dagi bot_username) hozircha shu yerda ham
+# hardcode — keyinroq env'ga chiqarish mumkin.
+BOT_USERNAME = "mybot_12_bot"
+_live_token_by_city: dict[str, str] = {}
+_live_city_by_token: dict[str, str] = {}
+
 
 async def _find_active_slot(user_id: int) -> dict | None:
     """Foydalanuvchining hozir vaqti kelgan (faol) sloti, agar bo'lsa."""
@@ -74,6 +84,9 @@ async def _stop_city_broadcast(city: str) -> None:
     _http_broadcast_owner.pop(city, None)
     _broadcast_expiry.pop(city, None)
     slot_id = _broadcast_slot_id.pop(city, None)
+    token = _live_token_by_city.pop(city, None)
+    if token is not None:
+        _live_city_by_token.pop(token, None)
     broadcast.close_session(city)
 
     from app.services import continuous
@@ -522,6 +535,11 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
         await websocket.close(code=1000)
         return
 
+    live_token = secrets.token_urlsafe(6)
+    _live_token_by_city[city] = live_token
+    _live_city_by_token[live_token] = city
+    share_url = f"https://t.me/{BOT_USERNAME}?start=live_{live_token}"
+
     # Efir holatini live qilamiz
     st = get_state(city)
     st.is_live = True
@@ -534,7 +552,7 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
             "data": st.to_dict(listeners_count=manager.listeners_count(city)),
         },
     )
-    await websocket.send_json({"type": "broadcast_started"})
+    await websocket.send_json({"type": "broadcast_started", "share_url": share_url})
 
     try:
         while True:
@@ -630,6 +648,15 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
         _broadcast_slot_id[city] = slot["id"]
         await db.execute("UPDATE broadcast_slots SET status = 'live' WHERE id = $1", slot["id"])
 
+    # Shu sessiya uchun bir martalik ulashiladigan link — har safar "В
+    # эфир" bosilganda YANGI token (o'sha shaharда oldingi efirlarniki
+    # ishlamay qoladi, chaqiruvchi ularni /start orqali "efir tugagan"
+    # deb ko'radi — quyidagi live-by-token endpoint'ga qarang).
+    live_token = secrets.token_urlsafe(6)
+    _live_token_by_city[city] = live_token
+    _live_city_by_token[live_token] = city
+    share_url = f"https://t.me/{BOT_USERNAME}?start=live_{live_token}"
+
     st = get_state(city)
     st.is_live = True
     st.broadcaster_type = "doverenniy"
@@ -645,6 +672,7 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
         "status": "started",
         "remaining_sec": remaining_sec,
         "expires_at": expires_at.isoformat() if expires_at else None,
+        "share_url": share_url,
     }
 
 
@@ -676,3 +704,24 @@ async def broadcast_http_stop(city: str, user: dict = Depends(require_role("dove
 
     await _stop_city_broadcast(city)
     return {"ok": True}
+
+
+@router.get("/live-by-token/{token}")
+async def live_by_token(token: str):
+    """Bot /start live_{token} deep-link'ini shu orqali hal qiladi — hech
+    qanday auth talab qilinmaydi (efir holati o'zi ochiq/umumiy ma'lumot,
+    xuddi radio status kabi). Token o'sha efir sessiyasi tugagach ishlamay
+    qoladi (_stop_city_broadcast uni tozalaydi) — bot shunda "efir tugadi"
+    deb ko'rsatadi, eski (allaqachon tugagan) linklar chalkash bo'lmasin."""
+    city = _live_city_by_token.get(token)
+    if city is None:
+        return {"live": False}
+    st = get_state(city)
+    if not st.is_live:
+        return {"live": False}
+    return {
+        "live": True,
+        "city": city,
+        "broadcaster_name": st.broadcaster_name,
+        "listeners_count": manager.listeners_count(city),
+    }

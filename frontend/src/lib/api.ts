@@ -403,10 +403,11 @@ export async function adminSetStaffRole(user_id: number, role: StaffRole) {
   return resp.json();
 }
 
-// Efir bo'sh paytida jimlik o'rniga chaladigan musiqa (Music tab).
-export async function getDefaultMusic(): Promise<{ name: string | null }> {
+// Efir bo'sh paytida (AI navbat) va jonli efir pauzasida jimlik o'rniga
+// chaladigan musiqa — Music tab (Admin) va MusicScreen (admin/ведущий) uchun.
+export async function getDefaultMusic(): Promise<{ name: string | null; url: string | null }> {
   const resp = await fetch(`${API_URL}/admin/music/default`, { headers: authHeaders() });
-  if (!resp.ok) return { name: null };
+  if (!resp.ok) return { name: null, url: null };
   return resp.json();
 }
 

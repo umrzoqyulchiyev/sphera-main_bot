@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.core.dependencies import require_admin, require_staff
+from app.core.dependencies import require_admin, require_role, require_staff
 from app.core.models import (
     AdminAddPointsRequest,
     AdminSetStaffRoleRequest,
@@ -523,18 +523,25 @@ _DEFAULT_MUSIC_BASENAME = "default_music_src"
 
 
 @router.get("/music/default")
-async def get_default_music(admin: dict = Depends(require_staff)):
-    """[admin/moderator] Hozir o'rnatilgan default musiqa nomi (bo'lmasa — null)."""
-    row = await db.fetchrow("SELECT value FROM app_settings WHERE key = 'default_music_name'")
-    return {"name": row["value"] if row and row["value"] else None}
+async def get_default_music(admin: dict = Depends(require_role("doverenniy"))):
+    """[admin/moderator/ведущий] Hozir o'rnatilgan default musiqa nomi va
+    URL'i (bo'lmasa — ikkalasi ham null). URL — /uploads static mount orqali,
+    frontend jonli efir pauzasida shu trekni to'g'ridan-to'g'ri o'qiy oladi."""
+    import os
+
+    name_row = await db.fetchrow("SELECT value FROM app_settings WHERE key = 'default_music_name'")
+    path_row = await db.fetchrow("SELECT value FROM app_settings WHERE key = 'default_music_path'")
+    url = f"/uploads/{os.path.basename(path_row['value'])}" if path_row and path_row["value"] else None
+    return {"name": name_row["value"] if name_row and name_row["value"] else None, "url": url}
 
 
 @router.post("/music/default", response_model=OkResponse)
 async def upload_default_music(
     audio_file: UploadFile = File(...),
-    admin: dict = Depends(require_staff),
+    admin: dict = Depends(require_role("doverenniy")),
 ):
-    """[admin/moderator] Efir bo'sh paytida jimlik o'rniga chaladigan musiqani o'rnatadi."""
+    """[admin/moderator/ведущий] Efir bo'sh paytida (AI navbat) va jonli
+    efir pauzaga qo'yilganda jimlik o'rniga chaladigan musiqani o'rnatadi."""
     import os
 
     from app.core.config import settings
@@ -573,18 +580,19 @@ async def upload_default_music(
         """,
         display_name,
     )
-    log.info("Admin %d default music o'rnatdi: %s", admin["id"], display_name)
-    return OkResponse(detail={"name": display_name})
+    log.info("User %d default music o'rnatdi: %s", admin["id"], display_name)
+    return OkResponse(detail={"name": display_name, "url": f"/uploads/{os.path.basename(raw_path)}"})
 
 
 @router.delete("/music/default", response_model=OkResponse)
-async def delete_default_music(admin: dict = Depends(require_staff)):
-    """[admin/moderator] Default musiqani o'chiradi — navbat bo'sh bo'lganda yana jimlik chaladi."""
+async def delete_default_music(admin: dict = Depends(require_role("doverenniy"))):
+    """[admin/moderator/ведущий] Default musiqani o'chiradi — navbat bo'sh
+    bo'lganda yana jimlik chaladi, jonli efir pauzasida ham endi jim bo'ladi."""
     from app.services import continuous
 
     continuous.clear_default_music()
     await db.execute(
         "DELETE FROM app_settings WHERE key IN ('default_music_path', 'default_music_name')"
     )
-    log.info("Admin %d default music'ni o'chirdi", admin["id"])
+    log.info("User %d default music'ni o'chirdi", admin["id"])
     return OkResponse(detail={"name": None})

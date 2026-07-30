@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { API_URL } from '../lib/config';
 import { authHeaders } from '../lib/auth';
 import { useTranslation } from './useTranslation';
+import { getDefaultMusic } from '../lib/api';
 
 // Bu hook ilgari GoLiveButton komponenti ichida edi — u yerda holat
 // (isLive, MediaRecorder, stream) komponentga bog'liq bo'lgani uchun,
@@ -29,8 +30,20 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
   const [isPaused, setIsPaused] = useState(false);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Pauza payti jimlik o'rniga chaladigan default musiqa — mikrofon oqimi
+  // va musiqa faylini bitta Web Audio graph orqali bitta uzluksiz
+  // MediaStream'ga aralashtiramiz (gain'lar bilan almashtiramiz), MediaRecorder
+  // esa doim shu ARALASH oqimni yozadi. Shu sabab recorder hech qachon
+  // qayta ishga tushirilmaydi (yuqoridagi izohdagi cheklov saqlanadi) —
+  // faqat qaysi manba eshitilishini gain 0/1 bilan boshqaramiz.
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const micGainRef = useRef<GainNode | null>(null);
+  const musicGainRef = useRef<GainNode | null>(null);
+  const musicElRef = useRef<HTMLAudioElement | null>(null);
+  const defaultMusicUrlRef = useRef<string | null>(null);
   const sendChainRef = useRef<Promise<void>>(Promise.resolve());
   const liveRef = useRef(false);
   // Pauza — MediaRecorder'ning o'zini pause()/resume() qilish O'RNIGA shu
@@ -95,6 +108,17 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     }, 1000);
   };
 
+  // Pauza-musiqa Web Audio graph'ini butunlay tozalaydi — efir tugaganda
+  // chaqiriladi (mikrofon stream'i esa alohida, pastda o'zicha to'xtatiladi).
+  const teardownPauseMusic = () => {
+    try { musicElRef.current?.pause(); } catch {}
+    musicElRef.current = null;
+    try { audioCtxRef.current?.close(); } catch {}
+    audioCtxRef.current = null;
+    micGainRef.current = null;
+    musicGainRef.current = null;
+  };
+
   const stopBroadcast = useCallback(async () => {
     const finalElapsed = elapsedStartRef.current
       ? Math.floor((Date.now() - elapsedStartRef.current) / 1000)
@@ -103,11 +127,13 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     isPausedRef.current = false;
     setIsLive(false);
     setIsPaused(false);
+    setShareUrl(null);
     stopCountdown();
     stopElapsedTimer();
     elapsedStartRef.current = null;
     setElapsedSec(0);
     releaseWakeLock();
+    teardownPauseMusic();
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch {}
     try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
     recorderRef.current = null;
@@ -212,10 +238,30 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
   // faqat chunk yuborish to'xtaydi/davom etadi (yuqoridagi izohga qarang),
   // /broadcast/stop chaqirilmaydi (sessiya, slot va countdown butunlay
   // ochiq qoladi). Cheksiz marta, istalgan vaqt oralig'ida bosish mumkin.
+  //
+  // Jimlik o'rniga: agar default musiqa o'rnatilgan bo'lsa (getDefaultMusic),
+  // gain'larni almashtiramiz — mikrofon 0, musiqa 1 (va aksincha resume'da).
+  // Recorder shu bilan doim BITTA (aralash) stream'ni yozishda davom etadi.
   const togglePause = useCallback(() => {
     if (!liveRef.current) return;
     isPausedRef.current = !isPausedRef.current;
     setIsPaused(isPausedRef.current);
+    const ctx = audioCtxRef.current;
+    const micGain = micGainRef.current;
+    const musicGain = musicGainRef.current;
+    const musicEl = musicElRef.current;
+    if (isPausedRef.current) {
+      if (micGain && ctx) micGain.gain.setValueAtTime(0, ctx.currentTime);
+      if (musicGain && musicEl && defaultMusicUrlRef.current) {
+        musicGain.gain.setValueAtTime(1, ctx!.currentTime);
+        musicEl.currentTime = 0;
+        musicEl.play().catch(() => {});
+      }
+    } else {
+      if (micGain && ctx) micGain.gain.setValueAtTime(1, ctx.currentTime);
+      if (musicGain && ctx) musicGain.gain.setValueAtTime(0, ctx.currentTime);
+      musicEl?.pause();
+    }
   }, []);
 
   const toggleLive = useCallback(async () => {
@@ -283,8 +329,50 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
       isPausedRef.current = false;
       setIsLive(true);
       setIsPaused(false);
+      setShareUrl(data.share_url || null);
       onToastRef.current('🔴 LIVE!');
-      startRecorder(stream);
+
+      // Pauza-musiqa uchun default trek bo'lsa — mikrofon va musiqani bitta
+      // Web Audio graph orqali aralashtirib, ARALASH oqimni yozamiz (pastda
+      // togglePause shu gain'larni almashtiradi). Bo'lmasa — xom mikrofon
+      // oqimini to'g'ridan-to'g'ri yozamiz, xuddi avvalgidek (pauza jim bo'ladi).
+      let recordStream = stream;
+      try {
+        const music = await getDefaultMusic();
+        if (music.url) {
+          defaultMusicUrlRef.current = music.url;
+          const ctx = new AudioContext();
+          ctx.resume().catch(() => {});
+          const musicEl = new Audio(music.url);
+          musicEl.loop = true;
+          musicEl.crossOrigin = 'anonymous';
+          const micSource = ctx.createMediaStreamSource(stream);
+          const micGain = ctx.createGain();
+          micGain.gain.value = 1;
+          micSource.connect(micGain);
+          const musicSource = ctx.createMediaElementSource(musicEl);
+          const musicGain = ctx.createGain();
+          musicGain.gain.value = 0;
+          musicSource.connect(musicGain);
+          const dest = ctx.createMediaStreamDestination();
+          micGain.connect(dest);
+          musicGain.connect(dest);
+          audioCtxRef.current = ctx;
+          micGainRef.current = micGain;
+          musicGainRef.current = musicGain;
+          musicElRef.current = musicEl;
+          recordStream = dest.stream;
+        } else {
+          defaultMusicUrlRef.current = null;
+        }
+      } catch (musicErr) {
+        // Pauza-musiqa ixtiyoriy — sozlanmasa/yuklanmasa ham efirning
+        // o'ziga ta'sir qilmasligi kerak, xom mikrofon bilan davom etamiz.
+        console.warn('[GoLive] pause-music setup failed:', musicErr);
+        defaultMusicUrlRef.current = null;
+      }
+
+      startRecorder(recordStream);
       startElapsedTimer();
       if (data.expires_at) startCountdown(data.expires_at);
       acquireWakeLock();
@@ -295,5 +383,5 @@ export function useLiveBroadcast(city: string, onToast: (message: string) => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, stopBroadcast]);
 
-  return { isLive, remainingSec, elapsedSec, toggleLive, isPaused, togglePause };
+  return { isLive, remainingSec, elapsedSec, toggleLive, isPaused, togglePause, shareUrl };
 }

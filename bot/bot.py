@@ -406,6 +406,40 @@ async def _show_slot(update: Update, context: ContextTypes.DEFAULT_TYPE, slot_re
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=webapp_keyboard())
 
 
+async def _show_live(update: Update, context: ContextTypes.DEFAULT_TYPE, live_ref: str) -> None:
+    """Jonli efir deep-link'i (EfirScreen dashboard'idagi "Копировать
+    ссылку" bilan yaratilgan) — auth talab qilmaydi, efir holati ochiq
+    ma'lumot."""
+    lang = await _get_user_lang(update.effective_user.id)
+    token = live_ref[len("live_"):]
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{INTERNAL_API_URL}/radio/live-by-token/{token}", timeout=10)
+            data = resp.json() if resp.status_code == 200 else {"live": False}
+    except Exception as exc:
+        log.warning("live-by-token fetch failed: %s", exc)
+        data = {"live": False}
+
+    if data.get("live"):
+        host = data.get("broadcaster_name") or "Ведущий"
+        listeners = data.get("listeners_count", 0)
+        live_text = {
+            "ru": f"🔴 *Сейчас в эфире*\n\n📻 {host}\n🎧 {listeners} слушателей",
+            "en": f"🔴 *Live now*\n\n📻 {host}\n🎧 {listeners} listeners",
+            "lt": f"🔴 *Dabar eteryje*\n\n📻 {host}\n🎧 {listeners} klausytojų",
+        }
+        text = live_text.get(lang, live_text["ru"])
+    else:
+        ended_text = {
+            "ru": "📻 Этот эфир уже завершён — но заходи послушать следующий!",
+            "en": "📻 That broadcast has ended — but come listen to the next one!",
+            "lt": "📻 Šis eteris jau baigėsi — bet ateik pasiklausyti kito!",
+        }
+        text = ended_text.get(lang, ended_text["ru"])
+
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=webapp_keyboard())
+
+
 async def buy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/buy — point paketlarini ko'rsatadi."""
     lang = await _get_user_lang(update.effective_user.id)
@@ -511,6 +545,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Deep-link: /start slot_N → efir slot ma'lumoti
     if context.args and context.args[0].startswith("slot_"):
         await _show_slot(update, context, context.args[0])
+        return
+    # Deep-link: /start live_XXXXX → jonli efir dashboard'idagi "Копировать ссылку"
+    if context.args and context.args[0].startswith("live_"):
+        await _show_live(update, context, context.args[0])
         return
     lang = await _get_user_lang(update.effective_user.id)
     await update.message.reply_text(

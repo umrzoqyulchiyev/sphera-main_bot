@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Music, Plus, ThumbsUp, Trophy, X, Loader } from 'lucide-react';
+import { Music, Plus, ThumbsUp, Trophy, X, Loader, Upload, Trash2 } from 'lucide-react';
 import {
   getMusicCurrent, addMusicNomination, voteMusicNomination,
+  getDefaultMusic, uploadDefaultMusic, deleteDefaultMusic,
   type MusicNomination, type MusicCurrentResult,
 } from '../../lib/api';
 import { getLang } from '../../lib/i18n';
@@ -35,6 +36,11 @@ const L: Record<string, Record<string, string>> = {
     topic: 'Тема эфира',
     already_voted: 'Уже проголосовали за эту тему',
     insufficient: 'Недостаточно поинтов',
+    default_music_title: 'Музыка на паузе эфира',
+    default_music_hint: 'Играет вместо тишины, когда ведущий ставит эфир на паузу',
+    default_music_none: 'Не загружена',
+    default_music_upload: 'Загрузить',
+    default_music_replace: 'Заменить',
   },
   en: {
     title: 'Music voting',
@@ -58,6 +64,11 @@ const L: Record<string, Record<string, string>> = {
     topic: 'Broadcast topic',
     already_voted: 'Already voted for this topic',
     insufficient: 'Not enough points',
+    default_music_title: 'Broadcast pause music',
+    default_music_hint: 'Plays instead of silence when the host pauses their broadcast',
+    default_music_none: 'Not set',
+    default_music_upload: 'Upload',
+    default_music_replace: 'Replace',
   },
   lt: {
     title: 'Muzikos balsavimas',
@@ -81,10 +92,15 @@ const L: Record<string, Record<string, string>> = {
     topic: 'Eterio tema',
     already_voted: 'Jau balsavote šiai temai',
     insufficient: 'Nepakanka taškų',
+    default_music_title: 'Eterio pauzės muzika',
+    default_music_hint: 'Skamba vietoj tylos, kai vedėjas sustabdo eterį',
+    default_music_none: 'Nenustatyta',
+    default_music_upload: 'Įkelti',
+    default_music_replace: 'Pakeisti',
   },
 };
 
-export function MusicScreen({ onPointsUpdate }: Props) {
+export function MusicScreen({ user, onPointsUpdate }: Props) {
   const lang = getLang();
   const tx = (k: string) => L[lang]?.[k] || L.ru[k] || k;
 
@@ -96,6 +112,15 @@ export function MusicScreen({ onPointsUpdate }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [voting, setVoting] = useState<number | null>(null);
   const [toast, setToast] = useState('');
+
+  // Efir pauzasida jimlik o'rniga chaladigan trek — admin/moderator/ведущий
+  // hammasi boshqara oladi (backend: require_role("doverenniy")). Doverenniy
+  // Admin.tsx'ga umuman kira olmagani uchun, bu yerda MusicScreen — ularning
+  // yagona kirish nuqtasi.
+  const canManageDefaultMusic = user?.role === 'admin' || user?.role === 'moderator' || user?.role === 'doverenniy';
+  const [defaultMusicName, setDefaultMusicName] = useState<string | null>(null);
+  const [defaultMusicLoading, setDefaultMusicLoading] = useState(true);
+  const [defaultMusicUploading, setDefaultMusicUploading] = useState(false);
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -114,6 +139,34 @@ export function MusicScreen({ onPointsUpdate }: Props) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!canManageDefaultMusic) { setDefaultMusicLoading(false); return; }
+    getDefaultMusic().then((r) => setDefaultMusicName(r.name)).finally(() => setDefaultMusicLoading(false));
+  }, [canManageDefaultMusic]);
+
+  async function handleUploadDefaultMusic(file: File) {
+    setDefaultMusicUploading(true);
+    try {
+      const res = await uploadDefaultMusic(file);
+      setDefaultMusicName(res.detail?.name ?? file.name);
+      flash('✅');
+    } catch (e: any) {
+      flash('❌ ' + (e.message || ''));
+    } finally {
+      setDefaultMusicUploading(false);
+    }
+  }
+
+  async function handleDeleteDefaultMusic() {
+    try {
+      await deleteDefaultMusic();
+      setDefaultMusicName(null);
+      flash('✅');
+    } catch {
+      flash('❌');
+    }
+  }
 
   async function handleVote(nom: MusicNomination) {
     if (nom.user_voted) { flash('⚠️ ' + tx('already_voted')); return; }
@@ -182,6 +235,47 @@ export function MusicScreen({ onPointsUpdate }: Props) {
           </div>
         )}
       </div>
+
+      {/* Pauza-musiqa — faqat admin/moderator/ведущий ko'radi va boshqaradi */}
+      {canManageDefaultMusic && (
+        <div className="stitch-card p-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(0,240,192,0.1)' }}>
+              <Music className="w-5 h-5 text-[#00F0C0]" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-black text-[#EDEDED]">{tx('default_music_title')}</div>
+              <div className="text-[10px] text-[#9a9a9a] leading-tight">{tx('default_music_hint')}</div>
+            </div>
+          </div>
+          {defaultMusicLoading ? (
+            <div className="flex justify-center py-2"><Loader className="w-4 h-4 text-[#00F0C0] animate-spin" /></div>
+          ) : (
+            <>
+              <div className="text-xs text-[#EDEDED] mt-2 mb-2 truncate">
+                {defaultMusicName ? `🎵 ${defaultMusicName}` : <span className="text-[#9a9a9a]">{tx('default_music_none')}</span>}
+              </div>
+              <div className="flex gap-2">
+                <label className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#050505] cursor-pointer ${defaultMusicUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                  style={{ background: 'linear-gradient(135deg, #00F0C0, #5ffbe0)' }}>
+                  {defaultMusicUploading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {defaultMusicName ? tx('default_music_replace') : tx('default_music_upload')}
+                  <input type="file" accept="audio/*" className="hidden" disabled={defaultMusicUploading}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadDefaultMusic(f); e.target.value = ''; }} />
+                </label>
+                {defaultMusicName && (
+                  <button onClick={handleDeleteDefaultMusic}
+                    className="p-2.5 rounded-xl shrink-0"
+                    style={{ background: 'rgba(255,59,92,0.1)', color: '#FF3B5C' }}>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* No topic */}
       {!data.topic && (

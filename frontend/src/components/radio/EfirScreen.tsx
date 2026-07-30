@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
-import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check, Mic } from 'lucide-react';
+import { Send, X, Loader, Coffee, Activity, Users, Sparkles, Square, Check, Mic, Link2 } from 'lucide-react';
 import { ChatMessage as ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { RoomsButton } from './RoomsScreen';
@@ -40,6 +40,9 @@ interface EfirScreenProps {
   // Efirni vaqtincha to'xtatish (mikrofon jim, sessiya ochiq qoladi).
   isLivePaused?: boolean;
   onToggleLivePause?: () => void;
+  // Shu jonli efir sessiyasi uchun bir martalik ulashiladigan link
+  // (broadcast/start javobidan) — faqat isLive paytida bor.
+  liveShareUrl?: string | null;
   // Tinglash (audio pleer) holati ham Radio.tsx darajasida — boshqa tabga
   // o'tilganda ham <audio> elementi uzilmasligi uchun. Shu ekran faqat
   // ko'rsatadi/boshqaradi, lekin o'zi yaratmaydi.
@@ -48,7 +51,7 @@ interface EfirScreenProps {
   audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, liveElapsedSec, onToggleLive, isLivePaused, onToggleLivePause, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
+export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemainingSec, liveElapsedSec, onToggleLive, isLivePaused, onToggleLivePause, liveShareUrl, radioStatus, setRadioStatus, audioPlayer }: EfirScreenProps) {
   const { t, lang } = useTranslation();
   const { message, variant: toastVariant, showToast } = useToast();
   const [city] = useState(localStorage.getItem(LS_CITY) || DEFAULT_CITY);
@@ -363,6 +366,17 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
 
   const discardPendingVoice = () => setPendingVoice(null);
 
+  const handleCopyLiveLink = async () => {
+    if (!liveShareUrl) return;
+    try {
+      await navigator.clipboard.writeText(liveShareUrl);
+      hapticImpact('light');
+      showToast('🔗 Ссылка скопирована');
+    } catch {
+      showToast('❌ Не удалось скопировать', 'error');
+    }
+  };
+
   // "ОТПРАВИТЬ" tugmasi: yozilgan (hali yuborilmagan) ovoz bo'lsa — studiyaga
   // shuni yuboradi; bo'lmasa — matn kiritish modalini ochadi (eski xatti-harakat).
   const handleSendToStudio = async () => {
@@ -514,8 +528,19 @@ export function EfirScreen({ user, onPointsUpdate, onNavigate, isLive, liveRemai
         </div>
       )}
 
-      {/* ── Группы — ведущий эфир вақтида ҳам guruh chatlariga kira oladi ── */}
-      <div className="px-4 mb-3 flex justify-end">
+      {/* ── Копировать ссылку эфира (faqat isLive paytida, backend har safar
+          YANGI token beradi) + Группы ── */}
+      <div className="px-4 mb-3 flex items-center justify-between gap-2">
+        {isLive && liveShareUrl ? (
+          <button
+            onClick={handleCopyLiveLink}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold"
+            style={{ background: 'rgba(57,255,106,0.08)', border: '1px solid rgba(57,255,106,0.3)', color: '#7dffa0' }}
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            Копировать ссылку
+          </button>
+        ) : <span />}
         <RoomsButton user={user} isLive={isLive} />
       </div>
 
