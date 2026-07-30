@@ -506,8 +506,14 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
     from app.services import continuous
 
     continuous.pause("ru")
-    # Worker joriy filler bo'lagini tugatib mount'ni bo'shatishi uchun qisqa kutish
-    await asyncio.sleep(1.0)
+    # Worker joriy filler bo'lagini tugatib mount'ni HAQIQATAN bo'shatgunча
+    # kutamiz (fiksirlangan sleep emas — real-vaqt yozish 1s dan oshishi
+    # mumkin, aks holda yangi ffmpeg eskisi bilan to'qnashib bir necha
+    # soniyadan keyin uzilib qoladi).
+    for _ in range(40):  # 40 x 100ms = 4s max kutish
+        if continuous.is_stream_closed("ru"):
+            break
+        await asyncio.sleep(0.1)
 
     session = broadcast.open_session(city, name)
     if session is None:
@@ -603,7 +609,15 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     from app.services import continuous
 
     continuous.pause("ru")
-    await asyncio.sleep(1.0)
+    # Fiksirlangan sleep(1.0) o'rniga — worker filler bo'lagini yozib
+    # bo'lgunча (real-vaqt -re tufayli bu 1 soniyadan oshishi mumkin edi)
+    # mount haqiqatan bo'shaguncha kutamiz, aks holda yangi ffmpeg eski
+    # bilan bir vaqtda ulanishga urinib, bir necha soniyadan keyin
+    # uziladi ("В эфир" bosilgandan 2 soniya o'tib o'zi to'xtab qolishi).
+    for _ in range(40):  # 40 x 100ms = 4s max kutish
+        if continuous.is_stream_closed("ru"):
+            break
+        await asyncio.sleep(0.1)
 
     session = broadcast.open_session(city, name)
     if session is None:

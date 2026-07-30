@@ -73,6 +73,15 @@ def is_paused(lang: str) -> bool:
     return _paused.get(lang, False)
 
 
+def is_stream_closed(lang: str) -> bool:
+    """pause() dan keyin worker chindan ham ffmpeg'ni yopib, mount'ni
+    bo'shatganini tekshiradi — chaqiruvchi shu True bo'lgunча kutishi
+    kerak, aks holda yangi (jonli mikrofon) ffmpeg eski bilan bir xil
+    mount'ga bir vaqtda ulanishga urinadi ("source already connected"
+    yoki bir necha soniyadan keyin uzilib qoladigan noaniq holat)."""
+    return lang not in _procs
+
+
 def _ffmpeg_bin() -> str:
     from shutil import which
 
@@ -302,7 +311,7 @@ def _spawn_ffmpeg(lang: str) -> subprocess.Popen:
 
 
 def _close_proc(lang: str) -> None:
-    proc = _procs.pop(lang, None)
+    proc = _procs.get(lang)
     if proc is None:
         return
     try:
@@ -318,6 +327,11 @@ def _close_proc(lang: str) -> None:
             proc.kill()
         except Exception:
             pass
+    # Faqat jarayon HAQIQATAN o'lgandan keyin ro'yxatdan o'chiramiz —
+    # is_stream_closed() shu daqiqadan boshlab mount haqiqatan bo'sh
+    # ekanini ishonchli bildirsin (jonli mikrofon ffmpeg'i shu signalga
+    # tayanib icecast/mediamtx'ga ulanadi).
+    _procs.pop(lang, None)
 
 
 async def _write_blocks(lang: str, data: bytes) -> bool:
