@@ -21,6 +21,8 @@ from app.core.dependencies import get_current_user
 from app.core.internal_auth import require_internal_key
 from app.core.ws_manager import manager
 from app.core.models import (
+    ManualPaymentCreate,
+    ManualPaymentOut,
     OkResponse,
     PaymentSettingsOut,
     PointPackageOut,
@@ -243,15 +245,161 @@ async def get_packages():
 
 @router.get("/me/points/payment-method", response_model=PaymentSettingsOut)
 async def get_payment_method(user: dict = Depends(get_current_user)):
-    """To'lov qanday ishlashi — admin belgilagan (stars = bot orqali, manual = kontakt)."""
+    """To'lov qanday ishlashi — admin belgilagan.
+
+    method:
+      stars  — faqat Telegram Stars (bot orqali avtomatik)
+      manual — faqat qo'lda (ariza → admin tasdiqlaydi)
+      both   — ikkalasi ham mavjud (foydalanuvchi tanlaydi)
+    """
     rows = await db.fetch(
-        "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
+        """
+        SELECT key, value FROM app_settings
+        WHERE key IN ('payment_method', 'payment_instructions',
+                      'manual_payment_details', 'manual_payment_enabled')
+        """
     )
     values = {r["key"]: r["value"] for r in rows}
     return PaymentSettingsOut(
         method=values.get("payment_method", "stars"),
         instructions=values.get("payment_instructions", ""),
+        manual_details=values.get("manual_payment_details", ""),
+        manual_enabled=values.get("manual_payment_enabled", "true") == "true",
+        bot_username=await notifications.get_bot_username(),
     )
+
+
+# ============ Qo'lda to'lov (manual payment) ============
+@router.post("/me/points/manual-payment", response_model=OkResponse)
+async def create_manual_payment(
+    payload: ManualPaymentCreate,
+    user: dict = Depends(get_current_user),
+):
+    """Foydalanuvchi qo'lda to'lov arizasi yuboradi.
+
+    Oqim:
+      1. User bank/karta orqali to'laydi (admin rekvizitlari bo'yicha)
+      2. Shu endpoint orqali ariza yuboradi (tranzaksiya raqami bilan)
+      3. Admin panelda ko'radi → tasdiqlaydi → point avtomatik tushadi
+
+    Bitta foydalanuvchida bir vaqtda faqat bitta 'pending' ariza bo'lishi mumkin
+    (spamdan himoya).
+    """
+    # Manual to'lov yoqilganini tekshiramiz
+    enabled = await db.fetchval(
+        "SELECT value FROM app_settings WHERE key = 'manual_payment_enabled'"
+    )
+    if enabled == "false":
+        raise HTTPException(status_code=403, detail="Ручная оплата отключена администратором")
+
+    # Kutilayotgan ariza bormi? (spam himoyasi)
+    pending = await db.fetchval(
+        "SELECT id FROM manual_payments WHERE user_id = $1 AND status = 'pending' LIMIT 1",
+        user["id"],
+    )
+    if pending:
+        raise HTTPException(
+            status_code=409,
+            detail="У вас уже есть заявка на рассмотрении. Дождитесь решения администратора.",
+        )
+
+    pkg = await db.fetchrow(
+        "SELECT * FROM point_packages WHERE id = $1 AND is_active = true",
+        payload.package_id,
+    )
+    if pkg is None:
+        raise HTTPException(status_code=404, detail="Package not found")
+
+    row = await db.fetchrow(
+        """
+        INSERT INTO manual_payments
+            (user_id, package_id, points_amount, price_eur, package_label,
+             payment_method, payment_note, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+        RETURNING id, created_at
+        """,
+        user["id"],
+        pkg["id"],
+        pkg["points_amount"],
+        pkg["price_eur"],
+        pkg["label"],
+        payload.payment_method,
+        payload.payment_note.strip()[:1000],
+    )
+
+    log.info(
+        "Manual payment ariza #%d: user=%d paket=%s (%s EUR, %s)",
+        row["id"],
+        user["id"],
+        pkg["label"],
+        pkg["price_eur"],
+        payload.payment_method,
+    )
+
+    # Adminlarni darhol xabardor qilamiz (bot orqali DM)
+    asyncio.create_task(
+        notifications.notify_admins_manual_payment(
+            user_name=user["display_name"] or user["username"] or f"ID {user['telegram_id']}",
+            telegram_id=user["telegram_id"],
+            package_label=pkg["label"],
+            price_eur=float(pkg["price_eur"]),
+            method=payload.payment_method,
+            note=payload.payment_note.strip()[:200],
+        )
+    )
+
+    return OkResponse(
+        detail={
+            "payment_id": row["id"],
+            "status": "pending",
+            "message": "Заявка отправлена. Администратор проверит и начислит поинты.",
+        }
+    )
+
+
+@router.get("/me/points/manual-payments", response_model=list[ManualPaymentOut])
+async def get_my_manual_payments(user: dict = Depends(get_current_user)):
+    """Foydalanuvchining qo'lda to'lov arizalari tarixi (oxirgi 20 ta)."""
+    rows = await db.fetch(
+        """
+        SELECT mp.id, mp.user_id, mp.package_id, mp.package_label,
+               mp.points_amount, mp.price_eur, mp.payment_method,
+               mp.payment_note, mp.receipt_path, mp.status, mp.admin_note,
+               mp.created_at, mp.decided_at,
+               u.telegram_id, u.username, u.display_name
+        FROM manual_payments mp
+        JOIN users u ON u.id = mp.user_id
+        WHERE mp.user_id = $1
+        ORDER BY mp.created_at DESC
+        LIMIT 20
+        """,
+        user["id"],
+    )
+    return [
+        ManualPaymentOut(
+            **{k: v for k, v in dict(r).items() if k != "receipt_path"},
+            receipt_url=f"/uploads/{r['receipt_path'].split('/')[-1]}" if r["receipt_path"] else None,
+        )
+        for r in rows
+    ]
+
+
+@router.delete("/me/points/manual-payment/{payment_id}", response_model=OkResponse)
+async def cancel_manual_payment(
+    payment_id: int,
+    user: dict = Depends(get_current_user),
+):
+    """Foydalanuvchi o'z 'pending' arizasini bekor qiladi (xato yuborgan bo'lsa)."""
+    result = await db.execute(
+        "DELETE FROM manual_payments WHERE id = $1 AND user_id = $2 AND status = 'pending'",
+        payment_id,
+        user["id"],
+    )
+    if result.endswith("0"):
+        raise HTTPException(
+            status_code=404, detail="Заявка не найдена или уже обработана"
+        )
+    return OkResponse(detail={"cancelled_id": payment_id})
 
 
 @router.post("/me/points/purchase", response_model=OkResponse)

@@ -58,8 +58,34 @@ export interface PointsTransaction {
 
 // To'lov sozlamalari (admin belgilaydi — poinт uchun qanday to'lanadi)
 export interface PaymentSettings {
-  method: 'stars' | 'manual';
+  method: 'stars' | 'manual' | 'both';
   instructions: string;
+  manual_details: string;      // bank hisob / karta raqami (admin to'ldiradi)
+  manual_enabled: boolean;     // qo'lda to'lov yoqilganmi
+  bot_username: string;        // @ belgisiz — Stars deep-link uchun (backend beradi)
+}
+
+// Qo'lda to'lov usuli
+export type ManualPaymentMethod = 'bank' | 'card' | 'cash' | 'crypto' | 'other';
+
+// Qo'lda to'lov arizasi
+export interface ManualPayment {
+  id: number;
+  user_id: number;
+  telegram_id: number | null;
+  username: string | null;
+  display_name: string | null;
+  package_id: number | null;
+  package_label: string;
+  points_amount: number;
+  price_eur: number;
+  payment_method: ManualPaymentMethod;
+  payment_note: string;
+  receipt_url: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string;
+  created_at: string;
+  decided_at: string | null;
 }
 
 // Guruh (ведущий yaratadi)

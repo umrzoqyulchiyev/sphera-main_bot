@@ -51,3 +51,6 @@ auto.key
 # ── Test artefaktlari ────────────────────────────────────
 .test*.txt
 .final_test.txt
+
+# ── Railway CLI vaqtinchalik config nusxalari ────────────
+.railway-config-pull-*/

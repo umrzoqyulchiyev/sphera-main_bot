@@ -308,6 +308,39 @@ CREATE TABLE IF NOT EXISTS broadcast_slots (
 CREATE INDEX IF NOT EXISTS idx_slots_scheduled ON broadcast_slots(scheduled_at, status);
 CREATE INDEX IF NOT EXISTS idx_slots_host ON broadcast_slots(host_user_id, status);
 
+-- ============ Qo'lda to'lov arizalari (manual payment) ============
+-- Foydalanuvchi bank/karta/naqd orqali to'laydi → ariza yuboradi →
+-- admin tekshirib tasdiqlaydi → point avtomatik tushadi.
+-- Telegram Stars 30% komissiya olgani uchun katta summalar shu yo'l bilan.
+CREATE TABLE IF NOT EXISTS manual_payments (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    package_id      INTEGER REFERENCES point_packages(id) ON DELETE SET NULL,
+    -- Paket o'chirilsa ham ariza tarixida qancha point/pul bo'lganini
+    -- bilish uchun snapshot saqlaymiz (package_id NULL bo'lib qolsa ham).
+    points_amount   NUMERIC(12,4) NOT NULL,
+    price_eur       NUMERIC(8,2) NOT NULL,
+    package_label   VARCHAR(100) DEFAULT '',
+    -- Foydalanuvchi to'lovni qanday amalga oshirgani
+    payment_method  VARCHAR(30) NOT NULL DEFAULT 'bank',  -- bank | card | cash | crypto | other
+    payment_note    TEXT DEFAULT '',                      -- to'lov haqida izoh (masalan tranzaksiya raqami)
+    receipt_path    VARCHAR(500) DEFAULT '',              -- kvitansiya rasmi (ixtiyoriy)
+    status          VARCHAR(20) DEFAULT 'pending',        -- pending | approved | rejected
+    admin_note      TEXT DEFAULT '',                      -- admin izohi (rad etish sababi)
+    decided_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    decided_at      TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_manual_pay_status ON manual_payments(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_manual_pay_user ON manual_payments(user_id, created_at DESC);
+
+-- To'lov usuli 'crypto' ham bo'lishi mumkin (CryptoBot orqali qo'lda)
+-- app_settings'ga manual to'lov rekvizitlari qo'shamiz (admin to'ldiradi)
+INSERT INTO app_settings (key, value) VALUES
+    ('manual_payment_details', ''),
+    ('manual_payment_enabled', 'true')
+ON CONFLICT (key) DO NOTHING;
+
 -- ============ Кастинг (отбор ведущих) ============
 -- Foydalanuvchi ariza + audio-audishen topshiradi, admin ko'rib chiqib
 -- tasdiqlasa — role 'doverenniy' bo'ladi (efirga chiqish huquqi).

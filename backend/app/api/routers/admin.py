@@ -17,6 +17,8 @@ from app.core.models import (
     AdminAddPointsRequest,
     AdminSetStaffRoleRequest,
     AdminSetLevelRequest,
+    ManualPaymentDecision,
+    ManualPaymentOut,
     OkResponse,
     PackageCreate,
     PackageOut,
@@ -207,12 +209,19 @@ async def delete_user(
 @router.get("/settings/payment", response_model=PaymentSettingsOut)
 async def get_payment_settings(admin: dict = Depends(require_admin)):
     rows = await db.fetch(
-        "SELECT key, value FROM app_settings WHERE key IN ('payment_method', 'payment_instructions')"
+        """
+        SELECT key, value FROM app_settings
+        WHERE key IN ('payment_method', 'payment_instructions',
+                      'manual_payment_details', 'manual_payment_enabled')
+        """
     )
     values = {r["key"]: r["value"] for r in rows}
     return PaymentSettingsOut(
         method=values.get("payment_method", "stars"),
         instructions=values.get("payment_instructions", ""),
+        manual_details=values.get("manual_payment_details", ""),
+        manual_enabled=values.get("manual_payment_enabled", "true") == "true",
+        bot_username=await notifications.get_bot_username(),
     )
 
 
@@ -221,25 +230,230 @@ async def update_payment_settings(
     payload: PaymentSettingsUpdate,
     admin: dict = Depends(require_admin),
 ):
-    if payload.method not in ("stars", "manual"):
-        raise HTTPException(status_code=400, detail="method must be 'stars' or 'manual'")
+    """To'lov usulini sozlash.
 
-    await db.execute(
-        """
-        INSERT INTO app_settings (key, value, updated_at) VALUES ('payment_method', $1, NOW())
-        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
-        """,
+    method:
+      stars  — faqat Telegram Stars (avtomatik, 30% komissiya)
+      manual — faqat qo'lda (ariza → admin tasdiqlaydi, 0% komissiya)
+      both   — ikkalasi ham (foydalanuvchi tanlaydi)
+    """
+    if payload.method not in ("stars", "manual", "both"):
+        raise HTTPException(
+            status_code=400, detail="method must be 'stars', 'manual' or 'both'"
+        )
+
+    settings_map = {
+        "payment_method": payload.method,
+        "payment_instructions": payload.instructions.strip(),
+        "manual_payment_details": payload.manual_details.strip(),
+        "manual_payment_enabled": "true" if payload.manual_enabled else "false",
+    }
+    for key, value in settings_map.items():
+        await db.execute(
+            """
+            INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+            ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+            """,
+            key,
+            value,
+        )
+
+    log.info(
+        "Admin %d payment settings o'zgartirdi: method=%s manual_enabled=%s",
+        admin["id"],
         payload.method,
+        payload.manual_enabled,
     )
-    await db.execute(
-        """
-        INSERT INTO app_settings (key, value, updated_at) VALUES ('payment_instructions', $1, NOW())
-        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+    return PaymentSettingsOut(
+        method=payload.method,
+        instructions=payload.instructions.strip(),
+        manual_details=payload.manual_details.strip(),
+        manual_enabled=payload.manual_enabled,
+        bot_username=await notifications.get_bot_username(),
+    )
+
+
+# ============================================================
+# Qo'lda to'lov arizalari — admin ko'radi, tasdiqlaydi/rad etadi
+# Tasdiqlanganda point AVTOMATIK tushadi + user'ga DM ketadi
+# ============================================================
+@router.get("/manual-payments", response_model=list[ManualPaymentOut])
+async def list_manual_payments(
+    status: str = "pending",
+    admin: dict = Depends(require_admin),
+):
+    """[FAQAT admin] Qo'lda to'lov arizalari ro'yxati.
+
+    status: pending | approved | rejected | all
+    """
+    if status == "all":
+        where_clause = ""
+        params = []
+    else:
+        where_clause = "WHERE mp.status = $1"
+        params = [status]
+
+    rows = await db.fetch(
+        f"""
+        SELECT mp.id, mp.user_id, mp.package_id, mp.package_label,
+               mp.points_amount, mp.price_eur, mp.payment_method,
+               mp.payment_note, mp.receipt_path, mp.status, mp.admin_note,
+               mp.created_at, mp.decided_at,
+               u.telegram_id, u.username, u.display_name
+        FROM manual_payments mp
+        JOIN users u ON u.id = mp.user_id
+        {where_clause}
+        ORDER BY mp.created_at DESC
+        LIMIT 200
         """,
-        payload.instructions.strip(),
+        *params,
     )
-    log.info("Admin %d payment settings o'zgartirdi: method=%s", admin["id"], payload.method)
-    return PaymentSettingsOut(method=payload.method, instructions=payload.instructions.strip())
+    return [
+        ManualPaymentOut(
+            **{k: v for k, v in dict(r).items() if k != "receipt_path"},
+            receipt_url=f"/uploads/{r['receipt_path'].split('/')[-1]}"
+            if r["receipt_path"]
+            else None,
+        )
+        for r in rows
+    ]
+
+
+@router.post("/manual-payments/{payment_id}/approve", response_model=OkResponse)
+async def approve_manual_payment(
+    payment_id: int,
+    payload: ManualPaymentDecision,
+    admin: dict = Depends(require_admin),
+):
+    """[FAQAT admin] Qo'lda to'lovni tasdiqlaydi — point AVTOMATIK tushadi.
+
+    Atomik: avval statusni 'approved' qilamiz (idempotentlik — ikki marta
+    bosilsa ikki marta point tushmasin), keyin point qo'shamiz.
+    """
+    # Faqat 'pending' arizani tasdiqlash mumkin — WHERE status='pending'
+    # bilan idempotentlik ta'minlanadi (ikkinchi bosishda 0 qator o'zgaradi)
+    pay = await db.fetchrow(
+        """
+        UPDATE manual_payments
+        SET status = 'approved', admin_note = $2, decided_by = $3, decided_at = NOW()
+        WHERE id = $1 AND status = 'pending'
+        RETURNING user_id, points_amount, price_eur, package_label, payment_method
+        """,
+        payment_id,
+        payload.admin_note.strip()[:500],
+        admin["id"],
+    )
+    if pay is None:
+        raise HTTPException(
+            status_code=404, detail="Заявка не найдена или уже обработана"
+        )
+
+    # Point qo'shamiz
+    result = await points_service.add_points(
+        pay["user_id"],
+        pay["points_amount"],
+        event_type="purchase",
+        description=f"Manual payment #{payment_id} — {pay['package_label']} (€{pay['price_eur']}, {pay['payment_method']})",
+    )
+    if not result["ok"]:
+        # Point qo'shilmasa statusni qaytaramiz (rollback)
+        await db.execute(
+            "UPDATE manual_payments SET status = 'pending', decided_at = NULL WHERE id = $1",
+            payment_id,
+        )
+        raise HTTPException(status_code=500, detail="Не удалось начислить поинты")
+
+    log.info(
+        "Admin %d manual payment #%d tasdiqladi: user=%d +%s point",
+        admin["id"],
+        payment_id,
+        pay["user_id"],
+        pay["points_amount"],
+    )
+
+    # Balansni darhol yangilash (WS) + DM xabar
+    await manager.broadcast(
+        "global",
+        {
+            "type": "points_update",
+            "data": {"user_id": pay["user_id"], "points": str(result["points"])},
+        },
+    )
+
+    tg_row = await db.fetchrow("SELECT telegram_id FROM users WHERE id = $1", pay["user_id"])
+    if tg_row:
+        asyncio.create_task(
+            notifications.notify_manual_payment_decided(
+                tg_row["telegram_id"],
+                approved=True,
+                points_amount=pay["points_amount"],
+                package_label=pay["package_label"],
+            )
+        )
+
+    return OkResponse(
+        detail={
+            "payment_id": payment_id,
+            "user_id": pay["user_id"],
+            "credited": str(pay["points_amount"]),
+            "new_balance": str(result["points"]),
+        }
+    )
+
+
+@router.post("/manual-payments/{payment_id}/reject", response_model=OkResponse)
+async def reject_manual_payment(
+    payment_id: int,
+    payload: ManualPaymentDecision,
+    admin: dict = Depends(require_admin),
+):
+    """[FAQAT admin] Qo'lda to'lov arizasini rad etadi (sabab bilan)."""
+    pay = await db.fetchrow(
+        """
+        UPDATE manual_payments
+        SET status = 'rejected', admin_note = $2, decided_by = $3, decided_at = NOW()
+        WHERE id = $1 AND status = 'pending'
+        RETURNING user_id, points_amount, package_label
+        """,
+        payment_id,
+        payload.admin_note.strip()[:500],
+        admin["id"],
+    )
+    if pay is None:
+        raise HTTPException(
+            status_code=404, detail="Заявка не найдена или уже обработана"
+        )
+
+    log.info(
+        "Admin %d manual payment #%d rad etdi: user=%d (sabab: %s)",
+        admin["id"],
+        payment_id,
+        pay["user_id"],
+        payload.admin_note[:100] or "—",
+    )
+
+    tg_row = await db.fetchrow("SELECT telegram_id FROM users WHERE id = $1", pay["user_id"])
+    if tg_row:
+        asyncio.create_task(
+            notifications.notify_manual_payment_decided(
+                tg_row["telegram_id"],
+                approved=False,
+                points_amount=pay["points_amount"],
+                package_label=pay["package_label"],
+                admin_note=payload.admin_note.strip(),
+            )
+        )
+
+    return OkResponse(detail={"payment_id": payment_id, "status": "rejected"})
+
+
+@router.get("/manual-payments/pending-count")
+async def manual_payments_pending_count(admin: dict = Depends(require_admin)):
+    """[FAQAT admin] Kutilayotgan arizalar soni — admin panel badge uchun."""
+    count = await db.fetchval(
+        "SELECT COUNT(*) FROM manual_payments WHERE status = 'pending'"
+    )
+    return {"count": count or 0}
 
 
 # ============================================================

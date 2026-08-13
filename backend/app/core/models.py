@@ -99,13 +99,55 @@ class PurchaseRequest(BaseModel):
 
 
 class PaymentSettingsOut(BaseModel):
-    method: str  # stars | manual
+    method: str  # stars | manual | both
     instructions: str = ""
+    # Manual to'lov uchun rekvizitlar (bank hisob, karta raqami va h.k.)
+    manual_details: str = ""
+    manual_enabled: bool = True
+    # Bot username (@ belgisiz) — Stars to'lovi uchun deep-link yasashda kerak.
+    # Hardcode qilinmasin: backend BOT_USERNAME env yoki getMe orqali aniqlaydi.
+    bot_username: str = ""
 
 
 class PaymentSettingsUpdate(BaseModel):
-    method: str  # stars | manual
+    method: str  # stars | manual | both
     instructions: str = ""
+    manual_details: str = ""
+    manual_enabled: bool = True
+
+
+# ============ Qo'lda to'lov (manual payment) ============
+class ManualPaymentCreate(BaseModel):
+    """Foydalanuvchi qo'lda to'lov arizasi yuboradi."""
+
+    package_id: int
+    payment_method: Literal["bank", "card", "cash", "crypto", "other"] = "bank"
+    payment_note: str = ""  # tranzaksiya raqami, izoh
+
+
+class ManualPaymentOut(BaseModel):
+    id: int
+    user_id: int
+    telegram_id: int | None = None
+    username: str | None = None
+    display_name: str | None = None
+    package_id: int | None = None
+    package_label: str = ""
+    points_amount: Decimal
+    price_eur: Decimal
+    payment_method: str
+    payment_note: str = ""
+    receipt_url: str | None = None
+    status: str
+    admin_note: str = ""
+    created_at: datetime
+    decided_at: datetime | None = None
+
+
+class ManualPaymentDecision(BaseModel):
+    """Admin arizani tasdiqlaydi yoki rad etadi."""
+
+    admin_note: str = ""
 
 
 class PackageCreate(BaseModel):

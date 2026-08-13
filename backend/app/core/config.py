@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # ── Telegram ──
     bot_token: str = ""
+    bot_username: str = ""  # @ belgisiz, masalan: intra_group_bot (deep-link uchun)
     admin_ids: str = ""
     community_chat_id: str = ""
     disable_group_check: bool = True

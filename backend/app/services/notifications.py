@@ -39,6 +39,42 @@ async def send_dm(telegram_id: int, text: str) -> bool:
         return False
 
 
+_bot_username_cache: str | None = None
+
+
+async def get_bot_username() -> str:
+    """Bot username'ini (@ belgisiz) qaytaradi.
+
+    Frontend Stars to'lovi uchun `t.me/<bot>?start=buy_N` deep-link yasaydi,
+    shuning uchun username hardcode qilinmasligi kerak. Avval BOT_USERNAME env,
+    aks holda Telegram getMe orqali bir marta aniqlanadi va kesh qilinadi.
+    """
+    global _bot_username_cache
+    if _bot_username_cache is not None:
+        return _bot_username_cache
+
+    env_name = os.getenv("BOT_USERNAME", "").strip().lstrip("@")
+    if env_name:
+        _bot_username_cache = env_name
+        return env_name
+
+    if not BOT_TOKEN:
+        return ""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/getMe", timeout=10
+            )
+        data = resp.json()
+        if data.get("ok"):
+            _bot_username_cache = data["result"].get("username", "") or ""
+            log.info("[notifications] bot username aniqlandi: @%s", _bot_username_cache)
+            return _bot_username_cache
+    except Exception as exc:  # noqa: BLE001
+        log.warning("[notifications] getMe xato: %s", exc)
+    return ""
+
+
 async def notify_points_received_tg(telegram_id: int, amount: Decimal, reason: str = "") -> None:
     """telegram_id allaqachon ma'lum bo'lganda (masalan transfer — payload
     o'zi telegram_id) — qo'shimcha DB so'rovisiz to'g'ridan-to'g'ri yuboradi."""
@@ -108,3 +144,69 @@ async def notify_admins_new_casting(display_name: str) -> None:
     ids = {r["telegram_id"] for r in rows} | settings.admin_ids_set
     for tg_id in ids:
         await send_dm(tg_id, text)
+
+
+_PAYMENT_METHOD_LABELS = {
+    "bank": "банковский перевод",
+    "card": "карта",
+    "cash": "наличные",
+    "crypto": "криптовалюта",
+    "other": "другое",
+}
+
+
+async def notify_admins_manual_payment(
+    user_name: str,
+    telegram_id: int,
+    package_label: str,
+    price_eur: float,
+    method: str,
+    note: str = "",
+) -> None:
+    """Yangi qo'lda to'lov arizasi — barcha adminlarga DM.
+
+    Manual to'lov admin tasdiqlashini kutadi, shuning uchun admin darhol
+    bilishi kerak (mini app ochiq bo'lmasa ham). Faqat haqiqiy adminlarga
+    (role='admin' + ADMIN_IDS) — moderator to'lovni tasdiqlay olmaydi.
+    """
+    from app.core.config import settings
+
+    method_label = _PAYMENT_METHOD_LABELS.get(method, method)
+    text = (
+        f"💳 Новая заявка на оплату вручную\n\n"
+        f"👤 {user_name} (ID {telegram_id})\n"
+        f"📦 {package_label} — €{price_eur:.2f}\n"
+        f"💰 Способ: {method_label}\n"
+    )
+    if note:
+        text += f"📝 {note}\n"
+    text += "\nПроверьте в админ-панели → Оплата → Заявки."
+
+    rows = await db.fetch("SELECT telegram_id FROM users WHERE role = 'admin'")
+    ids = {r["telegram_id"] for r in rows} | settings.admin_ids_set
+    for tg_id in ids:
+        await send_dm(tg_id, text)
+
+
+async def notify_manual_payment_decided(
+    telegram_id: int,
+    approved: bool,
+    points_amount: Decimal,
+    package_label: str,
+    admin_note: str = "",
+) -> None:
+    """Admin qo'lda to'lov arizasini hal qilganda foydalanuvchiga DM."""
+    if approved:
+        text = (
+            f"✅ Оплата подтверждена!\n\n"
+            f"📦 {package_label}\n"
+            f"💰 Начислено: +{points_amount} поинтов\n\n"
+            f"Спасибо за поддержку! 🎙"
+        )
+    else:
+        text = f"❌ Заявка на оплату отклонена\n\n📦 {package_label}\n"
+        if admin_note:
+            text += f"\n📝 Причина: {admin_note}\n"
+        text += "\nЕсли это ошибка — свяжитесь с администратором."
+
+    await send_dm(telegram_id, text)

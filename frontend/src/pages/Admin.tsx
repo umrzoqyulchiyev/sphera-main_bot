@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search, Upload, UserPlus } from 'lucide-react';
+import { Plus, X, Users, MessageSquare, Lock, Loader, Sparkles, CheckCircle, XCircle, Calendar, Music, ArrowLeft, Mic, CreditCard, Trash2, Search, Upload, UserPlus, Check, RefreshCw } from 'lucide-react';
 import {
   adminCreateTopic, adminGetTopics, adminCloseTopic,
   getUsers, adminSetLevel, adminSetStaffRole, adminAddPoints, getMe,
@@ -10,29 +10,20 @@ import {
   adminListPackages, adminCreatePackage, adminUpdatePackage, adminDeletePackage,
   adminGetPricing, adminUpdatePricing,
   getDefaultMusic, uploadDefaultMusic, deleteDefaultMusic,
+  adminListManualPayments, adminApproveManualPayment, adminRejectManualPayment,
   type BroadcastSlot, type MusicNomination, type StaffRole, type Pricing,
+  adminDeleteUser,
 } from '../lib/api';
-import { API_URL } from '../lib/config';
-
-// Admin: user o'chirish (backend /admin/users/{id} DELETE)
-async function adminDeleteUser(userId: number): Promise<void> {
-  const { authHeaders } = await import('../lib/auth');
-  const resp = await fetch(`${API_URL}/admin/users/${userId}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  if (!resp.ok) {
-    const e = await resp.json().catch(() => ({}));
-    throw new Error(typeof e.detail === 'string' ? e.detail : 'Delete failed');
-  }
-}
 import type { User } from '../types';
 import { GlitchText } from '../components/ui/GlitchText';
 import { authHeaders, getToken } from '../lib/auth';
 import { API_URL } from '../lib/config';
 import { getLang } from '../lib/i18n';
 import { useWebSocket } from '../hooks/useWebSocket';
-import type { PaymentSettings, AdminPackage } from '../types';
+import type { PaymentSettings, AdminPackage, ManualPayment } from '../types';
+
+// To'lov usuli: stars (avtomatik) | manual (ariza) | both (ikkalasi)
+type PayMethod = 'stars' | 'manual' | 'both';
 
 interface Topic {
   id: number; title: string; description: string;
@@ -86,6 +77,21 @@ const L: Record<string, Record<string, string>> = {
     payment_manual: '✉️ Вручную', payment_manual_desc: 'Кнопка «Купить» покажет пользователю ваши инструкции/контакт',
     payment_instructions_label: 'Инструкция для пользователя (если «Вручную»)',
     payment_instructions_placeholder: 'Например: напишите @admin_username, чтобы купить поинты картой или переводом',
+    payment_both: '⭐+✉️ Оба способа', payment_both_desc: 'Пользователь сам выбирает: Stars или заявка на ручную оплату',
+    manual_details_label: 'Реквизиты для оплаты (видит пользователь)',
+    manual_details_placeholder: 'IBAN: LT12 3456 7890\nПолучатель: INTRA GROUP UAB\nИли карта: 1234 5678 9012 3456',
+    manual_enabled_label: 'Приём заявок на ручную оплату',
+    manual_requests_title: 'Заявки на ручную оплату',
+    manual_no_requests: 'Нет заявок',
+    manual_filter_pending: 'Ожидают', manual_filter_approved: 'Подтверждены',
+    manual_filter_rejected: 'Отклонены', manual_filter_all: 'Все',
+    manual_approve: 'Подтвердить', manual_reject: 'Отклонить',
+    manual_note_label: 'Комментарий администратора (причина отказа)',
+    manual_note_ph: 'Например: платёж не найден',
+    manual_approve_confirm: 'Подтвердить оплату? Поинты будут начислены пользователю автоматически.',
+    manual_reject_confirm: 'Отклонить заявку? Пользователь получит уведомление.',
+    manual_user_note: 'Комментарий пользователя',
+    mm_bank: 'Банк. перевод', mm_card: 'Карта', mm_cash: 'Наличные', mm_crypto: 'Крипто', mm_other: 'Другое',
     save: 'Сохранить', saved: 'Сохранено', packages_title: 'Пакеты поинтов',
     package_label: 'Название', package_points: 'Поинты', package_price: 'Цена €',
     package_price_stars: 'Цена ⭐',
@@ -136,6 +142,21 @@ const L: Record<string, Record<string, string>> = {
     payment_manual: '✉️ Manual', payment_manual_desc: 'The "Buy" button will show your instructions/contact to users',
     payment_instructions_label: 'Instructions for users (if "Manual")',
     payment_instructions_placeholder: 'e.g. message @admin_username to buy points by card or transfer',
+    payment_both: '⭐+✉️ Both methods', payment_both_desc: 'User chooses: Stars or a manual payment request',
+    manual_details_label: 'Payment details (visible to users)',
+    manual_details_placeholder: 'IBAN: LT12 3456 7890\nBeneficiary: INTRA GROUP UAB\nOr card: 1234 5678 9012 3456',
+    manual_enabled_label: 'Accept manual payment requests',
+    manual_requests_title: 'Manual payment requests',
+    manual_no_requests: 'No requests',
+    manual_filter_pending: 'Pending', manual_filter_approved: 'Approved',
+    manual_filter_rejected: 'Rejected', manual_filter_all: 'All',
+    manual_approve: 'Approve', manual_reject: 'Reject',
+    manual_note_label: 'Admin comment (rejection reason)',
+    manual_note_ph: 'e.g. payment not found',
+    manual_approve_confirm: 'Approve payment? Points will be credited to the user automatically.',
+    manual_reject_confirm: 'Reject request? The user will be notified.',
+    manual_user_note: 'User comment',
+    mm_bank: 'Bank transfer', mm_card: 'Card', mm_cash: 'Cash', mm_crypto: 'Crypto', mm_other: 'Other',
     save: 'Save', saved: 'Saved', packages_title: 'Point packages',
     package_label: 'Label', package_points: 'Points', package_price: 'Price €',
     package_price_stars: 'Price ⭐',
@@ -186,6 +207,21 @@ const L: Record<string, Record<string, string>> = {
     payment_manual: '✉️ Rankiniu būdu', payment_manual_desc: 'Mygtukas „Pirkti“ parodys vartotojui jūsų instrukcijas/kontaktą',
     payment_instructions_label: 'Instrukcija vartotojui (jei „Rankiniu būdu“)',
     payment_instructions_placeholder: 'Pvz.: rašykite @admin_username, kad nusipirktumėte taškų kortele ar pervedimu',
+    payment_both: '⭐+✉️ Abu būdai', payment_both_desc: 'Vartotojas pasirenka: Stars arba rankinio mokėjimo užklausa',
+    manual_details_label: 'Mokėjimo rekvizitai (mato vartotojas)',
+    manual_details_placeholder: 'IBAN: LT12 3456 7890\nGavėjas: INTRA GROUP UAB\nArba kortelė: 1234 5678 9012 3456',
+    manual_enabled_label: 'Priimti rankinio mokėjimo užklausas',
+    manual_requests_title: 'Rankinio mokėjimo užklausos',
+    manual_no_requests: 'Užklausų nėra',
+    manual_filter_pending: 'Peržiūrimos', manual_filter_approved: 'Patvirtintos',
+    manual_filter_rejected: 'Atmestos', manual_filter_all: 'Visos',
+    manual_approve: 'Patvirtinti', manual_reject: 'Atmesti',
+    manual_note_label: 'Administratoriaus komentaras (atmetimo priežastis)',
+    manual_note_ph: 'Pvz.: mokėjimas nerastas',
+    manual_approve_confirm: 'Patvirtinti mokėjimą? Taškai bus priskirti vartotojui automatiškai.',
+    manual_reject_confirm: 'Atmesti užklausą? Vartotojas gaus pranešimą.',
+    manual_user_note: 'Vartotojo komentaras',
+    mm_bank: 'Banko pervedimas', mm_card: 'Kortelė', mm_cash: 'Grynais', mm_crypto: 'Krypto', mm_other: 'Kita',
     save: 'Išsaugoti', saved: 'Išsaugota', packages_title: 'Taškų paketai',
     package_label: 'Pavadinimas', package_points: 'Taškai', package_price: 'Kaina €',
     package_price_stars: 'Kaina ⭐',
@@ -1269,67 +1305,105 @@ function PaymentTab({ tx, settings, packages, pricing, flash, onReload }: {
   tx: any; settings: PaymentSettings | null; packages: AdminPackage[]; pricing: Pricing | null;
   flash: (m: string) => void; onReload: () => Promise<void>;
 }) {
-  const [method, setMethod] = useState<'stars' | 'manual'>(settings?.method || 'stars');
+  const [method, setMethod] = useState<PayMethod>(settings?.method || 'stars');
   const [instructions, setInstructions] = useState(settings?.instructions || '');
+  const [manualDetails, setManualDetails] = useState(settings?.manual_details || '');
+  const [manualEnabled, setManualEnabled] = useState(settings?.manual_enabled ?? true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setMethod(settings?.method || 'stars');
     setInstructions(settings?.instructions || '');
+    setManualDetails(settings?.manual_details || '');
+    setManualEnabled(settings?.manual_enabled ?? true);
   }, [settings]);
 
-  async function saveSettings(newMethod?: 'stars' | 'manual') {
+  // Barcha sozlamalar bitta PUT bilan saqlanadi — shuning uchun har
+  // o'zgarishda joriy holatni to'liq yuboramiz (aks holda bo'shlar o'chib ketadi).
+  async function saveSettings(over: Partial<{ method: PayMethod; manualEnabled: boolean }> = {}) {
     setSaving(true);
     try {
-      await adminUpdatePaymentSettings(newMethod || method, instructions);
+      await adminUpdatePaymentSettings(
+        over.method ?? method,
+        instructions,
+        manualDetails,
+        over.manualEnabled ?? manualEnabled,
+      );
       flash('✅ ' + tx('saved'));
       await onReload();
     } catch { flash('❌'); }
     finally { setSaving(false); }
   }
 
+  const methodOptions: { key: PayMethod; title: string; desc: string }[] = [
+    { key: 'stars', title: tx('payment_stars'), desc: tx('payment_stars_desc') },
+    { key: 'manual', title: tx('payment_manual'), desc: tx('payment_manual_desc') },
+    { key: 'both', title: tx('payment_both'), desc: tx('payment_both_desc') },
+  ];
+  const manualVisible = method === 'manual' || method === 'both';
+
   return (
     <div className="flex flex-col gap-4">
       <div className="glass rounded-2xl p-4">
         <div className="text-[11px] font-bold text-[#E0263A] uppercase tracking-wide mb-3">{tx('payment_method_title')}</div>
         <div className="flex flex-col gap-2">
-          <button
-            onClick={() => { setMethod('stars'); saveSettings('stars'); }}
-            className="text-left rounded-xl p-3 border transition-all"
-            style={method === 'stars'
-              ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.1)' }
-              : { borderColor: 'rgba(224,38,58,0.14)' }}
-          >
-            <div className="text-sm font-bold text-[#1A1310]">{tx('payment_stars')}</div>
-            <div className="text-[11px] text-[#6b5f4f] mt-0.5">{tx('payment_stars_desc')}</div>
-          </button>
-          <button
-            onClick={() => { setMethod('manual'); saveSettings('manual'); }}
-            className="text-left rounded-xl p-3 border transition-all"
-            style={method === 'manual'
-              ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.1)' }
-              : { borderColor: 'rgba(224,38,58,0.14)' }}
-          >
-            <div className="text-sm font-bold text-[#1A1310]">{tx('payment_manual')}</div>
-            <div className="text-[11px] text-[#6b5f4f] mt-0.5">{tx('payment_manual_desc')}</div>
-          </button>
+          {methodOptions.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => { setMethod(o.key); saveSettings({ method: o.key }); }}
+              className="text-left rounded-xl p-3 border transition-all"
+              style={method === o.key
+                ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.1)' }
+                : { borderColor: 'rgba(224,38,58,0.14)' }}
+            >
+              <div className="text-sm font-bold text-[#1A1310]">{o.title}</div>
+              <div className="text-[11px] text-[#6b5f4f] mt-0.5">{o.desc}</div>
+            </button>
+          ))}
         </div>
 
-        {method === 'manual' && (
-          <div className="mt-3">
-            <label className="text-[10px] text-[#6b5f4f] uppercase tracking-wide">{tx('payment_instructions_label')}</label>
-            <textarea
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder={tx('payment_instructions_placeholder')}
-              rows={3}
-              className="w-full mt-1.5 rounded-xl px-3 py-2.5 text-sm text-[#1A1310] outline-none resize-none"
-              style={{ background: 'rgba(255,251,240,0.7)', border: '1px solid rgba(224,38,58,0.18)' }}
-            />
+        {manualVisible && (
+          <div className="mt-3 flex flex-col gap-3">
+            {/* Qo'lda to'lov arizalarini qabul qilish yoqilgan/o'chirilgan */}
+            <label className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 cursor-pointer"
+              style={{ background: 'rgba(255,251,240,0.7)', border: '1px solid rgba(224,38,58,0.18)' }}>
+              <span className="text-xs font-semibold text-[#1A1310]">{tx('manual_enabled_label')}</span>
+              <input
+                type="checkbox"
+                checked={manualEnabled}
+                onChange={(e) => { setManualEnabled(e.target.checked); saveSettings({ manualEnabled: e.target.checked }); }}
+                className="w-4 h-4 accent-[#E0263A]"
+              />
+            </label>
+
+            <div>
+              <label className="text-[10px] text-[#6b5f4f] uppercase tracking-wide">{tx('manual_details_label')}</label>
+              <textarea
+                value={manualDetails}
+                onChange={(e) => setManualDetails(e.target.value)}
+                placeholder={tx('manual_details_placeholder')}
+                rows={4}
+                className="w-full mt-1.5 rounded-xl px-3 py-2.5 text-sm text-[#1A1310] outline-none resize-none"
+                style={{ background: 'rgba(255,251,240,0.7)', border: '1px solid rgba(224,38,58,0.18)' }}
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-[#6b5f4f] uppercase tracking-wide">{tx('payment_instructions_label')}</label>
+              <textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={tx('payment_instructions_placeholder')}
+                rows={3}
+                className="w-full mt-1.5 rounded-xl px-3 py-2.5 text-sm text-[#1A1310] outline-none resize-none"
+                style={{ background: 'rgba(255,251,240,0.7)', border: '1px solid rgba(224,38,58,0.18)' }}
+              />
+            </div>
+
             <button
               onClick={() => saveSettings()}
               disabled={saving}
-              className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold text-[#FFFBF0] disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl text-xs font-bold text-[#FFFBF0] disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, #ff4f63, #E0263A)' }}
             >
               {saving ? <Loader className="w-3.5 h-3.5 animate-spin mx-auto" /> : tx('save')}
@@ -1338,9 +1412,183 @@ function PaymentTab({ tx, settings, packages, pricing, flash, onReload }: {
         )}
       </div>
 
+      <ManualPaymentsPanel tx={tx} flash={flash} />
+
       <PackagesEditor tx={tx} packages={packages} flash={flash} onReload={onReload} />
 
       <PricingEditor tx={tx} pricing={pricing} flash={flash} onReload={onReload} />
+    </div>
+  );
+}
+
+// ── ManualPaymentsPanel — qo'lda to'lov arizalarini tasdiqlash/rad etish ──
+// Tasdiqlansa backend point'ni AVTOMATIK qo'shadi va userga DM yuboradi.
+function ManualPaymentsPanel({ tx, flash }: { tx: any; flash: (m: string) => void }) {
+  type Filter = 'pending' | 'approved' | 'rejected' | 'all';
+  const [filter, setFilter] = useState<Filter>('pending');
+  const [items, setItems] = useState<ManualPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: number; approve: boolean } | null>(null);
+
+  async function load(f: Filter = filter) {
+    setLoading(true);
+    try { setItems(await adminListManualPayments(f)); }
+    catch { setItems([]); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(filter); }, [filter]);
+
+  async function decide(id: number, approve: boolean) {
+    setBusyId(id);
+    try {
+      const note = (notes[id] || '').trim();
+      if (approve) await adminApproveManualPayment(id, note);
+      else await adminRejectManualPayment(id, note);
+      flash('✅ ' + tx('saved'));
+      setNotes((n) => { const c = { ...n }; delete c[id]; return c; });
+      await load(filter);
+    } catch (e: any) { flash('❌ ' + (e?.message || '')); }
+    finally { setBusyId(null); }
+  }
+
+  const filters: { key: Filter; label: string }[] = [
+    { key: 'pending', label: tx('manual_filter_pending') },
+    { key: 'approved', label: tx('manual_filter_approved') },
+    { key: 'rejected', label: tx('manual_filter_rejected') },
+    { key: 'all', label: tx('manual_filter_all') },
+  ];
+  const pendingCount = filter === 'pending' ? items.length : 0;
+
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[11px] font-bold text-[#E0263A] uppercase tracking-wide">
+          {tx('manual_requests_title')}
+          {pendingCount > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] text-[#FFFBF0]" style={{ background: '#E0263A' }}>
+              {pendingCount}
+            </span>
+          )}
+        </div>
+        <button onClick={() => load(filter)} className="p-1.5 rounded-lg bg-[rgba(224,38,58,0.1)] text-[#E0263A]">
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        {filters.map((f) => (
+          <button key={f.key}
+            onClick={() => setFilter(f.key)}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all"
+            style={filter === f.key
+              ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.12)', color: '#E0263A' }
+              : { borderColor: 'rgba(224,38,58,0.14)', color: '#6b5f4f' }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="py-6 text-center"><Loader className="w-4 h-4 animate-spin mx-auto text-[#E0263A]" /></div>
+      ) : items.length === 0 ? (
+        <div className="py-6 text-center text-xs text-[#6b5f4f]">{tx('manual_no_requests')}</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map((p) => {
+            const isPending = p.status === 'pending';
+            return (
+              <div key={p.id} className="rounded-xl p-3"
+                style={{ background: 'rgba(255,251,240,0.5)', border: '1px solid rgba(224,38,58,0.14)' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-[#1A1310] truncate">
+                      {p.display_name || p.username || `ID ${p.telegram_id}`}
+                    </div>
+                    <div className="text-[11px] text-[#6b5f4f] font-mono">
+                      {p.telegram_id}{p.username ? ` · @${p.username}` : ''}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold text-[#E0263A]">€{Number(p.price_eur).toFixed(2)}</div>
+                    <div className="text-[11px] text-[#6b5f4f] font-mono">{Number(p.points_amount).toFixed(0)} pts</div>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-md text-[#1A1310]" style={{ background: 'rgba(26,19,16,0.08)' }}>
+                    {p.package_label}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md text-[#1A1310]" style={{ background: 'rgba(26,19,16,0.08)' }}>
+                    {tx(`mm_${p.payment_method}`)}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md font-semibold"
+                    style={isPending
+                      ? { background: 'rgba(255,193,7,0.18)', color: '#8a6d00' }
+                      : p.status === 'approved'
+                      ? { background: 'rgba(28,63,214,0.12)', color: '#1C3FD6' }
+                      : { background: 'rgba(224,38,58,0.12)', color: '#E0263A' }}>
+                    {tx(`manual_filter_${p.status === 'pending' ? 'pending' : p.status === 'approved' ? 'approved' : 'rejected'}`)}
+                  </span>
+                  <span className="text-[#6b5f4f]">{new Date(p.created_at).toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                  })}</span>
+                </div>
+
+                {p.payment_note && (
+                  <div className="mt-2 text-[11px] text-[#1A1310] whitespace-pre-line rounded-lg px-2.5 py-2"
+                    style={{ background: 'rgba(26,19,16,0.05)' }}>
+                    <span className="text-[#6b5f4f]">{tx('manual_user_note')}: </span>{p.payment_note}
+                  </div>
+                )}
+
+                {!isPending && p.admin_note && (
+                  <div className="mt-1.5 text-[11px] text-[#6b5f4f] whitespace-pre-line">💬 {p.admin_note}</div>
+                )}
+
+                {isPending && (
+                  <>
+                    <input
+                      value={notes[p.id] || ''}
+                      onChange={(e) => setNotes((n) => ({ ...n, [p.id]: e.target.value }))}
+                      placeholder={tx('manual_note_ph')}
+                      className="w-full mt-2 rounded-lg px-2.5 py-2 text-xs text-[#1A1310] outline-none"
+                      style={{ background: 'rgba(255,251,240,0.8)', border: '1px solid rgba(224,38,58,0.18)' }}
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => setConfirmAction({ id: p.id, approve: true })}
+                        disabled={busyId === p.id}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50"
+                        style={{ background: 'rgba(28,63,214,0.15)', color: '#1C3FD6' }}>
+                        <Check className="w-3.5 h-3.5" /> {tx('manual_approve')}
+                      </button>
+                      <button
+                        onClick={() => setConfirmAction({ id: p.id, approve: false })}
+                        disabled={busyId === p.id}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50"
+                        style={{ background: 'rgba(224,38,58,0.12)', color: '#E0263A' }}>
+                        <X className="w-3.5 h-3.5" /> {tx('manual_reject')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmAction && (
+        <ConfirmModal
+          tx={tx}
+          message={tx(confirmAction.approve ? 'manual_approve_confirm' : 'manual_reject_confirm')}
+          onConfirm={() => { const a = confirmAction; setConfirmAction(null); decide(a.id, a.approve); }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }

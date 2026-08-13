@@ -3,6 +3,7 @@ import { authHeaders } from './auth';
 import type {
   User, RadioStatus, ChatMessage, Announcements, AudioSegment,
   News, PointsRequest, PointPackage, PointsTransaction, PaymentSettings, AdminPackage, ChatRoom,
+  ManualPayment, ManualPaymentMethod,
 } from '../types';
 
 // ============ Users / Profile ============
@@ -158,6 +159,91 @@ export async function getCryptoBotInvoice(package_id: number): Promise<{
     throw new Error(e.detail || 'CryptoBot invoice failed');
   }
   return resp.json();
+}
+
+// ============ Qo'lda to'lov (manual payment) ============
+// Foydalanuvchi bank/karta orqali to'laydi → ariza yuboradi → admin tasdiqlaydi
+
+export async function createManualPayment(data: {
+  package_id: number;
+  payment_method: ManualPaymentMethod;
+  payment_note: string;
+}) {
+  const resp = await fetch(`${API_URL}/users/me/points/manual-payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Не удалось отправить заявку');
+  }
+  return resp.json();
+}
+
+export async function getMyManualPayments(): Promise<ManualPayment[]> {
+  const resp = await fetch(`${API_URL}/users/me/points/manual-payments`, {
+    headers: authHeaders(), cache: 'no-store',
+  });
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
+export async function cancelManualPayment(paymentId: number) {
+  const resp = await fetch(`${API_URL}/users/me/points/manual-payment/${paymentId}`, {
+    method: 'DELETE', headers: authHeaders(),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Не удалось отменить');
+  }
+  return resp.json();
+}
+
+// ── Admin: qo'lda to'lov arizalarini boshqarish ──
+export async function adminListManualPayments(
+  status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending'
+): Promise<ManualPayment[]> {
+  const resp = await fetch(`${API_URL}/admin/manual-payments?status=${status}`, {
+    headers: authHeaders(), cache: 'no-store',
+  });
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
+export async function adminApproveManualPayment(paymentId: number, adminNote = '') {
+  const resp = await fetch(`${API_URL}/admin/manual-payments/${paymentId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ admin_note: adminNote }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Не удалось подтвердить');
+  }
+  return resp.json();
+}
+
+export async function adminRejectManualPayment(paymentId: number, adminNote = '') {
+  const resp = await fetch(`${API_URL}/admin/manual-payments/${paymentId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ admin_note: adminNote }),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Не удалось отклонить');
+  }
+  return resp.json();
+}
+
+export async function adminGetManualPaymentsPendingCount(): Promise<number> {
+  const resp = await fetch(`${API_URL}/admin/manual-payments/pending-count`, {
+    headers: authHeaders(), cache: 'no-store',
+  });
+  if (!resp.ok) return 0;
+  const data = await resp.json().catch(() => ({ count: 0 }));
+  return data.count || 0;
 }
 
 // ============ Radio ============
@@ -468,11 +554,33 @@ export async function adminGetPaymentSettings(): Promise<PaymentSettings> {
   return resp.json();
 }
 
-export async function adminUpdatePaymentSettings(method: 'stars' | 'manual', instructions: string): Promise<PaymentSettings> {
+// Admin: foydalanuvchini butunlay o'chirish (CASCADE — barcha bog'liq ma'lumot bilan)
+export async function adminDeleteUser(userId: number): Promise<void> {
+  const resp = await fetch(`${API_URL}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Delete failed');
+  }
+}
+
+export async function adminUpdatePaymentSettings(
+  method: 'stars' | 'manual' | 'both',
+  instructions: string,
+  manualDetails = '',
+  manualEnabled = true,
+): Promise<PaymentSettings> {
   const resp = await fetch(`${API_URL}/admin/settings/payment`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ method, instructions }),
+    body: JSON.stringify({
+      method,
+      instructions,
+      manual_details: manualDetails,
+      manual_enabled: manualEnabled,
+    }),
   });
   if (!resp.ok) throw new Error('Failed to update payment settings');
   return resp.json();

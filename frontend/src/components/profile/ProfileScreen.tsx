@@ -3,16 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import {
   Check, X, Award, Globe, IdCard, User as UserIcon, AtSign, Focus, Smile, Tag,
   ArrowDown, ArrowUp, Edit, ShoppingCart, ChevronRight, History, ArrowUpRight, ArrowDownLeft,
-  Gift, MessageSquare, Mic, Radio, Music, type LucideIcon,
+  Gift, MessageSquare, Mic, Radio, Music, Clock, Trash2, type LucideIcon,
 } from 'lucide-react';
 import {
   updateProfile, transferPoints, requestPoints, getMyRequests,
   decideRequest, getPackages, getMe, updateLanguage, getPointsHistory, getPaymentMethod,
+  createManualPayment, getMyManualPayments, cancelManualPayment,
 } from '../../lib/api';
 import { getLang, setLang as setI18nLang } from '../../lib/i18n';
 import { LanguageSelector } from '../announcements/LanguageSelector';
 import { GlitchText } from '../ui/GlitchText';
-import type { User, PointsRequest, PointPackage, Language, PointsTransaction, PaymentSettings } from '../../types';
+import type {
+  User, PointsRequest, PointPackage, Language, PointsTransaction, PaymentSettings,
+  ManualPayment, ManualPaymentMethod,
+} from '../../types';
 
 interface ProfileScreenProps {
   user: User | null;
@@ -37,6 +41,26 @@ const L: Record<string, Record<string, string>> = {
     tx_music_nominate: 'Номинация трека', tx_music_vote: 'Голос за трек',
     tx_slot_booking: 'Оплата слота эфира', tx_other: 'Операция',
     buy_manual_intro: 'Автоматическая оплата пока недоступна. Свяжитесь с администратором по инструкции ниже.',
+    buy_stars_intro: 'Оплата проходит через бота безопасно (Telegram Payments). Нажмите на пакет — откроется бот.',
+    pay_stars: '⭐ Stars', pay_manual: '✉️ Вручную',
+    manual_intro: 'Переведите сумму по реквизитам ниже, затем отправьте заявку. Администратор проверит и начислит поинты.',
+    manual_details_title: 'Реквизиты для оплаты',
+    manual_no_details: 'Администратор ещё не указал реквизиты. Свяжитесь с ним напрямую.',
+    manual_select_pkg: 'Выберите пакет',
+    manual_method: 'Способ оплаты',
+    manual_bank: 'Банковский перевод', manual_card: 'Карта', manual_cash: 'Наличные',
+    manual_crypto: 'Криптовалюта', manual_other: 'Другое',
+    manual_note: 'Комментарий (номер транзакции, время оплаты)',
+    manual_note_ph: 'Например: перевод 15.03 в 14:30, чек №12345',
+    manual_send: 'Отправить заявку',
+    manual_sent: 'Заявка отправлена! Ожидайте подтверждения.',
+    manual_pending_title: 'Заявка на рассмотрении',
+    manual_cancel: 'Отменить заявку',
+    manual_cancelled: 'Заявка отменена',
+    manual_history: 'Мои заявки',
+    st_pending: 'На рассмотрении', st_approved: 'Подтверждена', st_rejected: 'Отклонена',
+    manual_disabled: 'Ручная оплата временно отключена',
+    manual_need_note: 'Укажите комментарий к оплате',
   },
   en: {
     balance: 'Your balance', points: 'Points', level: 'Level', language: 'Language', id: 'ID',
@@ -54,6 +78,26 @@ const L: Record<string, Record<string, string>> = {
     tx_music_nominate: 'Track nomination', tx_music_vote: 'Track vote',
     tx_slot_booking: 'Broadcast slot payment', tx_other: 'Transaction',
     buy_manual_intro: 'Automatic payment is not available yet. Please contact the admin using the instructions below.',
+    buy_stars_intro: 'Payment goes through the bot securely (Telegram Payments). Tap a package to open the bot.',
+    pay_stars: '⭐ Stars', pay_manual: '✉️ Manual',
+    manual_intro: 'Transfer the amount using the details below, then submit a request. The admin will verify and credit your points.',
+    manual_details_title: 'Payment details',
+    manual_no_details: 'The admin has not added payment details yet. Please contact them directly.',
+    manual_select_pkg: 'Select a package',
+    manual_method: 'Payment method',
+    manual_bank: 'Bank transfer', manual_card: 'Card', manual_cash: 'Cash',
+    manual_crypto: 'Cryptocurrency', manual_other: 'Other',
+    manual_note: 'Comment (transaction number, payment time)',
+    manual_note_ph: 'e.g. transfer on 15.03 at 14:30, receipt #12345',
+    manual_send: 'Submit request',
+    manual_sent: 'Request submitted! Please wait for confirmation.',
+    manual_pending_title: 'Request under review',
+    manual_cancel: 'Cancel request',
+    manual_cancelled: 'Request cancelled',
+    manual_history: 'My requests',
+    st_pending: 'Under review', st_approved: 'Approved', st_rejected: 'Rejected',
+    manual_disabled: 'Manual payment is temporarily disabled',
+    manual_need_note: 'Please add a payment comment',
   },
   lt: {
     balance: 'Jūsų balansas', points: 'Taškai', level: 'Lygis', language: 'Kalba', id: 'ID',
@@ -71,6 +115,26 @@ const L: Record<string, Record<string, string>> = {
     tx_music_nominate: 'Dainos nominacija', tx_music_vote: 'Balsas už dainą',
     tx_slot_booking: 'Eterio slot apmokėjimas', tx_other: 'Operacija',
     buy_manual_intro: 'Automatinis mokėjimas kol kas nepasiekiamas. Susisiekite su administratoriumi pagal instrukciją žemiau.',
+    buy_stars_intro: 'Mokėjimas vyksta saugiai per botą (Telegram Payments). Paspauskite paketą — atsidarys botas.',
+    pay_stars: '⭐ Stars', pay_manual: '✉️ Rankiniu būdu',
+    manual_intro: 'Perveskite sumą pagal žemiau nurodytus rekvizitus, tada išsiųskite užklausą. Administratorius patikrins ir priskirs taškus.',
+    manual_details_title: 'Mokėjimo rekvizitai',
+    manual_no_details: 'Administratorius dar nenurodė rekvizitų. Susisiekite su juo tiesiogiai.',
+    manual_select_pkg: 'Pasirinkite paketą',
+    manual_method: 'Mokėjimo būdas',
+    manual_bank: 'Banko pervedimas', manual_card: 'Kortelė', manual_cash: 'Grynais',
+    manual_crypto: 'Kriptovaliuta', manual_other: 'Kita',
+    manual_note: 'Komentaras (operacijos numeris, laikas)',
+    manual_note_ph: 'Pvz.: pervedimas 03.15 14:30, kvitas Nr. 12345',
+    manual_send: 'Siųsti užklausą',
+    manual_sent: 'Užklausa išsiųsta! Palaukite patvirtinimo.',
+    manual_pending_title: 'Užklausa peržiūrima',
+    manual_cancel: 'Atšaukti užklausą',
+    manual_cancelled: 'Užklausa atšaukta',
+    manual_history: 'Mano užklausos',
+    st_pending: 'Peržiūrima', st_approved: 'Patvirtinta', st_rejected: 'Atmesta',
+    manual_disabled: 'Rankinis mokėjimas laikinai išjungtas',
+    manual_need_note: 'Nurodykite mokėjimo komentarą',
   },
 };
 
@@ -311,8 +375,8 @@ export function ProfileScreen({ user, onUserUpdate }: ProfileScreenProps) {
       )}
       {modal === 'buy' && (
         <BuyModal tx={tx} packages={packages} onClose={() => setModal(null)}
-          onDone={async () => { setModal(null); await refresh(); showToast(tx('saved')); }}
-          onError={() => showToast(tx('error'), true)} />
+          onDone={() => showToast(tx('manual_sent'))}
+          onError={(m) => showToast(m || tx('error'), true)} />
       )}
       {modal === 'lang' && (
         <ModalShell title={tx('language')} onClose={() => setModal(null)}>
@@ -475,61 +539,270 @@ function RequestModal({ tx, onClose, onDone, onError }: { tx: TX; onClose: () =>
   );
 }
 
-function BuyModal({ tx, packages, onClose }: { tx: TX; packages: PointPackage[]; onClose: () => void; onDone: () => void; onError: () => void }) {
+const MANUAL_METHODS: ManualPaymentMethod[] = ['bank', 'card', 'cash', 'crypto', 'other'];
+
+const DEFAULT_PAYMENT: PaymentSettings = {
+  method: 'stars', instructions: '', manual_details: '', manual_enabled: true, bot_username: '',
+};
+
+// ── BuyModal — point sotib olish: Stars (avtomatik) yoki qo'lda (ariza) ──
+function BuyModal({ tx, packages, onClose, onDone, onError }: {
+  tx: TX; packages: PointPackage[]; onClose: () => void; onDone: () => void; onError: (m?: string) => void;
+}) {
   const [payment, setPayment] = useState<PaymentSettings | null>(null);
+  const [myPayments, setMyPayments] = useState<ManualPayment[]>([]);
+  const [mode, setMode] = useState<'stars' | 'manual'>('stars');
+  // Qo'lda to'lov formasi
+  const [pkgId, setPkgId] = useState<number | null>(null);
+  const [method, setMethod] = useState<ManualPaymentMethod>('bank');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    getPaymentMethod().then(setPayment).catch(() => setPayment({ method: 'stars', instructions: '' }));
+    getPaymentMethod()
+      .then((p) => {
+        setPayment(p);
+        // Admin faqat qo'lda to'lovni yoqqan bo'lsa darhol manual tabni ochamiz
+        setMode(p.method === 'manual' ? 'manual' : 'stars');
+      })
+      .catch(() => setPayment(DEFAULT_PAYMENT));
+    reloadRequests();
   }, []);
 
+  function reloadRequests() {
+    getMyManualPayments().then(setMyPayments).catch(() => setMyPayments([]));
+  }
+
   // To'lov botda bo'ladi (Telegram Payments faqat bot orqali) → botga yo'naltiramiz.
-  // packageId berilsa — bot shu paket uchun to'g'ridan-to'g'ri invoyce ochadi
-  // (oraliq ro'yxatsiz), berilmasa — /buy paketlar ro'yxatini ko'rsatadi.
+  // packageId berilsa — bot shu paket uchun to'g'ridan-to'g'ri invoyce ochadi.
   function buyViaBot(packageId?: number) {
+    const botName = payment?.bot_username;
+    if (!botName) { onError(tx('error')); return; }
     const tg = (window as any).Telegram?.WebApp;
-    const deepLink = packageId
-      ? `https://t.me/mybot_12_bot?start=buy_${packageId}`
-      : 'https://t.me/mybot_12_bot?start=buy';
+    const base = `https://t.me/${botName}`;
+    const deepLink = packageId ? `${base}?start=buy_${packageId}` : `${base}?start=buy`;
     if (tg?.openTelegramLink) {
       tg.openTelegramLink(deepLink);
       tg.close?.();
     } else {
-      window.open('https://t.me/mybot_12_bot', '_blank');
+      window.open(deepLink, '_blank');
     }
   }
 
-  const isManual = payment?.method === 'manual';
+  async function submitManual() {
+    if (!pkgId) return;
+    if (!note.trim()) { onError(tx('manual_need_note')); return; }
+    setBusy(true);
+    try {
+      await createManualPayment({ package_id: pkgId, payment_method: method, payment_note: note.trim() });
+      setNote('');
+      setPkgId(null);
+      reloadRequests();
+      onDone();
+    } catch (e: any) {
+      onError(e?.message || tx('error'));
+    } finally { setBusy(false); }
+  }
+
+  async function cancelPending(id: number) {
+    setBusy(true);
+    try { await cancelManualPayment(id); reloadRequests(); }
+    catch (e: any) { onError(e?.message || tx('error')); }
+    finally { setBusy(false); }
+  }
+
+  if (!payment) {
+    return (
+      <ModalShell title={tx('buy')} onClose={onClose}>
+        <div className="py-8 text-center text-xs text-[#6b5f4f]">…</div>
+      </ModalShell>
+    );
+  }
+
+  const starsAvailable = payment.method === 'stars' || payment.method === 'both';
+  const manualAvailable = (payment.method === 'manual' || payment.method === 'both') && payment.manual_enabled;
+  const showTabs = starsAvailable && manualAvailable;
+  const pending = myPayments.find((p) => p.status === 'pending') || null;
+  const activeMode: 'stars' | 'manual' = starsAvailable && !manualAvailable
+    ? 'stars'
+    : manualAvailable && !starsAvailable
+    ? 'manual'
+    : mode;
 
   return (
     <ModalShell title={tx('buy')} onClose={onClose}>
-      <p className="text-xs text-[#6b5f4f] mb-3 leading-relaxed">
-        {isManual
-          ? tx('buy_manual_intro')
-          : 'Оплата проходит через бота безопасно (Telegram Payments). Нажмите кнопку — откроется бот с пакетами.'}
-      </p>
-      <div className="flex flex-col gap-2 mb-3">
-        {packages.map((p) => (
-          <button key={p.id}
-            onClick={() => buyViaBot(p.id)}
-            disabled={isManual || !payment}
-            className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(26,19,16,0.16)] bg-[rgba(255,251,240,0.5)] disabled:opacity-60 active:scale-[0.98] transition-transform">
-            <span className="font-semibold text-[#1A1310]">{p.label}</span>
-            <span className="text-[#E0263A] font-bold">⭐{p.price_stars}</span>
-          </button>
-        ))}
-      </div>
-      {isManual ? (
-        payment?.instructions ? (
-          <div className="rounded-xl px-4 py-3 text-sm text-[#1A1310] whitespace-pre-line" style={{ background: 'rgba(26,19,16,0.08)', border: '1px solid rgba(26,19,16,0.16)' }}>
-            {payment.instructions}
+      {showTabs && (
+        <div className="flex gap-2 mb-3 p-1 rounded-xl" style={{ background: 'rgba(26,19,16,0.06)' }}>
+          {(['stars', 'manual'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeMode === m ? 'text-[#FFFBF0]' : 'text-[#6b5f4f]'
+              }`}
+              style={activeMode === m ? primaryStyle : undefined}
+            >
+              {tx(m === 'stars' ? 'pay_stars' : 'pay_manual')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ─── Stars: avtomatik to'lov bot orqali ─── */}
+      {activeMode === 'stars' && (
+        <>
+          <p className="text-xs text-[#6b5f4f] mb-3 leading-relaxed">{tx('buy_stars_intro')}</p>
+          <div className="flex flex-col gap-2 mb-3">
+            {packages.map((p) => (
+              <button key={p.id}
+                onClick={() => buyViaBot(p.id)}
+                className="flex items-center justify-between px-4 py-3 rounded-xl border border-[rgba(26,19,16,0.16)] bg-[rgba(255,251,240,0.5)] active:scale-[0.98] transition-transform">
+                <span className="font-semibold text-[#1A1310]">{p.label}</span>
+                <span className="text-[#E0263A] font-bold">⭐{p.price_stars}</span>
+              </button>
+            ))}
           </div>
-        ) : null
-      ) : (
-        <button className={primaryBtn} style={primaryStyle} onClick={() => buyViaBot()} disabled={!payment}>
-          {tx('buy')} →
-        </button>
+          <button className={primaryBtn} style={primaryStyle} onClick={() => buyViaBot()}>
+            {tx('buy')} →
+          </button>
+          {payment.instructions && (
+            <div className="mt-3 rounded-xl px-4 py-3 text-xs text-[#1A1310] whitespace-pre-line"
+              style={{ background: 'rgba(26,19,16,0.06)', border: '1px solid rgba(26,19,16,0.14)' }}>
+              {payment.instructions}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── Qo'lda to'lov: rekvizitlar → ariza → admin tasdiqlaydi ─── */}
+      {activeMode === 'manual' && (
+        <>
+          {pending ? (
+            /* Kutilayotgan ariza bor — yangi yubora olmaydi */
+            <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(255,193,7,0.12)', border: '1px solid rgba(255,193,7,0.4)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={16} className="text-[#b8860b]" />
+                <span className="text-sm font-bold text-[#1A1310]">{tx('manual_pending_title')}</span>
+              </div>
+              <div className="text-xs text-[#6b5f4f] mb-1">
+                {pending.package_label} · {Number(pending.points_amount).toFixed(0)} pts · €{Number(pending.price_eur).toFixed(2)}
+              </div>
+              {pending.payment_note && (
+                <div className="text-[11px] text-[#6b5f4f] mb-2 whitespace-pre-line">{pending.payment_note}</div>
+              )}
+              <button
+                onClick={() => cancelPending(pending.id)}
+                disabled={busy}
+                className="w-full mt-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
+                style={{ background: 'rgba(224,38,58,0.12)', color: '#E0263A' }}
+              >
+                <Trash2 size={14} /> {tx('manual_cancel')}
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-[#6b5f4f] mb-3 leading-relaxed">{tx('manual_intro')}</p>
+
+              {/* Admin rekvizitlari */}
+              <div className="text-[10px] text-[#6b5f4f] uppercase tracking-wide mb-1.5">{tx('manual_details_title')}</div>
+              <div className="rounded-xl px-4 py-3 mb-3 text-sm text-[#1A1310] whitespace-pre-line"
+                style={{ background: 'rgba(26,19,16,0.06)', border: '1px solid rgba(26,19,16,0.14)' }}>
+                {payment.manual_details || payment.instructions || (
+                  <span className="text-[#6b5f4f] text-xs">{tx('manual_no_details')}</span>
+                )}
+              </div>
+
+              {/* Paket tanlash */}
+              <div className="text-[10px] text-[#6b5f4f] uppercase tracking-wide mb-1.5">{tx('manual_select_pkg')}</div>
+              <div className="flex flex-col gap-2 mb-3">
+                {packages.map((p) => (
+                  <button key={p.id}
+                    onClick={() => setPkgId(p.id)}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl border active:scale-[0.98] transition-transform"
+                    style={pkgId === p.id
+                      ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.1)' }
+                      : { borderColor: 'rgba(26,19,16,0.16)', background: 'rgba(255,251,240,0.5)' }}>
+                    <span className="font-semibold text-[#1A1310]">{p.label}</span>
+                    <span className="text-[#E0263A] font-bold">€{Number(p.price_eur).toFixed(2)}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* To'lov usuli */}
+              <div className="text-[10px] text-[#6b5f4f] uppercase tracking-wide mb-1.5">{tx('manual_method')}</div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {MANUAL_METHODS.map((m) => (
+                  <button key={m}
+                    onClick={() => setMethod(m)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                    style={method === m
+                      ? { borderColor: '#E0263A', background: 'rgba(224,38,58,0.12)', color: '#E0263A' }
+                      : { borderColor: 'rgba(26,19,16,0.16)', color: '#6b5f4f' }}>
+                    {tx(`manual_${m}`)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Izoh */}
+              <label className="text-[10px] text-[#6b5f4f] uppercase tracking-wide">{tx('manual_note')}</label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={tx('manual_note_ph')}
+                rows={3}
+                maxLength={1000}
+                className="w-full mt-1.5 mb-3 rounded-xl px-4 py-3 text-sm text-[#1A1310] outline-none resize-none focus:border-[#E0263A]"
+                style={{ background: 'rgba(255,251,240,0.7)', border: '1px solid rgba(26,19,16,0.16)' }}
+              />
+
+              <button
+                className={`${primaryBtn} disabled:opacity-50`}
+                style={primaryStyle}
+                onClick={submitManual}
+                disabled={busy || !pkgId || !note.trim()}
+              >
+                {tx('manual_send')}
+              </button>
+            </>
+          )}
+
+          {/* Arizalar tarixi */}
+          {myPayments.filter((p) => p.status !== 'pending').length > 0 && (
+            <div className="mt-4">
+              <div className="text-[10px] text-[#6b5f4f] uppercase tracking-wide mb-2">{tx('manual_history')}</div>
+              <div className="flex flex-col gap-2">
+                {myPayments.filter((p) => p.status !== 'pending').map((p) => (
+                  <ManualPaymentRow key={p.id} tx={tx} item={p} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </ModalShell>
+  );
+}
+
+function ManualPaymentRow({ tx, item }: { tx: TX; item: ManualPayment }) {
+  const approved = item.status === 'approved';
+  return (
+    <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[rgba(255,251,240,0.5)] border border-[rgba(26,19,16,0.12)]">
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+        approved ? 'bg-[rgba(28,63,214,0.12)] text-[#1C3FD6]' : 'bg-[rgba(224,38,58,0.1)] text-[#E0263A]'
+      }`}>
+        {approved ? <Check size={15} /> : <X size={15} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-[#1A1310] truncate">{item.package_label}</div>
+        <div className="text-[11px] text-[#6b5f4f]">
+          {tx(approved ? 'st_approved' : 'st_rejected')}
+          {item.admin_note ? ` · ${item.admin_note}` : ''}
+        </div>
+      </div>
+      <div className={`text-[13px] font-bold font-mono shrink-0 ${approved ? 'text-[#1C3FD6]' : 'text-[#6b5f4f]'}`}>
+        {approved ? '+' : ''}{Number(item.points_amount).toFixed(0)}
+      </div>
+    </div>
   );
 }
 
