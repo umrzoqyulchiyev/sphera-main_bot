@@ -90,9 +90,9 @@ class Settings(BaseSettings):
     icecast_pass: str = "IcecastPass2025!"
 
     # ── Storage ──
-    # Default yo'llar — Docker/Railway uchun /app/ prefiksi, lokal dev uchun
-    # .audio/ va .uploads/ (loyiha ildir papkasida). .env da AUDIO_DIR va
-    # UPLOAD_DIR orqali o'zgartiriladi.
+    # Default yo'llar — Docker ENV orqali /app/.audio / /app/.uploads
+    # (Dockerfile'da ENV AUDIO_DIR=/app/.audio belgilangan).
+    # Railway Volume qo'shilsa shu yo'lni mount qilish kifoya — ma'lumot saqlanadi.
     audio_dir: str = "/app/.audio"
     upload_dir: str = "/app/.uploads"
     max_upload_mb: int = 20

@@ -39,6 +39,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Backend kodi
 COPY backend/app ./app
 
+# Bot kodi (backend bilan bitta containerda — Railway free plan uchun)
+COPY bot/ ./bot
+
 # Frontend build natijasi → static/
 COPY --from=frontend-builder /frontend/dist ./static
 
@@ -50,15 +53,17 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Non-root user
 RUN useradd -m -r appuser && \
     chown -R appuser:appuser /app && \
-    mkdir -p /tmp/sphera_audio /tmp/sphera_uploads /var/log/icecast2 && \
-    chown -R appuser:appuser /tmp/sphera_audio /tmp/sphera_uploads \
+    mkdir -p /app/.audio /app/.uploads /var/log/icecast2 && \
+    chown -R appuser:appuser /app/.audio /app/.uploads \
         /var/log/icecast2 /etc/icecast2
 
 USER appuser
 
 ENV MINIAPP_DIR=/app/static
-ENV AUDIO_DIR=/tmp/sphera_audio
-ENV UPLOAD_DIR=/tmp/sphera_uploads
+# /app/.audio va /app/.uploads — Railway Volume mount uchun tayyor
+# (Railway dashboard'da /app/.audio ni persistent volume sifatida qo'shish mumkin)
+ENV AUDIO_DIR=/app/.audio
+ENV UPLOAD_DIR=/app/.uploads
 
 EXPOSE 8001
 

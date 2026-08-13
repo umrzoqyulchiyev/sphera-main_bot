@@ -1,205 +1,144 @@
-# 🚂 Railway.com ga Deploy qilish — To'liq Ko'rsatma
+# Railway Deploy Qo'llanma — INTRA GROUP
 
-## Qisqa tushuntirish
-
-Railway.com — GitHub repo'ni ulab, Docker bilan avtomatik deploy qiladigan servis.
-Loyihada Dockerfile allaqachon tayyor — faqat env variable'larni sozlash kerak.
-
----
-
-## 1-qadam: GitHub'ga push qilish
-
-```bash
-cd "/home/umrzoq/Telegram Desktop/sphera-main/sphera-main"
-
-# Agar git remote yo'q bo'lsa (yangi repo):
-git init
-git add .
-git commit -m "Initial commit — INTRA GROUP platform"
-
-# GitHub'da yangi repo yarating (github.com → New repository)
-# Keyin:
-git remote add origin https://github.com/SIZNING_USERNAME/intra-group.git
-git push -u origin main
-```
-
-**MUHIM:** `.gitignore` faylida quyidagilar bo'lishi SHART (secret'lar GitHub'ga tushmaydi):
-```
-.env
-.venv/
-.venv_mac/
-.audio/
-.uploads/
-.logs/
-*.mp3
-node_modules/
-```
+## Arxitektura
+Bitta Railway Service → bitta Docker container ichida:
+- **FastAPI** backend (uvicorn, port 8001)
+- **Icecast2** (USE_ICECAST=true bo'lsa, jonli efir)
+- **Telegram Bot** (BOT_TOKEN bo'lsa, backend tayyor bo'lgach ishga tushadi)
 
 ---
 
-## 2-qadam: Railway'da project ochish
+## 1. GitHub bog'lash
 
-1. [railway.com](https://railway.com) → **Login with GitHub**
-2. **New Project** → **Deploy from GitHub repo** → `intra-group` ni tanlang
-3. Railway avtomatik Dockerfile'ni topadi
-
----
-
-## 3-qadam: Railway'da xizmatlar qo'shish
-
-Railway'da bir project ichida bir nechta **Service** bo'ladi:
-
-### Service 1: Backend + Frontend (bitta)
-- **Source**: GitHub repo, root `/backend`
-- **Dockerfile**: `backend/Dockerfile` (allaqachon tayyor)
-- **Port**: `8001` → Railway avtomatik PUBLIC URL beradi
-
-### Service 2: Bot
-- **Source**: GitHub repo, root `/bot`  
-- **Dockerfile**: `bot/Dockerfile`
-- Port kerak emas (webhook/polling)
-
-### Service 3: PostgreSQL (Railway plugin)
-- **New** → **Database** → **Add PostgreSQL**
-- Railway avtomatik `DATABASE_URL` variable beradi
-
-### Service 4: Redis (Railway plugin)
-- **New** → **Database** → **Add Redis**
-- Railway avtomatik `REDIS_URL` variable beradi
+1. Railway dashboard → **New Project** → **Deploy from GitHub repo**
+2. `Umrzoq-backend-ai/Intra_group_bot` ni tanlang
+3. Branch: `main`
+4. Railway o'zi `railway.toml` ni topadi va Docker bilan build qiladi
 
 ---
 
-## 4-qadam: Environment Variables sozlash
+## 2. PostgreSQL qo'shish
 
-Backend Service → **Variables** tab → quyidagilarni qo'shing:
+1. Project → **+ New** → **Database** → **Add PostgreSQL**
+2. `DATABASE_URL` avtomatik o'rnatiladi (environment'ga inject qilinadi)
 
+---
+
+## 3. Redis qo'shish
+
+1. Project → **+ New** → **Database** → **Add Redis**
+2. `REDIS_URL` avtomatik o'rnatiladi
+
+---
+
+## 4. Environment Variables
+
+Service'ni bosing → **Variables** → quyidagilarni qo'shing:
+
+### Majburiy (ishlamasligi mumkin)
 ```
-# === MAJBURIY ===
-BOT_TOKEN=7993413019:AAG...          # @BotFather dan
-ADMIN_IDS=7993413019                 # Sizning Telegram ID
-SECRET_KEY=random_32_chars_minimum_here_change_this
+BOT_TOKEN=1234567890:AAG...  (BotFather'dan)
+BOT_USERNAME=your_bot_username  (@ belgisiz, masalan: intra_group_bot)
+ADMIN_IDS=123456789  (sizning Telegram ID'ingiz)
+SECRET_KEY=lorem-ipsum-32-random-characters-here  (kamida 32 belgi)
+GEMINI_KEY=AIzaSy...  (Google AI Studio'dan)
+```
 
-# === DATABASE (Railway PostgreSQL dan avtomatik keladi) ===
-DATABASE_URL=${{Postgres.DATABASE_URL}}   # Railway template syntax
-# Yoki alohida:
-DB_HOST=${{Postgres.PGHOST}}
-DB_PORT=${{Postgres.PGPORT}}
-DB_USER=${{Postgres.PGUSER}}
-DB_PASS=${{Postgres.PGPASSWORD}}
-DB_NAME=${{Postgres.PGDATABASE}}
+### Mini App URL (deploy bo'lgach)
+```
+MINI_APP_URL=https://YOUR-SERVICE.up.railway.app
+API_URL=https://YOUR-SERVICE.up.railway.app
+INTERNAL_API_URL=https://YOUR-SERVICE.up.railway.app
+```
+> Birinchi deploy'da URL hali ma'lum emas — deploy tugagach URL'ni ko'rib, qaytib o'rnating va redeploy qiling.
 
-# === REDIS (Railway Redis dan avtomatik) ===
-REDIS_URL=${{Redis.REDIS_URL}}
-
-# === MINI APP ===
-MINI_APP_URL=https://SIZNING-RAILWAY-URL.up.railway.app
-MINIAPP_DIR=/app/static
-
-# === STORAGE ===
-AUDIO_DIR=/tmp/sphera_audio
-UPLOAD_DIR=/tmp/sphera_uploads
-
-# === AI ===
-GEMINI_KEY=AIza...                   # aistudio.google.com
-
-# === RADIO ===
+### Icecast (jonli efir)
+```
 USE_ICECAST=true
-ICECAST_PASS=SecretIcecastPass2025
+ICECAST_PASS=o'zingizning_maxfiy_parolingiz
+```
 
-# === TO'LOV ===
-PAYMENT_CURRENCY=XTR                 # Telegram Stars
-PAYMENT_PROVIDER_TOKEN=              # Stars uchun bo'sh qoldiring
-
-# === DEBUG ===
+### Ixtiyoriy
+```
 DEBUG=false
 DISABLE_GROUP_CHECK=true
-```
-
-Bot Service → **Variables** tab:
-```
-BOT_TOKEN=...                        # Backend bilan bir xil
-MINI_APP_URL=https://...             # Backend Railway URL
-INTERNAL_API_URL=https://...         # Backend Railway URL
-ADMIN_IDS=...
+ALLOWED_ORIGINS=*
 PAYMENT_CURRENCY=XTR
 ```
 
+### DATABASE_URL va REDIS_URL
+Bularni qo'shmang — Railway o'zi inject qiladi.
+
 ---
 
-## 5-qadam: Frontend build qo'shish
+## 5. Volume (fayl saqlash)
 
-Frontend React SPA'ni backend ichida serve qilish uchun Dockerfile'ga build qo'shilgan.
-Lekin avval lokal build qilish kerak va `backend/static/` ga nusxa olish:
+Agar ovozli xabarlar va audio fayllar restart'da yo'qolmasin desangiz:
 
-```bash
-# Lokal:
-cd frontend
-VITE_API_URL= VITE_WS_URL= VITE_RADIO_URL= npm run build
+1. Service → **Volumes** → **+ Add Volume**
+2. Mount path: `/app/.audio`
+3. Xuddi shunday `/app/.uploads` uchun ham
 
-# Build natijasini backend/static/ ga ko'chirish:
-cp -r dist/* ../backend/static/
+> Bepul plan'da volume bo'lmasa `/tmp/` ishlatiladi — restart'da yo'qoladi, lekin asosiy funksionallik ishlaydi.
+
+---
+
+## 6. Bot'ni Telegram'da sozlash
+
+Deploy tugagach:
+
+1. **BotFather** → `/setdomain` → botingizni tanlang → Railway URL'ni kiriting
+2. **BotFather** → `/setmenubutton` → botingizni tanlang → Web App URL → Railway URL
+3. **BotFather** → `/setcommands`:
 ```
-
-Yoki `backend/Dockerfile`'ni frontend build bilan yangilash (keyingi bo'lim).
-
----
-
-## 6-qadam: Avtomatik frontend build (Dockerfile'ga qo'shish)
-
-`backend/Dockerfile`'ni boshiga qo'shing:
-
-```dockerfile
-# ---- Frontend build stage ----
-FROM node:18-alpine AS frontend-builder
-WORKDIR /frontend
-COPY ../frontend/package*.json ./
-RUN npm ci --silent
-COPY ../frontend .
-RUN VITE_API_URL= VITE_WS_URL= VITE_RADIO_URL= npm run build
-
-# ---- Backend ----
-FROM python:3.12-slim
-# ... qolgan kod o'sha ...
-COPY --from=frontend-builder /frontend/dist ./static
+start - Radioni ochish
+studio - Studiyaga murojaat
+buy - Pointlar xaridi
+profile - Profilim
+radio - Efir holati
+help - Yordam
 ```
 
 ---
 
-## 7-qadam: Railway URL'ni botga berish
+## 7. Admin panel'da to'lovni sozlash
 
-Deploy bo'lgandan keyin:
-1. Railway → Backend Service → **Settings** → **Public Networking** → URL nusxa oling
-   (masalan: `https://intra-group-production-xxxx.up.railway.app`)
-2. Bu URL'ni:
-   - Backend Service Variables: `MINI_APP_URL=https://...`
-   - Bot Service Variables: `MINI_APP_URL=https://...`, `INTERNAL_API_URL=https://...`
-3. Botni Railway'da restart qiling
+Mini App ochilgach:
+
+1. **Admin Panel** → **Оплата** tab
+2. To'lov usulini tanlang: `⭐ Stars`, `✉️ Вручную`, yoki `⭐+✉️ Ikkisi`
+3. Agar qo'lda to'lov yoqilsa — **Реквизиты** maydonini to'ldiring (bank, IBAN, karta)
 
 ---
 
-## 8-qadam: Telegram Bot Web App URL sozlash
+## 8. Muammolarni tekshirish
 
+### Bot ishlamayapti
+- `BOT_TOKEN` to'g'ri kiritilganmi?
+- Railway Logs'da `[bot-starter] Backend ready, starting bot` ko'rinayaptimi?
+
+### Mini App ochilmayapti
+- `MINI_APP_URL` Railway URL bilan bir xilmi?
+- BotFather'da domain/URL o'rnatilganmi?
+
+### Database xatosi
+- `DATABASE_URL` Variables'da ko'rinayaptimi? (Railway inject qiladi)
+- Railway Logs → `Database migration completed` ko'rinishi kerak
+
+### Audio ishlamayapti
+- `USE_ICECAST=true` o'rnatilganmi?
+- Railway Logs'da `Icecast2 started` ko'rinayaptimi?
+
+---
+
+## Logs ko'rish
+
+Railway dashboard → Service → **Logs** tab
+
+Asosiy log satrlari:
 ```
-BotFather'ga yozing:
-/setmenubutton → @SIZNING_BOT → Web App → https://RAILWAY_URL
-```
-
----
-
-## Muhim eslatmalar
-
-- **Railway bepul plani**: 500 soat/oy = taxminan 21 kun. Doimiy uchun **Hobby plan** $5/oy
-- **Fayl saqlash**: Railway'da `/tmp` faqat RAM — restart bo'lganda yo'qoladi!
-  Production uchun **Railway Volume** (5GB bepul) yoki **AWS S3** / **Cloudflare R2** kerak
-- **Icecast**: Railway'da 8000 port ochiq emas. Icecast'ni backend ichida (`USE_ICECAST=true`) ishlatish kerak (allaqachon Dockerfile'da)
-- **MediaMTX**: Alohida Railway Service sifatida deploy qiling (`bluenviron/mediamtx:latest`)
-
----
-
-## Tezkor test
-
-Deploy bo'lgandan keyin:
-```bash
-curl https://SIZNING-RAILWAY-URL.up.railway.app/health
-# {"status":"ok"} bo'lishi kerak
+[entrypoint] Icecast2 started        ← Icecast ishga tushdi
+[bot-starter] Backend ready, starting bot  ← Bot ishga tushdi
+INFO: Application startup complete    ← Backend tayyor
+Database migration completed          ← DB jadvallari yaratildi
 ```
