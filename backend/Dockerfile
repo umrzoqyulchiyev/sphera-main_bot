@@ -28,7 +28,7 @@ WORKDIR /app
 # Tizim kutubxonalari — ffmpeg ovoz konvertatsiyasi uchun
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl ffmpeg && \
+        curl ffmpeg gcc python3-dev libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Python bog'liqliklar
