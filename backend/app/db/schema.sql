@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
 
+-- city ustuni — xabarni qaysi efir shahriga tegishliligi (default: global)
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS city VARCHAR(50) DEFAULT 'global';
+
 -- ============ Guruhlar (ведущий/admin yaratadi — TZ: "ведущий имел возможность создавать группы") ============
 CREATE TABLE IF NOT EXISTS chat_rooms (
     id              SERIAL PRIMARY KEY,
@@ -356,3 +359,19 @@ CREATE TABLE IF NOT EXISTS casting_applications (
 );
 CREATE INDEX IF NOT EXISTS idx_casting_status ON casting_applications(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_casting_user ON casting_applications(user_id, created_at DESC);
+
+-- ============ AI Dialog qoralamalar (broadcast drafts) ============
+-- Admin mavzu bo'yicha "Создать диалог" bosganda Gemini AI fikrlarni
+-- tahlil qilib 2 personaj dialogini yozadi → bu jadvalga 'pending' saqlanadi.
+-- Admin ko'rib chiqib → 'approved' qilsa efirga yuboradi, 'rejected' qilsa o'chiriladi.
+CREATE TABLE IF NOT EXISTS broadcast_drafts (
+    id              SERIAL PRIMARY KEY,
+    city            VARCHAR(50) DEFAULT 'global',
+    main_topic      TEXT NOT NULL,                  -- mavzu sarlavhasi
+    source_count    INTEGER DEFAULT 0,              -- nechta fikrdan generatsiya qilingan
+    script          TEXT DEFAULT '',                -- [META:...]\n\ndialog matni
+    status          VARCHAR(20) DEFAULT 'pending',  -- pending | approved | rejected
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_drafts_status ON broadcast_drafts(status, created_at DESC);

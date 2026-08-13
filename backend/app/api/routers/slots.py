@@ -19,6 +19,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.database import db
 from app.core.dependencies import get_current_user, require_admin, require_staff
 from app.core.models import OkResponse
@@ -192,7 +193,7 @@ async def create_slot(
     # muvaffaqiyatsiz tugasa, poinт allaqachon yechilgan bo'lardi-yu, slot
     # hech qachon yaratilmasdi). Shu tartibda: agar to'lov muvaffaqiyatsiz
     # bo'lsa, endigina yaratilgan slotni o'chirib, holatni tozalaymiz.
-    bot_username = "mybot_12_bot"  # env'dan olish mumkin keyinroq
+    bot_username = settings.bot_username or "unknown_bot"
     row = await db.fetchrow(
         """
         INSERT INTO broadcast_slots

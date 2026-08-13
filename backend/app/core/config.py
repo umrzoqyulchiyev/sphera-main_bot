@@ -90,8 +90,11 @@ class Settings(BaseSettings):
     icecast_pass: str = "IcecastPass2025!"
 
     # ── Storage ──
-    audio_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.audio"
-    upload_dir: str = "/mnt/d/KIro_projectsbot/sphera-main/.uploads"
+    # Default yo'llar — Docker/Railway uchun /app/ prefiksi, lokal dev uchun
+    # .audio/ va .uploads/ (loyiha ildir papkasida). .env da AUDIO_DIR va
+    # UPLOAD_DIR orqali o'zgartiriladi.
+    audio_dir: str = "/app/.audio"
+    upload_dir: str = "/app/.uploads"
     max_upload_mb: int = 20
 
     # ── Radio ──

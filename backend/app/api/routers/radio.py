@@ -54,9 +54,9 @@ _watchdog_task: asyncio.Task | None = None
 # Har bir jonli efir sessiyasi uchun bir martalik ulashiladigan link
 # (EfirScreen dashboard'idagi "Копировать ссылку") — /start orqali bot
 # shu tokenni "live_{token}" deb tanib, hozir kim efirda ekanini ko'rsatadi.
-# Slotlarnikiga o'xshab (bot.py'dagi bot_username) hozircha shu yerda ham
-# hardcode — keyinroq env'ga chiqarish mumkin.
-BOT_USERNAME = "mybot_12_bot"
+# BOT_USERNAME endi env/settings'dan olinadi — hardcode emas.
+def _get_bot_username() -> str:
+    return settings.bot_username or "unknown_bot"
 _live_token_by_city: dict[str, str] = {}
 _live_city_by_token: dict[str, str] = {}
 
@@ -538,7 +538,7 @@ async def broadcast_ws(websocket: WebSocket, city: str, token: str = Query(...))
     live_token = secrets.token_urlsafe(6)
     _live_token_by_city[city] = live_token
     _live_city_by_token[live_token] = city
-    share_url = f"https://t.me/{BOT_USERNAME}?start=live_{live_token}"
+    share_url = f"https://t.me/{_get_bot_username()}?start=live_{live_token}"
 
     # Efir holatini live qilamiz
     st = get_state(city)
@@ -655,7 +655,7 @@ async def broadcast_http_start(city: str, user: dict = Depends(require_role("dov
     live_token = secrets.token_urlsafe(6)
     _live_token_by_city[city] = live_token
     _live_city_by_token[live_token] = city
-    share_url = f"https://t.me/{BOT_USERNAME}?start=live_{live_token}"
+    share_url = f"https://t.me/{_get_bot_username()}?start=live_{live_token}"
 
     st = get_state(city)
     st.is_live = True
