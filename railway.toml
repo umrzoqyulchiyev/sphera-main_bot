@@ -1,0 +1,11 @@
+# Railway deployment konfiguratsiyasi
+# Root papkadan build qilinadi (frontend + backend bir Dockerfile)
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+restartPolicyType = "always"
+healthcheckPath = "/health"
+healthcheckTimeout = 300

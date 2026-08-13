@@ -160,6 +160,46 @@ async def list_users(admin: dict = Depends(require_staff)):
     return [dict(r) for r in rows]
 
 
+@router.delete("/users/{user_id}", response_model=OkResponse)
+async def delete_user(
+    user_id: int,
+    admin: dict = Depends(require_admin),
+):
+    """[FAQAT admin] Foydalanuvchini bazadan o'chirish.
+
+    O'z-o'zini o'chira olmaydi. Cascade DELETE — barcha bog'liq ma'lumotlar
+    (chat_messages, points_transactions, opinions va h.k.) ham o'chadi.
+    Bu amalni qaytarib bo'lmaydi — ehtiyot bo'ling!
+    """
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+
+    # Admin o'zini o'chirishga urinayotganini bir karra tekshiramiz (telegram_id bo'yicha ham)
+    target = await db.fetchrow("SELECT id, role, telegram_id FROM users WHERE id = $1", user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Boshqa adminni o'chirishdan himoya — faqat o'zi o'zini (yuqorida rad etilgan)
+    # yoki superadmin (ADMIN_IDS) boshqasini o'chira oladi. Oddiy admin boshqa
+    # adminni o'chira olmaydi.
+    from app.core.config import settings
+    if target["role"] == "admin" and target["telegram_id"] not in settings.admin_ids_set:
+        raise HTTPException(status_code=403, detail="Cannot delete another admin")
+
+    result = await db.execute("DELETE FROM users WHERE id = $1", user_id)
+    if result.endswith("0"):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    log.info(
+        "Admin %d deleted user id=%d (tg_id=%d, role=%s)",
+        admin["id"],
+        user_id,
+        target["telegram_id"],
+        target["role"],
+    )
+    return OkResponse(detail={"deleted_user_id": user_id, "telegram_id": target["telegram_id"]})
+
+
 # ============================================================
 # To'lov sozlamalari — admin poinт to'lovi qanday ishlashini belgilaydi
 # (Telegram Stars orqali avtomatik, yoki qo'lda/kontakt orqali)

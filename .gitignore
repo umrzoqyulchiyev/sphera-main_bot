@@ -34,6 +34,14 @@ bin/cloudflared
 # ── Frontend ─────────────────────────────────────────────
 frontend/dist/
 frontend/node_modules/
+frontend-aurora/
+frontend-clay/
+frontend-riftline/
+backend/static/
+
+# ── Certificate fayllar ──────────────────────────────────
+auto.crt
+auto.key
 
 # ── IDE ──────────────────────────────────────────────────
 .vscode/

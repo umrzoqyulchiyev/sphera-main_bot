@@ -1,42 +1,58 @@
+# ============================================================
+#  INTRA GROUP — Backend Docker image
+#  Build context: repo root (railway.json da belgilangan)
+#  Frontend avval build qilinib, /app/static ga serve qilinadi
+# ============================================================
+
+# ─── Stage 1: Frontend build (Node.js) ─────────────────────
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# package.json avval copy → layer cache uchun
+COPY frontend/package*.json ./
+
+RUN npm ci --silent
+
+# Barcha frontend kodi
+COPY frontend/ .
+
+# Same-origin deploy: VITE_* env bo'sh → relative URL'lar
+RUN VITE_API_URL="" VITE_WS_URL="" VITE_RADIO_URL="" npm run build
+
+# ─── Stage 2: Backend (Python 3.12 + FFmpeg + Icecast2) ─────
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Tizim kutubxonalari: ffmpeg (audio), curl (healthcheck), build-essential (tgcrypto native build)
-# icecast2 — jonli efir manbai (past kechikish). Debconf so'rovlarisiz o'rnatish
-# uchun "icecast-setup" savolini oldindan "false" qilib javob beramiz (o'z
-# icecast.xml'imizni beramiz, paket avtomatik sozlamasin).
+# Tizim kutubxonalari
 RUN echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    curl \
-    ffmpeg \
-    build-essential \
-    icecast2 \
-    && rm -rf /var/lib/apt/lists/*
+        curl ffmpeg build-essential icecast2 && \
+    rm -rf /var/lib/apt/lists/*
 
-# Python paketlari — requirements.txt yagona manba
-COPY requirements.txt .
+# Python bog'liqliklar
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ilova kodi
-COPY app ./app
+# Backend kodi
+COPY backend/app ./app
 
-# Frontend static fayllar (backend/static/ da bo'lishi kerak)
-COPY static ./static
+# Frontend build natijasi → static/
+COPY --from=frontend-builder /frontend/dist ./static
 
-# Icecast konfiguratsiyasi (infra/icecast/icecast.xml bilan bir xil — Docker
-# build context faqat backend/ ekani uchun shu yerga nusxa saqlanadi)
-COPY icecast.xml /etc/icecast2/icecast.xml
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Icecast konfiguratsiyasi
+COPY infra/icecast/icecast.xml /etc/icecast2/icecast.xml
+COPY backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Xavfsizlik: root sifatida ishlamaydi. Icecast /var/log/icecast2 va
-# /etc/icecast2 ga yozishi/o'qishi kerak — appuser'ga beramiz.
+# Non-root user
 RUN useradd -m -r appuser && \
     chown -R appuser:appuser /app && \
     mkdir -p /tmp/sphera_audio /tmp/sphera_uploads /var/log/icecast2 && \
-    chown -R appuser:appuser /tmp/sphera_audio /tmp/sphera_uploads /var/log/icecast2 /etc/icecast2
+    chown -R appuser:appuser /tmp/sphera_audio /tmp/sphera_uploads \
+        /var/log/icecast2 /etc/icecast2
 
 USER appuser
 

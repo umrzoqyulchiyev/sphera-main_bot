@@ -144,6 +144,22 @@ export async function purchasePackage(package_id: number) {
   return resp.json();
 }
 
+// CryptoBot (TON/USDT/BTC) — to'lov havolasi olish
+export async function getCryptoBotInvoice(package_id: number): Promise<{
+  pay_url: string; invoice_id: number; amount: number; currency: string;
+  accepted: string; label: string;
+}> {
+  const resp = await fetch(
+    `${API_URL}/users/me/points/cryptobot-invoice?package_id=${package_id}`,
+    { headers: authHeaders() }
+  );
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(e.detail || 'CryptoBot invoice failed');
+  }
+  return resp.json();
+}
+
 // ============ Radio ============
 export async function getRadioStatus(city?: string): Promise<RadioStatus> {
   try {

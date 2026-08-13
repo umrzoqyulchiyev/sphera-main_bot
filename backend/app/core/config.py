@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     payment_provider_token: str = ""  # BotFather → Payments
     payment_currency: str = "XTR"  # XTR = Telegram Stars, yoki USD/EUR (provider bilan)
 
+    # ── CryptoBot (TON/USDT/BTC to'lovi) ──
+    cryptobot_api_token: str = ""  # @CryptoBot → Create App → API token
+
     # ── AI ──
     gemini_key: str = ""
     gemini_model: str = "gemini-2.5-flash"

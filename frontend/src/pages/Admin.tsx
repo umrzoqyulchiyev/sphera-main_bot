@@ -12,6 +12,20 @@ import {
   getDefaultMusic, uploadDefaultMusic, deleteDefaultMusic,
   type BroadcastSlot, type MusicNomination, type StaffRole, type Pricing,
 } from '../lib/api';
+import { API_URL } from '../lib/config';
+
+// Admin: user o'chirish (backend /admin/users/{id} DELETE)
+async function adminDeleteUser(userId: number): Promise<void> {
+  const { authHeaders } = await import('../lib/auth');
+  const resp = await fetch(`${API_URL}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}));
+    throw new Error(typeof e.detail === 'string' ? e.detail : 'Delete failed');
+  }
+}
 import type { User } from '../types';
 import { GlitchText } from '../components/ui/GlitchText';
 import { authHeaders, getToken } from '../lib/auth';
@@ -499,7 +513,14 @@ export function Admin() {
               try { await adminSetStaffRole(id, role); flash('✅'); await loadData(); }
               catch (e: any) { flash('❌ ' + (e.message || '')); }
             }}
-            onAddPoints={(u: UserRow) => setAddPointsTarget(u)} />
+            onAddPoints={(u: UserRow) => setAddPointsTarget(u)}
+            onDeleteUser={async (id: number) => {
+              try {
+                await adminDeleteUser(id);
+                flash('✅ Удалён');
+                await loadData();
+              } catch (e: any) { flash('❌ ' + (e.message || '')); }
+            }} />
         )}
       </div>
 
@@ -1083,12 +1104,13 @@ function MusicTab({ topics, tx, flash }: any) {
 }
 
 // ── UsersTab (контроль доступа — уровни 1/2/3 + модератор) ────
-function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints }: any) {
+function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints, onDeleteUser }: any) {
   // Moderator huquqi berish/qaytarib olish — bosilishi bilan emas,
   // avval ConfirmModal orqali (yuqori huquq, tasodifan bosilib qolmasin).
   // Faqat haqiqiy admin (isFullAdmin) ko'radi/bosa oladi — moderator boshqa
   // hech kimning darajasi yoki rolini o'zgartira olmaydi.
   const [roleTarget, setRoleTarget] = useState<{ id: number; name: string; role: StaffRole; grant: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   // ID yoki @username bo'yicha qidiruv — 200 nafar foydalanuvchi ro'yxatida
   // kerakli odamni topish qiyin bo'lgani uchun.
   const [search, setSearch] = useState('');
@@ -1155,10 +1177,22 @@ function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints }
                 {' · '}{Number(u.points).toFixed(3)} pts
               </div>
             </div>
-            <button onClick={() => onAddPoints(u)}
-              className="ml-2 px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-[rgba(224,38,58,0.1)] text-[#E0263A]">
-              +pts
-            </button>
+            <div className="flex gap-1.5 ml-2 shrink-0">
+              <button onClick={() => onAddPoints(u)}
+                className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-[rgba(224,38,58,0.1)] text-[#E0263A]">
+                +pts
+              </button>
+              {/* Faqat haqiqiy admin userni o'chira oladi, o'zini o'chira olmaydi */}
+              {isFullAdmin && u.role !== 'admin' && (
+                <button
+                  onClick={() => setDeleteTarget({ id: u.id, name: u.display_name || u.username || `ID ${u.telegram_id}` })}
+                  className="p-1.5 rounded-xl bg-[rgba(224,38,58,0.08)] text-[#E0263A]"
+                  title="Удалить пользователя"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
           {/* Level tugmalari — raqamli darajalar (1/2/3). Moderator buni
               ko'radi, lekin faqat rasm sifatida — bosib bo'lmaydi. */}
@@ -1215,6 +1249,15 @@ function UsersTab({ users, tx, isFullAdmin, onSetLevel, onSetRole, onAddPoints }
           message={tx(roleTarget.grant ? 'confirm_grant_admin' : 'confirm_revoke_admin')}
           onConfirm={() => { onSetRole(roleTarget.id, roleTarget.role); setRoleTarget(null); }}
           onCancel={() => setRoleTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          tx={tx}
+          message={`⚠️ Удалить пользователя «${deleteTarget.name}»? Это действие необратимо — все данные (чат, поинты, история) будут удалены.`}
+          onConfirm={() => { onDeleteUser(deleteTarget.id); setDeleteTarget(null); }}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>
