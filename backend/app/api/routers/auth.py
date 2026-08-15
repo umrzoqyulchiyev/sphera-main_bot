@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.config import settings
 from app.core.constants import INITIAL_POINTS, SUPPORTED_LANGUAGES
 from app.core.database import db
 from app.core.dependencies import create_access_token, get_current_user
@@ -67,6 +68,17 @@ async def auth_telegram(payload: TelegramAuthRequest):
         )
 
     token = create_access_token(payload.telegram_id)
+
+    # ADMIN_IDS'dagi foydalanuvchilarga avtomatik admin roli berish.
+    # Har login'da tekshiriladi — shuning uchun env'ga ID qo'shilsa
+    # keyingi kirishda darhol admin bo'ladi, alohida qo'lda o'zgartirish shart emas.
+    if payload.telegram_id in settings.admin_ids_set and row["role"] != "admin":
+        await db.execute(
+            "UPDATE users SET role = 'admin', level = 3 WHERE telegram_id = $1",
+            payload.telegram_id,
+        )
+        row = await db.fetchrow("SELECT * FROM users WHERE telegram_id = $1", payload.telegram_id)
+        log.info("Auto-admin: telegram_id=%d → role=admin", payload.telegram_id)
 
     return AuthResponse(
         token=token,
