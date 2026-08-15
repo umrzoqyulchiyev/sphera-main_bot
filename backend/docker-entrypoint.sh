@@ -1,10 +1,14 @@
 #!/bin/sh
 # INTRA GROUP — Docker entrypoint
-# 1. FastAPI uvicorn (asosiy jarayon, PID 1)
-# 2. Telegram Bot — fon (backend tayyor bo'lgach)
 set -e
 
 PORT="${PORT:-8001}"
+
+# Icecast2 — jonli efir (USE_ICECAST=true bo'lsa)
+if [ "${USE_ICECAST:-false}" = "true" ]; then
+    icecast2 -c /etc/icecast2/icecast.xml &
+    echo "[entrypoint] Icecast2 started on :8000"
+fi
 
 # Bot — backend tayyor bo'lishini kutib fonda ishga tushadi
 if [ -n "${BOT_TOKEN}" ]; then

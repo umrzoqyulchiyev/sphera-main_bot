@@ -20,15 +20,16 @@ COPY frontend/ .
 # Same-origin deploy: VITE_* env bo'sh → relative URL'lar
 RUN VITE_API_URL="" VITE_WS_URL="" VITE_RADIO_URL="" npm run build
 
-# ─── Stage 2: Backend (Python 3.12 + FFmpeg) ─────────────
+# ─── Stage 2: Backend (Python 3.12 + FFmpeg + Icecast2) ─────
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Tizim kutubxonalari — ffmpeg ovoz konvertatsiyasi uchun
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl ffmpeg gcc python3-dev libpq-dev && \
+# Tizim kutubxonalari
+RUN echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        curl ffmpeg gcc python3-dev libpq-dev icecast2 && \
     rm -rf /var/lib/apt/lists/*
 
 # Python bog'liqliklar
@@ -44,16 +45,16 @@ COPY bot/ ./bot
 # Frontend build natijasi → static/
 COPY --from=frontend-builder /frontend/dist ./static
 
-# Icecast konfiguratsiyasi — lokal/VPS uchun saqlangan
-# COPY infra/icecast/icecast.xml /etc/icecast2/icecast.xml
+# Icecast konfiguratsiyasi
+COPY infra/icecast/icecast.xml /etc/icecast2/icecast.xml
 COPY backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Non-root user
 RUN useradd -m -r appuser && \
     chown -R appuser:appuser /app && \
-    mkdir -p /app/.audio /app/.uploads && \
-    chown -R appuser:appuser /app/.audio /app/.uploads
+    mkdir -p /app/.audio /app/.uploads /var/log/icecast2 && \
+    chown -R appuser:appuser /app/.audio /app/.uploads /var/log/icecast2 /etc/icecast2
 
 USER appuser
 
