@@ -23,10 +23,14 @@ USE_MEDIAMTX = os.getenv("USE_MEDIAMTX", "false").lower() == "true"
 # Shuncha vaqt chunk kelmasa — sessiya "osilib qolgan" deb hisoblanadi
 # (masalan foydalanuvchi /stop chaqirmasdan ilovani yopib qo'ygan).
 STALE_TIMEOUT_SEC = 15
-ICECAST_HOST = os.getenv("ICECAST_HOST", "icecast")
+# Default "localhost" — Icecast backend bilan bir xil konteynerda ishlaydi
+# (Railway/Docker single-container deploy). continuous.py'da ham xuddi shu
+# default — ikkisi bir xil bo'lishi shart, aks holda AI efir ishlab, jonli
+# efir "Failed to resolve hostname" bilan yiqiladi.
+ICECAST_HOST = os.getenv("ICECAST_HOST", "localhost")
 ICECAST_PORT = int(os.getenv("ICECAST_PORT", "8000"))
 ICECAST_PASS = os.getenv("ICECAST_PASS", "IcecastPass2025!")
-MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "mediamtx")
+MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "localhost")
 MEDIAMTX_RTMP_PORT = int(os.getenv("MEDIAMTX_RTMP_PORT", "1935"))
 MEDIAMTX_PUBLISH_PASS = os.getenv("MEDIAMTX_PUBLISH_PASS", "MediaMTXPass2025!")
 
